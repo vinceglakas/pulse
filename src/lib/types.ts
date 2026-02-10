@@ -1,7 +1,7 @@
 export interface SourcePost {
   title: string
   url: string
-  source: 'reddit' | 'hackernews' | 'youtube'
+  source: 'reddit' | 'hackernews' | 'youtube' | 'web'
   subreddit?: string
   score: number
   comments: number
@@ -23,6 +23,7 @@ export interface ResearchStats {
   hn_stories: number
   hn_points: number
   youtube_videos: number
+  web_pages: number
 }
 
 export interface ResearchResponse {

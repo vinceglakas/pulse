@@ -2,7 +2,7 @@
  * Deep Research Engine for Pulse
  * Inspired by mvanhorn/last30days-skill — two-phase search with entity extraction
  * 
- * Phase 1: Initial broad search across Reddit + HN
+ * Phase 1: Initial broad search across Reddit + HN + Web
  * Phase 2: Extract entities (subreddits, handles) → drill deeper
  * Phase 3: Enrich Reddit threads with actual comments + engagement
  * Phase 4: Score, dedupe, send to Claude for synthesis
@@ -10,12 +10,64 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 
+// ─── Query Intent Detection ───
+
+type QueryType = 'prompting' | 'recommendations' | 'news' | 'general'
+
+function detectQueryType(topic: string): QueryType {
+  const lower = topic.toLowerCase()
+
+  // Recommendations: "best X", "top X", "what X should I use"
+  if (/^(best|top|recommended|favorite|which)\b/.test(lower) ||
+      /should i (use|buy|try|get)/.test(lower) ||
+      /alternatives to/.test(lower) ||
+      /\bvs\b/.test(lower)) {
+    return 'recommendations'
+  }
+
+  // News: "what's happening with X", "X news", "latest on X"
+  if (/\b(news|update|announce|launch|release|happening|latest)\b/.test(lower)) {
+    return 'news'
+  }
+
+  // Prompting: "X prompts", "prompting for X", "how to prompt"
+  if (/\b(prompt|prompting|techniques|tips|practices|how to)\b/.test(lower)) {
+    return 'prompting'
+  }
+
+  return 'general'
+}
+
+function buildSearchQueries(topic: string, queryType: QueryType): string[] {
+  const queries = [topic]
+
+  switch (queryType) {
+    case 'recommendations':
+      queries.push(`best ${topic}`)
+      queries.push(`${topic} recommendations`)
+      break
+    case 'news':
+      queries.push(`${topic} 2026`)
+      queries.push(`${topic} announcement`)
+      break
+    case 'prompting':
+      queries.push(`${topic} examples`)
+      queries.push(`${topic} techniques tips`)
+      break
+    case 'general':
+      queries.push(`${topic} discussion`)
+      break
+  }
+
+  return queries
+}
+
 // ─── Types ───
 
 export interface SourcePost {
   title: string
   url: string
-  source: 'reddit' | 'hackernews' | 'youtube'
+  source: 'reddit' | 'hackernews' | 'youtube' | 'web'
   subreddit?: string
   score: number
   comments: number
@@ -29,6 +81,7 @@ export interface ResearchResult {
   topic: string
   brief: string
   sources: SourcePost[]
+  queryType: QueryType
   stats: {
     reddit_threads: number
     reddit_upvotes: number
@@ -36,6 +89,7 @@ export interface ResearchResult {
     hn_stories: number
     hn_points: number
     youtube_videos: number
+    web_pages: number
   }
 }
 
@@ -143,6 +197,69 @@ async function searchYouTube(topic: string): Promise<SourcePost[]> {
     }
   } catch {
     // Fail silently
+  }
+
+  return posts
+}
+
+// ─── Web Search (DuckDuckGo HTML scrape — no API key needed) ───
+
+async function searchWeb(topic: string, queryType: QueryType): Promise<SourcePost[]> {
+  const posts: SourcePost[] = []
+  const queries = buildSearchQueries(topic, queryType)
+
+  for (const query of queries.slice(0, 2)) {
+    try {
+      const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!res.ok) continue
+      const html = await res.text()
+
+      // Parse results from DuckDuckGo HTML
+      const resultRegex = /<a rel="nofollow" class="result__a" href="([^"]+)"[^>]*>([^<]*(?:<b>[^<]*<\/b>[^<]*)*)<\/a>/g
+      const snippetRegex = /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g
+
+      const urls: string[] = []
+      const titles: string[] = []
+      let match
+
+      while ((match = resultRegex.exec(html)) !== null) {
+        const href = decodeURIComponent(match[1].replace(/\/\/duckduckgo\.com\/l\/\?uddg=/, '').split('&')[0])
+        const title = match[2].replace(/<\/?b>/g, '').trim()
+        if (href.startsWith('http') && title) {
+          urls.push(href)
+          titles.push(title)
+        }
+      }
+
+      const snippets: string[] = []
+      while ((match = snippetRegex.exec(html)) !== null) {
+        snippets.push(match[1].replace(/<\/?b>/g, '').replace(/<[^>]+>/g, '').trim())
+      }
+
+      for (let i = 0; i < Math.min(urls.length, 8); i++) {
+        // Skip Reddit/HN results (we get those directly)
+        if (urls[i].includes('reddit.com') || urls[i].includes('news.ycombinator.com')) continue
+
+        posts.push({
+          title: titles[i] || '',
+          url: urls[i],
+          source: 'web',
+          score: 0,
+          comments: 0,
+          created_at: new Date().toISOString(),
+          body: snippets[i]?.slice(0, 300) || '',
+        })
+      }
+    } catch {
+      // Continue on failure
+    }
   }
 
   return posts
@@ -302,11 +419,15 @@ export async function deepResearch(
   topic: string,
   apiKey?: string,
 ): Promise<ResearchResult> {
+  // ── Detect query intent ──
+  const queryType = detectQueryType(topic)
+
   // ── Phase 1: Broad initial search (parallel) ──
-  const [redditPhase1, hnPosts, ytPosts] = await Promise.all([
+  const [redditPhase1, hnPosts, ytPosts, webPosts] = await Promise.all([
     searchReddit(topic),
     searchHN(topic),
     searchYouTube(topic),
+    searchWeb(topic, queryType),
   ])
 
   // ── Phase 2: Entity extraction + supplemental search ──
@@ -333,9 +454,9 @@ export async function deepResearch(
     enriched.push(...results)
   }
 
-  // Add remaining Reddit posts (unenriched) + HN + YouTube
+  // Add remaining Reddit posts (unenriched) + HN + YouTube + Web
   const remainingReddit = deduped.slice(15)
-  const allSources = deduplicateAndScore([...enriched, ...remainingReddit, ...hnPosts, ...ytPosts])
+  const allSources = deduplicateAndScore([...enriched, ...remainingReddit, ...hnPosts, ...ytPosts, ...webPosts])
 
   // ── Phase 4: Claude synthesis ──
   const stats = {
@@ -345,14 +466,16 @@ export async function deepResearch(
     hn_stories: hnPosts.length,
     hn_points: hnPosts.reduce((sum, p) => sum + p.score, 0),
     youtube_videos: ytPosts.length,
+    web_pages: webPosts.length,
   }
 
-  const brief = await synthesizeWithClaude(topic, allSources.slice(0, 40), stats, apiKey)
+  const brief = await synthesizeWithClaude(topic, allSources.slice(0, 40), stats, queryType, apiKey)
 
   return {
     topic,
     brief,
     sources: allSources.slice(0, 50),
+    queryType,
     stats,
   }
 }
@@ -362,7 +485,8 @@ export async function deepResearch(
 async function synthesizeWithClaude(
   topic: string,
   sources: SourcePost[],
-  stats: { reddit_threads: number; reddit_upvotes: number; reddit_comments: number; hn_stories: number; hn_points: number; youtube_videos: number },
+  stats: { reddit_threads: number; reddit_upvotes: number; reddit_comments: number; hn_stories: number; hn_points: number; youtube_videos: number; web_pages: number },
+  queryType: QueryType,
   apiKey?: string,
 ): Promise<string> {
   const key = apiKey || process.env.ANTHROPIC_API_KEY
@@ -372,9 +496,18 @@ async function synthesizeWithClaude(
 
   const client = new Anthropic({ apiKey: key })
 
-  const systemPrompt = `You are Pulse, an expert trend intelligence analyst. You create concise, actionable trend briefs for marketing and sales teams.
+  const queryTypeInstructions: Record<QueryType, string> = {
+    recommendations: 'The user is looking for SPECIFIC RECOMMENDATIONS. Focus on naming specific tools, products, or solutions. Compare options. Give a clear "best for X" verdict.',
+    news: 'The user wants NEWS and UPDATES. Focus on what happened recently, key announcements, and what it means. Timeline the events.',
+    prompting: 'The user wants TECHNIQUES and BEST PRACTICES. Focus on specific methods, examples, and copy-paste-ready advice.',
+    general: 'The user wants a BROAD UNDERSTANDING of this topic. Cover all angles — what people are saying, debating, and predicting.',
+  }
 
-Your briefs are structured, cite specific posts, and give people content they can act on immediately. Be specific — reference actual posts, actual numbers, actual patterns. No generic filler.`
+  const systemPrompt = `You are Pulsed, an expert trend intelligence analyst. You create concise, actionable trend briefs for marketing and sales teams.
+
+Your briefs are structured, cite specific posts, and give people content they can act on immediately. Be specific — reference actual posts, actual numbers, actual patterns. No generic filler.
+
+${queryTypeInstructions[queryType]}`
 
   const sourcesText = sources.map((s, i) => {
     let text = `[${i + 1}] "${s.title}" — ${s.source}${s.subreddit ? ` (r/${s.subreddit})` : ''} | Score: ${s.score} | Comments: ${s.comments} | ${s.created_at.slice(0, 10)}`
@@ -387,7 +520,8 @@ Your briefs are structured, cite specific posts, and give people content they ca
 
   const userPrompt = `Research "${topic}" — last 30 days.
 
-Stats: ${stats.reddit_threads} Reddit threads (${stats.reddit_upvotes} upvotes, ${stats.reddit_comments} comments) + ${stats.hn_stories} HN stories (${stats.hn_points} points) + ${stats.youtube_videos} YouTube videos.
+Stats: ${stats.reddit_threads} Reddit threads (${stats.reddit_upvotes} upvotes, ${stats.reddit_comments} comments) + ${stats.hn_stories} HN stories (${stats.hn_points} points) + ${stats.youtube_videos} YouTube videos + ${stats.web_pages} web pages.
+Query type: ${queryType}
 
 Sources:
 ${sourcesText}
