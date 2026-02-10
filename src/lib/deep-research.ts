@@ -9,6 +9,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import { searchX, searchXHandles } from './x-search'
 
 // ─── Query Intent Detection ───
 
@@ -67,7 +68,7 @@ function buildSearchQueries(topic: string, queryType: QueryType): string[] {
 export interface SourcePost {
   title: string
   url: string
-  source: 'reddit' | 'hackernews' | 'youtube' | 'web'
+  source: 'reddit' | 'hackernews' | 'youtube' | 'web' | 'x'
   subreddit?: string
   score: number
   comments: number
@@ -90,6 +91,7 @@ export interface ResearchResult {
     hn_points: number
     youtube_videos: number
     web_pages: number
+    x_posts: number
   }
 }
 
@@ -329,6 +331,44 @@ function extractEntities(redditPosts: SourcePost[], hnPosts: SourcePost[]): Extr
   return { subreddits: topSubreddits, key_terms: topTerms }
 }
 
+// ─── X Handle Extraction (for Phase 2 drill) ───
+
+function extractXHandles(xPosts: SourcePost[]): string[] {
+  const handleCounts: Record<string, number> = {}
+
+  const genericHandles = new Set([
+    'elonmusk', 'openai', 'google', 'microsoft', 'apple', 'meta',
+    'github', 'youtube', 'x', 'twitter', 'reddit',
+  ])
+
+  for (const post of xPosts) {
+    // Extract handle from title (@handle: ...)
+    const handleMatch = post.title.match(/@(\w{1,15})/)
+    if (handleMatch) {
+      const handle = handleMatch[1].toLowerCase()
+      if (!genericHandles.has(handle)) {
+        handleCounts[handle] = (handleCounts[handle] || 0) + 1
+      }
+    }
+
+    // Extract mentions from body
+    const mentions = (post.body || '').match(/@(\w{1,15})/g)
+    if (mentions) {
+      for (const mention of mentions) {
+        const handle = mention.replace('@', '').toLowerCase()
+        if (!genericHandles.has(handle)) {
+          handleCounts[handle] = (handleCounts[handle] || 0) + 1
+        }
+      }
+    }
+  }
+
+  return Object.entries(handleCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([handle]) => handle)
+}
+
 // ─── Phase 3: Reddit Enrichment ───
 
 async function enrichRedditPost(post: SourcePost): Promise<SourcePost> {
@@ -423,21 +463,35 @@ export async function deepResearch(
   const queryType = detectQueryType(topic)
 
   // ── Phase 1: Broad initial search (parallel) ──
-  const [redditPhase1, hnPosts, ytPosts, webPosts] = await Promise.all([
+  const [redditPhase1, hnPosts, ytPosts, webPosts, xPhase1] = await Promise.all([
     searchReddit(topic),
     searchHN(topic),
     searchYouTube(topic),
     searchWeb(topic, queryType),
+    searchX(topic),
   ])
 
   // ── Phase 2: Entity extraction + supplemental search ──
   const entities = extractEntities(redditPhase1, hnPosts)
 
-  let redditPhase2: SourcePost[] = []
+  // Phase 2 searches (parallel)
+  const phase2Promises: Promise<SourcePost[]>[] = []
+
   if (entities.subreddits.length > 0) {
-    // Drill into discovered subreddits
-    redditPhase2 = await searchReddit(topic, entities.subreddits)
+    phase2Promises.push(searchReddit(topic, entities.subreddits))
+  } else {
+    phase2Promises.push(Promise.resolve([]))
   }
+
+  // Extract X handles from phase 1 results for targeted follow-up
+  const xHandles = extractXHandles(xPhase1)
+  if (xHandles.length > 0) {
+    phase2Promises.push(searchXHandles(topic, xHandles))
+  } else {
+    phase2Promises.push(Promise.resolve([]))
+  }
+
+  const [redditPhase2, xPhase2] = await Promise.all(phase2Promises)
 
   // Merge all Reddit results
   const allReddit = [...redditPhase1, ...redditPhase2]
@@ -454,9 +508,12 @@ export async function deepResearch(
     enriched.push(...results)
   }
 
-  // Add remaining Reddit posts (unenriched) + HN + YouTube + Web
+  // Merge all X posts
+  const allX = [...xPhase1, ...xPhase2]
+
+  // Add remaining Reddit posts (unenriched) + HN + YouTube + Web + X
   const remainingReddit = deduped.slice(15)
-  const allSources = deduplicateAndScore([...enriched, ...remainingReddit, ...hnPosts, ...ytPosts, ...webPosts])
+  const allSources = deduplicateAndScore([...enriched, ...remainingReddit, ...hnPosts, ...ytPosts, ...webPosts, ...allX])
 
   // ── Phase 4: Claude synthesis ──
   const stats = {
@@ -467,6 +524,7 @@ export async function deepResearch(
     hn_points: hnPosts.reduce((sum, p) => sum + p.score, 0),
     youtube_videos: ytPosts.length,
     web_pages: webPosts.length,
+    x_posts: allX.length,
   }
 
   const brief = await synthesizeWithClaude(topic, allSources.slice(0, 40), stats, queryType, apiKey)
@@ -485,7 +543,7 @@ export async function deepResearch(
 async function synthesizeWithClaude(
   topic: string,
   sources: SourcePost[],
-  stats: { reddit_threads: number; reddit_upvotes: number; reddit_comments: number; hn_stories: number; hn_points: number; youtube_videos: number; web_pages: number },
+  stats: { reddit_threads: number; reddit_upvotes: number; reddit_comments: number; hn_stories: number; hn_points: number; youtube_videos: number; web_pages: number; x_posts: number },
   queryType: QueryType,
   apiKey?: string,
 ): Promise<string> {
@@ -520,7 +578,7 @@ ${queryTypeInstructions[queryType]}`
 
   const userPrompt = `Research "${topic}" — last 30 days.
 
-Stats: ${stats.reddit_threads} Reddit threads (${stats.reddit_upvotes} upvotes, ${stats.reddit_comments} comments) + ${stats.hn_stories} HN stories (${stats.hn_points} points) + ${stats.youtube_videos} YouTube videos + ${stats.web_pages} web pages.
+Stats: ${stats.reddit_threads} Reddit threads (${stats.reddit_upvotes} upvotes, ${stats.reddit_comments} comments) + ${stats.hn_stories} HN stories (${stats.hn_points} points) + ${stats.x_posts} X/Twitter posts + ${stats.youtube_videos} YouTube videos + ${stats.web_pages} web pages.
 Query type: ${queryType}
 
 Sources:

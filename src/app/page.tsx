@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 const SUGGESTED_TOPICS = [
   "AI in healthcare",
   "Salesforce alternatives",
-  "Remote work tools 2026",
-  "Sustainability in SaaS",
+  "Remote work trends 2026",
+  "Best project management tools",
 ];
 
 /* ─── Intersection Observer hook for scroll animations ─── */
@@ -115,6 +115,46 @@ function ArrowRightIcon({ className }: { className?: string }) {
   );
 }
 
+/* ─── Stats icons ─── */
+function SourcesIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function SparklesIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <polyline points="16,6 12,2 8,6" />
+      <line x1="12" y1="2" x2="12" y2="15" />
+    </svg>
+  );
+}
+
 /* ─── Step arrow divider ─── */
 function StepArrow() {
   return (
@@ -132,6 +172,7 @@ export default function Home() {
   const router = useRouter();
 
   const howItWorks = useInView();
+  const statsBar = useInView();
   const briefPreview = useInView();
   const socialProof = useInView();
 
@@ -155,13 +196,13 @@ export default function Home() {
 
           {/* Subheadline */}
           <p className="text-base text-[#8E8E93] mb-10 max-w-lg mx-auto leading-relaxed">
-            AI-powered trend briefs from Reddit, HN, X, and YouTube. Know what
+            AI-powered trend briefs from Reddit, HN, YouTube, and the web. Know what
             people are actually saying — in 2 minutes.
           </p>
 
-          {/* Search bar */}
+          {/* Search bar with animated gradient border */}
           <form onSubmit={handleSearch} className="w-full mb-5">
-            <div className="search-focus-gradient animate-pulse-glow rounded-[16px]">
+            <div className="search-gradient-border rounded-[16px]">
               <div className="relative">
                 <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#636366] pointer-events-none" />
                 <input
@@ -169,14 +210,14 @@ export default function Home() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Try 'AI in healthcare' or 'Salesforce alternatives'"
-                  className="w-full h-[56px] bg-[#141415] border border-[#2A2A2D] rounded-[16px] pl-12 pr-4 text-base text-[#F5F5F7] placeholder:text-[#636366] outline-none focus:border-transparent transition-all duration-300"
+                  className="w-full h-[56px] bg-[#141415] rounded-[16px] pl-12 pr-4 text-base text-[#F5F5F7] placeholder:text-[#636366] outline-none border-none transition-all duration-300"
                 />
               </div>
             </div>
           </form>
 
           {/* Suggested topic pills */}
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap justify-center gap-2 mb-6">
             {SUGGESTED_TOPICS.map((topic) => (
               <button
                 key={topic}
@@ -187,6 +228,11 @@ export default function Home() {
               </button>
             ))}
           </div>
+
+          {/* Powered by sources row */}
+          <p className="text-xs text-[#636366]">
+            Sources: Reddit · Hacker News · YouTube · Web
+          </p>
         </div>
       </section>
 
@@ -223,7 +269,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold text-[#F5F5F7] mb-2">Analyze</h3>
               <p className="text-sm text-[#8E8E93] leading-relaxed">
-                We scan Reddit, HN, X, and YouTube for real-time conversations.
+                We scan Reddit, HN, YouTube, and the web for real-time conversations.
               </p>
             </div>
 
@@ -238,6 +284,58 @@ export default function Home() {
               <p className="text-sm text-[#8E8E93] leading-relaxed">
                 Get a structured brief with themes, sentiment, and content ideas.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ STATS BAR ══════ */}
+      <section
+        ref={statsBar.ref}
+        className={`py-20 px-4 transition-all duration-700 ${
+          statsBar.inView ? "animate-fade-in" : "opacity-0"
+        }`}
+      >
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-[#F5F5F7] mb-10">
+            Powered by real data
+          </h2>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* 4 Sources */}
+            <div className="flex flex-col items-center text-center p-5 rounded-xl bg-[#141415] border border-[#2A2A2D]">
+              <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#7C3AED]/10 text-[#7C3AED] mb-3">
+                <SourcesIcon />
+              </div>
+              <p className="text-lg font-bold text-[#F5F5F7]">4 Sources</p>
+              <p className="text-xs text-[#636366] mt-1">Reddit, HN, YouTube, Web</p>
+            </div>
+
+            {/* 30-Day Window */}
+            <div className="flex flex-col items-center text-center p-5 rounded-xl bg-[#141415] border border-[#2A2A2D]">
+              <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#2563EB]/10 text-[#2563EB] mb-3">
+                <CalendarIcon />
+              </div>
+              <p className="text-lg font-bold text-[#F5F5F7]">30-Day Window</p>
+              <p className="text-xs text-[#636366] mt-1">Rolling trend analysis</p>
+            </div>
+
+            {/* AI-Synthesized */}
+            <div className="flex flex-col items-center text-center p-5 rounded-xl bg-[#141415] border border-[#2A2A2D]">
+              <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#22C55E]/10 text-[#22C55E] mb-3">
+                <SparklesIcon />
+              </div>
+              <p className="text-lg font-bold text-[#F5F5F7]">AI-Synthesized</p>
+              <p className="text-xs text-[#636366] mt-1">Not just aggregated — analyzed</p>
+            </div>
+
+            {/* Shareable Briefs */}
+            <div className="flex flex-col items-center text-center p-5 rounded-xl bg-[#141415] border border-[#2A2A2D]">
+              <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#EAB308]/10 text-[#EAB308] mb-3">
+                <ShareIcon />
+              </div>
+              <p className="text-lg font-bold text-[#F5F5F7]">Shareable Briefs</p>
+              <p className="text-xs text-[#636366] mt-1">Share with your team instantly</p>
             </div>
           </div>
         </div>
@@ -385,7 +483,7 @@ export default function Home() {
             Get trend briefs that actually help you create content, spot opportunities, and understand your market.
           </p>
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/signup")}
             className="inline-flex items-center gap-2 px-8 py-3.5 text-base font-medium text-white rounded-xl cursor-pointer bg-gradient-to-r from-[#7C3AED] to-[#2563EB] hover:opacity-90 transition-opacity duration-200 shadow-lg shadow-[#7C3AED]/20"
           >
             Start researching — it&apos;s free
@@ -397,7 +495,7 @@ export default function Home() {
       {/* ══════ FOOTER ══════ */}
       <footer className="py-12 px-4 border-t border-[#2A2A2D]">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#636366]">
-          <p>&copy; 2026 Pulse. All rights reserved.</p>
+          <p>&copy; 2026 Pulsed. All rights reserved.</p>
           <a
             href="https://www.getsliq.ai"
             target="_blank"

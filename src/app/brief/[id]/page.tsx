@@ -11,6 +11,7 @@ function getSourceName(source: SourcePost): string {
   }
   if (source.source === "hackernews") return "Hacker News";
   if (source.source === "youtube") return "YouTube";
+  if (source.source === "x") return "X/Twitter";
   if (source.source === "web") return "Web";
   return "Reddit";
 }
