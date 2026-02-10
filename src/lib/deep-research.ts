@@ -10,6 +10,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { searchX, searchXHandles } from './x-search'
+import { searchRedditViaOpenAI, searchWebViaOpenAI } from './openai-search'
 
 // ─── Query Intent Detection ───
 
@@ -463,13 +464,22 @@ export async function deepResearch(
   const queryType = detectQueryType(topic)
 
   // ── Phase 1: Broad initial search (parallel) ──
-  const [redditPhase1, hnPosts, ytPosts, webPosts, xPhase1] = await Promise.all([
+  // Use OpenAI web_search for Reddit discovery (finds threads Reddit's own search misses)
+  // and general web search (replaces DuckDuckGo hack). Fall back to direct APIs if OpenAI unavailable.
+  const [openaiReddit, directReddit, hnPosts, ytPosts, openaiWeb, ddgWeb, xPhase1] = await Promise.all([
+    searchRedditViaOpenAI(topic).catch(() => [] as SourcePost[]),
     searchReddit(topic),
     searchHN(topic),
     searchYouTube(topic),
-    searchWeb(topic, queryType),
+    searchWebViaOpenAI(topic, queryType).catch(() => [] as SourcePost[]),
+    searchWeb(topic, queryType), // DDG fallback
     searchX(topic),
   ])
+
+  // Merge Reddit: OpenAI-discovered + direct API (dedup handles overlaps)
+  const redditPhase1 = [...openaiReddit, ...directReddit]
+  // Merge Web: OpenAI + DDG fallback
+  const webPosts = openaiWeb.length > 0 ? openaiWeb : ddgWeb
 
   // ── Phase 2: Entity extraction + supplemental search ──
   const entities = extractEntities(redditPhase1, hnPosts)

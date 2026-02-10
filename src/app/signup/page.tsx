@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -19,10 +20,10 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-[#F5F5F7] mb-2">
-              Welcome back to Pulsed
+              Join the Pulsed beta
             </h1>
             <p className="text-sm text-[#8E8E93]">
-              Log in to access your trend briefs
+              Get 3 free trend briefs every month
             </p>
           </div>
 
@@ -62,8 +63,25 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Email/password form */}
+          {/* Email/password/name form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="fullName"
+                className="block text-sm text-[#8E8E93] mb-1.5"
+              >
+                Full name
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Jane Doe"
+                className="w-full h-[44px] bg-[#0A0A0B] border border-[#2A2A2D] rounded-xl px-4 text-sm text-[#F5F5F7] placeholder:text-[#636366] outline-none focus:border-[#7C3AED] transition-colors duration-200"
+                required
+              />
+            </div>
             <div>
               <label
                 htmlFor="email"
@@ -102,28 +120,23 @@ export default function LoginPage() {
               type="submit"
               className="w-full h-[48px] bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer"
             >
-              Log in
+              Create account
             </button>
           </form>
 
           {/* Links */}
-          <div className="mt-6 text-center space-y-2">
+          <div className="mt-6 text-center space-y-3">
             <p className="text-sm text-[#636366]">
-              Don&apos;t have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/signup"
+                href="/login"
                 className="text-[#7C3AED] hover:text-[#8B5CF6] transition-colors"
               >
-                Sign up
+                Log in
               </Link>
             </p>
-            <p className="text-sm">
-              <Link
-                href="#"
-                className="text-[#636366] hover:text-[#8E8E93] transition-colors"
-              >
-                Forgot password?
-              </Link>
+            <p className="text-xs text-[#636366]">
+              By signing up, you agree to our Terms of Service
             </p>
           </div>
         </div>
