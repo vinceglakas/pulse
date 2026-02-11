@@ -42,6 +42,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ── Quota enforcement (free tier: 3/month) ──
+    const fp = (body as any).fingerprint as string | undefined
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const identifier = fp ? `fp:${fp}` : ip
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    const { count: usedCount } = await supabase
+      .from('search_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('ip_address', identifier)
+      .gte('created_at', monthStart)
+
+    const FREE_LIMIT = 3
+    if ((usedCount || 0) >= FREE_LIMIT) {
+      return NextResponse.json(
+        {
+          error: 'You\'ve used all 3 free searches this month. Upgrade to Pro for unlimited research.',
+          quota_exceeded: true,
+          used: usedCount,
+          limit: FREE_LIMIT,
+        },
+        { status: 429 }
+      )
+    }
+
     // Run the deep research pipeline
     const result = await deepResearch(trimmedTopic, apiKey, persona)
 
@@ -51,6 +78,11 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
+
+    // Log usage for quota tracking
+    try {
+      await supabase.from('search_usage').insert({ ip_address: identifier, topic: trimmedTopic })
+    } catch { /* non-blocking */ }
 
     // Save to Supabase
     const { data: savedBrief, error: dbError } = await supabase

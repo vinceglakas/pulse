@@ -50,6 +50,16 @@ function PersonaPicker({ onSelect }: { onSelect: (p: string) => void }) {
   );
 }
 
+function getFingerprint(): string {
+  if (typeof window === 'undefined') return 'server'
+  let fp = localStorage.getItem('pulsed_fp')
+  if (!fp) {
+    fp = Math.random().toString(36).slice(2) + Date.now().toString(36)
+    localStorage.setItem('pulsed_fp', fp)
+  }
+  return fp
+}
+
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,6 +70,7 @@ function SearchContent() {
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const runResearch = useCallback(async (selectedPersona: string) => {
     if (!query.trim()) {
@@ -74,11 +85,14 @@ function SearchContent() {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: query.trim(), persona: selectedPersona }),
+        body: JSON.stringify({ topic: query.trim(), persona: selectedPersona, fingerprint: getFingerprint() }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Request failed" }));
+        if (data.quota_exceeded) {
+          setQuotaExceeded(true);
+        }
         throw new Error(data.error || `Request failed (${res.status})`);
       }
 
@@ -165,20 +179,29 @@ function SearchContent() {
           </div>
 
           <h2 className="text-xl font-bold text-gray-900 mb-2">
-            Research failed
+            {quotaExceeded ? "Free searches used up" : "Research failed"}
           </h2>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
             {error}
           </p>
 
           <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={handleRetry}
-              disabled={isRetrying}
-              className="px-6 py-3 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
-            >
-              {isRetrying ? "Retrying..." : "Try again"}
-            </button>
+            {quotaExceeded ? (
+              <button
+                onClick={() => router.replace("/")}
+                className="px-6 py-3 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity duration-200 cursor-pointer"
+              >
+                Upgrade to Pro — Coming Soon
+              </button>
+            ) : (
+              <button
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className="px-6 py-3 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+              >
+                {isRetrying ? "Retrying..." : "Try again"}
+              </button>
+            )}
             <button
               onClick={() => router.replace("/")}
               className="px-6 py-3 text-sm font-medium text-gray-500 rounded-xl border border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-all duration-200 cursor-pointer"
