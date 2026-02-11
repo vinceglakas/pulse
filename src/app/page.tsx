@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import BriefOfTheDay from './components/BriefOfTheDay';
 
 export default function Home() {
   const router = useRouter();
@@ -159,6 +160,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Brief of the Day */}
+      <BriefOfTheDay />
 
       {/* Built For — Persona Rotator */}
       <section className="py-14 border-y border-gray-100">
