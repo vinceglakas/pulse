@@ -2,25 +2,32 @@
 
 import { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
-import type { ResearchResponse, SourcePost } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import type { ResearchResponse, StructuredBrief } from "@/lib/types";
 
-/* ─── Helper: source display info ─── */
-function getSourceName(source: SourcePost): string {
-  // Extract domain from URL for display
+/* ─── Parse structured brief JSON ─── */
+function parseStructuredBrief(text: string): StructuredBrief | null {
   try {
-    const url = new URL(source.url);
-    return url.hostname.replace(/^www\./, '');
+    const cleaned = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    const parsed = JSON.parse(cleaned);
+    // Validate required fields
+    if (
+      typeof parsed.executive_summary === "string" &&
+      Array.isArray(parsed.key_themes) &&
+      parsed.sentiment &&
+      typeof parsed.sentiment.positive === "number" &&
+      Array.isArray(parsed.recommended_actions) &&
+      Array.isArray(parsed.follow_up_queries)
+    ) {
+      return parsed as StructuredBrief;
+    }
+    return null;
   } catch {
-    return "Source";
+    return null;
   }
 }
 
-function formatScore(score: number): string {
-  if (score >= 1000) return `${(score / 1000).toFixed(1)}k`;
-  return String(score);
-}
-
-/* ─── Markdown-ish renderer ─── */
+/* ─── Markdown-ish renderer (fallback for old briefs) ─── */
 function BriefMarkdown({ text }: { text: string }) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
@@ -82,7 +89,6 @@ function BriefMarkdown({ text }: { text: string }) {
       continue;
     }
 
-    // H1
     if (trimmed.startsWith("# ") && !trimmed.startsWith("## ")) {
       flushList();
       flushNumberedList();
@@ -94,7 +100,6 @@ function BriefMarkdown({ text }: { text: string }) {
       continue;
     }
 
-    // H2
     if (trimmed.startsWith("## ") && !trimmed.startsWith("### ")) {
       flushList();
       flushNumberedList();
@@ -106,7 +111,6 @@ function BriefMarkdown({ text }: { text: string }) {
       continue;
     }
 
-    // H3
     if (trimmed.startsWith("### ")) {
       flushList();
       flushNumberedList();
@@ -118,7 +122,6 @@ function BriefMarkdown({ text }: { text: string }) {
       continue;
     }
 
-    // Horizontal rule
     if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
       flushList();
       flushNumberedList();
@@ -128,21 +131,18 @@ function BriefMarkdown({ text }: { text: string }) {
       continue;
     }
 
-    // Unordered list
-    if (/^[-*•]\s/.test(trimmed)) {
+    if (/^[-*\u2022]\s/.test(trimmed)) {
       flushNumberedList();
-      listItems.push(trimmed.replace(/^[-*•]\s+/, ""));
+      listItems.push(trimmed.replace(/^[-*\u2022]\s+/, ""));
       continue;
     }
 
-    // Numbered list
     if (/^\d+[.)]\s/.test(trimmed)) {
       flushList();
       numberedItems.push(trimmed.replace(/^\d+[.)]\s+/, ""));
       continue;
     }
 
-    // Paragraph
     flushList();
     flushNumberedList();
     elements.push(
@@ -169,9 +169,9 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
       {children}
     </h3>
   );
@@ -189,18 +189,30 @@ function BriefSkeleton() {
           <div className="h-4 w-1/2 bg-gray-100 rounded animate-pulse" />
         </Card>
         <Card className="mb-6">
-          <div className="h-3 w-16 bg-gray-100 rounded mb-4 animate-pulse" />
+          <div className="h-3 w-32 bg-gray-100 rounded mb-4 animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-4 w-full bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-5/6 bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-4/6 bg-gray-100 rounded animate-pulse" />
+          </div>
+        </Card>
+        <Card className="mb-6">
+          <div className="h-3 w-24 bg-gray-100 rounded mb-4 animate-pulse" />
           <div className="space-y-3">
             {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+              <div key={n} className="h-5 bg-gray-100 rounded animate-pulse" />
             ))}
           </div>
         </Card>
+        <Card className="mb-6">
+          <div className="h-3 w-36 bg-gray-100 rounded mb-4 animate-pulse" />
+          <div className="h-4 w-full bg-gray-100 rounded-full animate-pulse" />
+        </Card>
         <Card>
-          <div className="h-3 w-16 bg-gray-100 rounded mb-4 animate-pulse" />
-          <div className="space-y-2">
+          <div className="h-3 w-40 bg-gray-100 rounded mb-4 animate-pulse" />
+          <div className="space-y-3">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+              <div key={n} className="h-5 bg-gray-100 rounded animate-pulse" />
             ))}
           </div>
         </Card>
@@ -214,7 +226,7 @@ function BriefError({ message }: { message: string }) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[#EF4444]/10 flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-50 flex items-center justify-center">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -237,6 +249,142 @@ function BriefError({ message }: { message: string }) {
   );
 }
 
+/* ─── Sentiment Bar ─── */
+function SentimentBar({ sentiment }: { sentiment: StructuredBrief["sentiment"] }) {
+  const { positive, neutral, negative } = sentiment;
+  return (
+    <div>
+      <div className="flex w-full h-3 rounded-full overflow-hidden">
+        {positive > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${positive}%`, backgroundColor: "#22c55e" }}
+          />
+        )}
+        {neutral > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${neutral}%`, backgroundColor: "#eab308" }}
+          />
+        )}
+        {negative > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${negative}%`, backgroundColor: "#ec4899" }}
+          />
+        )}
+      </div>
+      <div className="flex items-center gap-6 mt-3">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#22c55e" }} />
+          <span className="text-xs text-gray-600">{positive}% Positive</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#eab308" }} />
+          <span className="text-xs text-gray-600">{neutral}% Neutral</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#ec4899" }} />
+          <span className="text-xs text-gray-600">{negative}% Negative</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Structured Brief Layout ─── */
+function StructuredBriefView({
+  data,
+  topic,
+  sourceCount,
+  createdDate,
+}: {
+  data: StructuredBrief;
+  topic: string;
+  sourceCount: number;
+  createdDate: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <>
+      {/* Topic Header */}
+      <Card className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          &ldquo;{topic}&rdquo;
+        </h1>
+        <p className="text-sm text-gray-500">
+          {sourceCount} sources analyzed · {createdDate}
+        </p>
+      </Card>
+
+      {/* Executive Summary */}
+      <Card className="mb-6">
+        <SectionHeader>Executive Summary</SectionHeader>
+        <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+          {data.executive_summary}
+        </div>
+      </Card>
+
+      {/* Key Themes */}
+      {data.key_themes.length > 0 && (
+        <Card className="mb-6">
+          <SectionHeader>Key Themes</SectionHeader>
+          <ul className="space-y-3">
+            {data.key_themes.map((theme, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="w-2 h-2 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
+                <span className="text-sm text-gray-900 font-medium">{theme}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Sentiment Analysis */}
+      <Card className="mb-6">
+        <SectionHeader>Sentiment Analysis</SectionHeader>
+        <SentimentBar sentiment={data.sentiment} />
+      </Card>
+
+      {/* Recommended Actions */}
+      {data.recommended_actions.length > 0 && (
+        <Card className="mb-6">
+          <SectionHeader>Recommended Actions</SectionHeader>
+          <ul className="space-y-3">
+            {data.recommended_actions.map((action, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="w-5 h-5 rounded border-2 border-gray-300 shrink-0 mt-0.5" />
+                <span className="text-sm text-gray-900">{action}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Want to go deeper? */}
+      {data.follow_up_queries.length > 0 && (
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-4">
+            Want to go deeper?
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {data.follow_up_queries.map((query, i) => (
+              <button
+                key={i}
+                onClick={() => router.push(`/search?q=${encodeURIComponent(query)}`)}
+                className="border border-indigo-300 text-indigo-700 bg-white rounded-full px-4 py-2 text-sm hover:bg-indigo-50 transition-colors cursor-pointer"
+              >
+                {query}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ─── Main brief page ─── */
 export default function BriefPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -246,7 +394,6 @@ export default function BriefPage({ params }: { params: Promise<{ id: string }> 
   const [copied, setCopied] = useState(false);
 
   const fetchBrief = useCallback(async () => {
-    // Handle temp briefs stored in sessionStorage
     if (id === "temp") {
       try {
         const stored = sessionStorage.getItem("pulse_temp_brief");
@@ -288,17 +435,14 @@ export default function BriefPage({ params }: { params: Promise<{ id: string }> 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback - do nothing
+      // fallback
     }
   }
 
   if (loading) return <BriefSkeleton />;
   if (error || !brief) return <BriefError message={error || "Brief not found"} />;
 
-  const topSources = brief.sources
-    .slice()
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+  const structuredData = parseStructuredBrief(brief.brief);
 
   const createdDate = brief.created_at
     ? new Date(brief.created_at).toLocaleDateString("en-US", {
@@ -310,7 +454,7 @@ export default function BriefPage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-16 px-4">
       <div className="max-w-3xl mx-auto animate-stagger-in">
-        {/* Top bar: back + actions */}
+        {/* Top bar: back + share */}
         <div className="flex items-center justify-between mb-8">
           <Link
             href="/"
@@ -335,54 +479,35 @@ export default function BriefPage({ params }: { params: Promise<{ id: string }> 
           </button>
         </div>
 
-        {/* Topic Header */}
-        <Card className="mb-6">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Trend Brief</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            &ldquo;{brief.topic}&rdquo;
-          </h1>
-          <p className="text-sm text-gray-500">
-            {brief.sources.length} sources analyzed · {createdDate}
-          </p>
-        </Card>
+        {/* Render structured or fallback */}
+        {structuredData ? (
+          <StructuredBriefView
+            data={structuredData}
+            topic={brief.topic}
+            sourceCount={brief.sources.length}
+            createdDate={createdDate}
+          />
+        ) : (
+          <>
+            {/* Legacy: Topic Header */}
+            <Card className="mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                &ldquo;{brief.topic}&rdquo;
+              </h1>
+              <p className="text-sm text-gray-500">
+                {brief.sources.length} sources analyzed · {createdDate}
+              </p>
+            </Card>
 
-        {/* Brief Content */}
-        <Card className="mb-6">
-          <SectionTitle>Analysis</SectionTitle>
-          <BriefMarkdown text={brief.brief} />
-        </Card>
-
-        {/* Sources */}
-        {topSources.length > 0 && (
-          <Card className="mb-6">
-            <SectionTitle>Top Sources</SectionTitle>
-            <div className="space-y-2">
-              {topSources.map((source, i) => (
-                <a
-                  key={i}
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-900 group-hover:text-gray-900 truncate">
-                      {source.title}
-                    </p>
-                    <p className="text-xs text-indigo-600 mt-1">{getSourceName(source)}</p>
-                  </div>
-                  {source.score > 0 && (
-                    <span className="text-xs text-gray-500 ml-4 shrink-0 font-mono">
-                      ▲ {formatScore(source.score)}
-                    </span>
-                  )}
-                </a>
-              ))}
-            </div>
-          </Card>
+            {/* Legacy: Markdown brief */}
+            <Card className="mb-6">
+              <SectionHeader>Analysis</SectionHeader>
+              <BriefMarkdown text={brief.brief} />
+            </Card>
+          </>
         )}
 
-        {/* CTA */}
+        {/* Bottom CTA */}
         <div className="text-center pt-4">
           <Link
             href="/"

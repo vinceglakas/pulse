@@ -47,3 +47,11 @@ export interface Brief {
   user_id: string | null
   created_at: string
 }
+
+export interface StructuredBrief {
+  executive_summary: string
+  key_themes: string[]
+  sentiment: { positive: number; neutral: number; negative: number }
+  recommended_actions: string[]
+  follow_up_queries: string[]
+}

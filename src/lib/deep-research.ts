@@ -571,20 +571,36 @@ async function synthesizeWithClaude(
     general: 'The user wants a BROAD UNDERSTANDING of this topic. Cover all angles — what people are saying, debating, and predicting.',
   }
 
-  const systemPrompt = `You are Pulsed, an expert research analyst. You write comprehensive intelligence briefs that ANSWER the user's question directly, then provide supporting analysis.
+  const systemPrompt = `You are Pulsed, an expert research analyst. You produce structured intelligence briefs as JSON.
 
 CRITICAL RULES:
 - NEVER mention specific source platforms (no "Reddit", "Hacker News", "HN", "YouTube", "X/Twitter", "r/subreddit")
 - NEVER mention timeframes like "last 30 days" or "past month"
 - NEVER show query metadata, stats, or data collection details
-- DO reference sources by linking to them: [Source Title](URL)
-- ALWAYS lead with a direct answer to the question before analysis
-- Write like a Perplexity or ChatGPT research response — clean, authoritative, helpful
+- NEVER include URLs or links in any text fields
+- Write with clean, authoritative, professional prose
+- Be direct, specific, and opinionated — no filler, no hedging
 
-${queryTypeInstructions[queryType]}`
+${queryTypeInstructions[queryType]}
+
+You MUST respond with ONLY a valid JSON object (no markdown fences, no extra text). The JSON schema:
+{
+  "executive_summary": "1-2 paragraphs of authoritative prose directly answering the research question. Clean, insightful, no links.",
+  "key_themes": ["Bold insight statement 1", "Bold insight statement 2", ...],
+  "sentiment": { "positive": <number 0-100>, "neutral": <number 0-100>, "negative": <number 0-100> },
+  "recommended_actions": ["Specific action 1", "Specific action 2", ...],
+  "follow_up_queries": ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3"]
+}
+
+Rules for each field:
+- executive_summary: 1-2 paragraphs. Direct answer first, then supporting analysis. No source links.
+- key_themes: 3-5 bold insight statements. Each is a single sentence capturing a major finding.
+- sentiment: Percentages based on the actual tone of sources analyzed. Must sum to 100.
+- recommended_actions: 3-5 specific, actionable items. Each is a concrete step the reader can take.
+- follow_up_queries: 3 natural follow-up research questions the reader might want to explore next.`
 
   const sourcesText = sources.map((s, i) => {
-    let text = `[${i + 1}] "${s.title}" — ${s.url} | Engagement: ${s.score} | Replies: ${s.comments}`
+    let text = `[${i + 1}] "${s.title}" | Engagement: ${s.score} | Replies: ${s.comments}`
     if (s.body) text += `\n    Context: ${s.body.slice(0, 200)}`
     if (s.comment_insights?.length) {
       text += `\n    Key discussion points:\n${s.comment_insights.map(c => `      - ${c}`).join('\n')}`
@@ -594,26 +610,12 @@ ${queryTypeInstructions[queryType]}`
 
   const userPrompt = `Research question: "${topic}"
 
-I've gathered ${sources.length} sources. Analyze them and write a research brief.
+I've gathered ${sources.length} sources. Analyze them and produce a structured research brief as JSON.
 
 Sources:
 ${sourcesText}
 
-Write a brief with these sections:
-
-## Answer
-Lead with a DIRECT, clear answer to "${topic}". 2-3 paragraphs. Name specific products, tools, companies, or conclusions. Link to sources using [Title](URL) format.
-
-## Key Insights
-3-5 major findings. Each should be a specific, actionable insight with source links.
-
-## What People Are Saying
-Real quotes, opinions, and perspectives from the sources. What's the consensus? Where do people disagree?
-
-## Recommendations
-If applicable, give specific recommendations based on the research. Be opinionated — tell them what to do.
-
-Be direct, specific, and authoritative. Every claim should link to a source. No filler, no hedging.`
+Respond with ONLY the JSON object. No markdown, no explanation, no wrapping.`
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -623,7 +625,18 @@ Be direct, specific, and authoritative. Every claim should link to a source. No 
   })
 
   const textBlock = response.content.find(b => b.type === 'text')
-  return textBlock?.text || generateFallbackBrief(topic, sources, stats)
+  const rawText = textBlock?.text || ''
+
+  // Try to parse as JSON, fall back to returning raw text
+  try {
+    // Strip potential markdown fences just in case
+    const cleaned = rawText.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
+    JSON.parse(cleaned) // validate it's valid JSON
+    return cleaned
+  } catch {
+    // If Claude didn't return valid JSON, return raw text (will render as markdown fallback)
+    return rawText || generateFallbackBrief(topic, sources, stats)
+  }
 }
 
 function generateFallbackBrief(
