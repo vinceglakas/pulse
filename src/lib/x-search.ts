@@ -66,7 +66,7 @@ async function xSearchQuery(
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'grok-3-mini-fast',
+      model: 'grok-4',
       tools: [
         {
           type: 'x_search',
@@ -215,7 +215,7 @@ export async function searchXHandles(
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-3-mini-fast',
+        model: 'grok-4',
         tools: [
           {
             type: 'x_search',
