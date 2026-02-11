@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const STATUS_MESSAGES = [
-  "Scanning Reddit...",
-  "Searching Hacker News...",
-  "Checking YouTube...",
-  "Analyzing with AI...",
-  "Identifying key themes...",
+  "Scanning discussions...",
+  "Searching communities...",
+  "Analyzing conversations...",
+  "Extracting key insights...",
+  "Identifying trends...",
   "Building your brief...",
 ];
 
