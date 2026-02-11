@@ -78,7 +78,7 @@ async function xSearchQuery(
       ],
       input: `Search X/Twitter for discussions about "${topic}" from the last 30 days. Find the most engaged-with posts (highest likes, reposts, replies). For each post, extract: the author's handle, the post text, engagement metrics (likes, reposts, replies), and the post URL. Return up to 25 of the most relevant and engaged posts. Focus on substantive discussions, not spam or promotional content.`,
     }),
-    signal: AbortSignal.timeout(120000),
+    signal: AbortSignal.timeout(30000),
   })
 
   if (!response.ok) {
@@ -228,7 +228,7 @@ export async function searchXHandles(
         ],
         input: `Find posts from these X accounts about "${topic}" from the last 30 days: ${handles.map(h => `@${h}`).join(', ')}. Return the most engaged-with posts with full text, engagement metrics, and URLs.`,
       }),
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(30000),
     })
 
     if (!response.ok) return []
