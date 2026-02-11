@@ -111,46 +111,123 @@ export async function POST(request: NextRequest) {
   }
 }
 
+interface TrendCandidate {
+  title: string
+  score: number // normalized engagement score
+  source: string
+}
+
 async function pickTrendingTopic(): Promise<string | null> {
+  // Scan HN, Reddit, and Google Trends in parallel — pick the hottest topic across all
+  const [hnCandidates, redditCandidates, googleCandidates] = await Promise.all([
+    getHNTrending().catch(() => [] as TrendCandidate[]),
+    getRedditTrending().catch(() => [] as TrendCandidate[]),
+    getGoogleTrending().catch(() => [] as TrendCandidate[]),
+  ])
+
+  const all = [...hnCandidates, ...redditCandidates, ...googleCandidates]
+
+  if (all.length === 0) {
+    // Fallback: evergreen topics
+    const fallbacks = [
+      'AI agents in enterprise 2026',
+      'future of remote work',
+      'cybersecurity trends 2026',
+      'open source AI models',
+      'startup funding trends',
+    ]
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)]
+  }
+
+  // Sort by score, pick randomly from top 8 for variety
+  all.sort((a, b) => b.score - a.score)
+  const top = all.slice(0, 8)
+  return top[Math.floor(Math.random() * top.length)].title
+}
+
+function cleanTitle(title: string): string {
+  let t = title
+    .replace(/^(Show HN|Ask HN|Tell HN|Launch HN):\s*/i, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\[.*?\]\s*/g, '')
+    .trim()
+  if (t.length > 80) {
+    const dash = t.indexOf(' – ')
+    const colon = t.indexOf(': ')
+    const cut = Math.min(dash > 0 ? dash : 999, colon > 0 ? colon : 999)
+    if (cut < 999) t = t.slice(0, cut).trim()
+  }
+  return t
+}
+
+async function getHNTrending(): Promise<TrendCandidate[]> {
+  const res = await fetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30', {
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  return (data.hits || [])
+    .filter((s: any) => s.points > 50 && s.num_comments > 20)
+    .map((s: any) => ({
+      title: cleanTitle(s.title),
+      score: s.points + s.num_comments * 2,
+      source: 'hn',
+    }))
+}
+
+async function getRedditTrending(): Promise<TrendCandidate[]> {
+  const subs = ['technology', 'artificial', 'business', 'Futurology']
+  const results: TrendCandidate[] = []
+
+  await Promise.all(subs.map(async (sub) => {
+    try {
+      const res = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=10`, {
+        headers: { 'User-Agent': 'Pulsed/1.0' },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      for (const child of data?.data?.children || []) {
+        const d = child?.data
+        if (!d || d.stickied || d.score < 100) continue
+        results.push({
+          title: cleanTitle(d.title),
+          score: d.score + (d.num_comments || 0) * 2,
+          source: 'reddit',
+        })
+      }
+    } catch { /* skip */ }
+  }))
+
+  return results
+}
+
+async function getGoogleTrending(): Promise<TrendCandidate[]> {
   try {
-    // Fetch HN front page stories
-    const res = await fetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30', {
-      signal: AbortSignal.timeout(10000),
+    const res = await fetch('https://trends.google.com/trending/rss?geo=US', {
+      signal: AbortSignal.timeout(8000),
     })
-    if (!res.ok) return null
-    const data = await res.json()
-    const stories = data.hits || []
+    if (!res.ok) return []
+    const text = await res.text()
 
-    // Filter for tech/AI/business topics with good engagement
-    const candidates = stories
-      .filter((s: any) => s.points > 50 && s.num_comments > 20)
-      .sort((a: any, b: any) => (b.points + b.num_comments * 2) - (a.points + a.num_comments * 2))
-
-    if (candidates.length === 0) return null
-
-    // Pick a random one from top 10 to add variety
-    const top = candidates.slice(0, 10)
-    const pick = top[Math.floor(Math.random() * top.length)]
-
-    // Extract a clean search topic from the title
-    let topic = pick.title
-      .replace(/^(Show HN|Ask HN|Tell HN|Launch HN):\s*/i, '')
-      .replace(/\s*\([^)]*\)\s*$/, '') // Remove trailing parenthetical
-      .trim()
-
-    // If title is too long, truncate to first meaningful phrase
-    if (topic.length > 80) {
-      const dash = topic.indexOf(' \u2013 ')
-      const colon = topic.indexOf(': ')
-      const cut = Math.min(
-        dash > 0 ? dash : 999,
-        colon > 0 ? colon : 999
-      )
-      if (cut < 999) topic = topic.slice(0, cut).trim()
+    // Parse RSS XML — extract <title> tags inside <item>
+    const items: TrendCandidate[] = []
+    const itemRegex = /<item>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>[\s\S]*?<\/item>/g
+    let match
+    let rank = 20 // top items get higher scores
+    while ((match = itemRegex.exec(text)) !== null && items.length < 15) {
+      const title = match[1].trim()
+      if (title && title.length > 3) {
+        items.push({
+          title,
+          score: rank * 50, // normalize to compete with HN/Reddit scores
+          source: 'google',
+        })
+        rank--
+      }
     }
-
-    return topic
+    return items
   } catch {
-    return null
+    return []
   }
 }
