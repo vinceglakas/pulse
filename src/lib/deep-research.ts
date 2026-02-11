@@ -571,47 +571,49 @@ async function synthesizeWithClaude(
     general: 'The user wants a BROAD UNDERSTANDING of this topic. Cover all angles — what people are saying, debating, and predicting.',
   }
 
-  const systemPrompt = `You are Pulsed, an expert trend intelligence analyst. You create concise, actionable trend briefs for marketing and sales teams.
+  const systemPrompt = `You are Pulsed, an expert research analyst. You write comprehensive intelligence briefs that ANSWER the user's question directly, then provide supporting analysis.
 
-Your briefs are structured, cite specific posts, and give people content they can act on immediately. Be specific — reference actual posts, actual numbers, actual patterns. No generic filler.
+CRITICAL RULES:
+- NEVER mention specific source platforms (no "Reddit", "Hacker News", "HN", "YouTube", "X/Twitter", "r/subreddit")
+- NEVER mention timeframes like "last 30 days" or "past month"
+- NEVER show query metadata, stats, or data collection details
+- DO reference sources by linking to them: [Source Title](URL)
+- ALWAYS lead with a direct answer to the question before analysis
+- Write like a Perplexity or ChatGPT research response — clean, authoritative, helpful
 
 ${queryTypeInstructions[queryType]}`
 
   const sourcesText = sources.map((s, i) => {
-    let text = `[${i + 1}] "${s.title}" — ${s.source}${s.subreddit ? ` (r/${s.subreddit})` : ''} | Score: ${s.score} | Comments: ${s.comments} | ${s.created_at.slice(0, 10)}`
-    if (s.body) text += `\n    Body: ${s.body.slice(0, 200)}`
+    let text = `[${i + 1}] "${s.title}" — ${s.url} | Engagement: ${s.score} | Replies: ${s.comments}`
+    if (s.body) text += `\n    Context: ${s.body.slice(0, 200)}`
     if (s.comment_insights?.length) {
-      text += `\n    Top comments:\n${s.comment_insights.map(c => `      - ${c}`).join('\n')}`
+      text += `\n    Key discussion points:\n${s.comment_insights.map(c => `      - ${c}`).join('\n')}`
     }
     return text
   }).join('\n\n')
 
-  const userPrompt = `Research "${topic}" — last 30 days.
+  const userPrompt = `Research question: "${topic}"
 
-Stats: ${stats.reddit_threads} Reddit threads (${stats.reddit_upvotes} upvotes, ${stats.reddit_comments} comments) + ${stats.hn_stories} HN stories (${stats.hn_points} points) + ${stats.x_posts} X/Twitter posts + ${stats.youtube_videos} YouTube videos + ${stats.web_pages} web pages.
-Query type: ${queryType}
+I've gathered ${sources.length} sources. Analyze them and write a research brief.
 
 Sources:
 ${sourcesText}
 
-Write a trend brief with these sections:
+Write a brief with these sections:
 
-## Key Themes
-3-5 major themes with 1-2 sentence explanations. Reference specific posts [by number].
+## Answer
+Lead with a DIRECT, clear answer to "${topic}". 2-3 paragraphs. Name specific products, tools, companies, or conclusions. Link to sources using [Title](URL) format.
 
-## Sentiment
-Overall positive/negative/mixed with percentage estimate. What's driving the sentiment?
+## Key Insights
+3-5 major findings. Each should be a specific, actionable insight with source links.
 
-## Top Posts
-The 8-10 most important posts. For each: title, source, why it matters (one line). Include links.
+## What People Are Saying
+Real quotes, opinions, and perspectives from the sources. What's the consensus? Where do people disagree?
 
-## Viral Hooks
-Actual phrases, framings, or angles getting engagement. These are content goldmines.
+## Recommendations
+If applicable, give specific recommendations based on the research. Be opinionated — tell them what to do.
 
-## Content Ideas
-5 specific, ready-to-use content angles for marketing/sales teams. Not generic — based on what's actually trending.
-
-Be concise but specific. Every claim should reference a source.`
+Be direct, specific, and authoritative. Every claim should link to a source. No filler, no hedging.`
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -630,14 +632,10 @@ function generateFallbackBrief(
   stats: { reddit_threads: number; hn_stories: number },
 ): string {
   const topPosts = sources.slice(0, 10)
-  return `# Trend Brief: "${topic}"
+  return `# Research Brief: "${topic}"
 
-## Sources Found
-- Reddit: ${stats.reddit_threads} threads
-- Hacker News: ${stats.hn_stories} stories
+## Top Sources
+${topPosts.map((p, i) => `${i + 1}. [${p.title}](${p.url})${p.score > 0 ? ` — ${p.score} engagement` : ''}`).join('\n')}
 
-## Top Posts
-${topPosts.map((p, i) => `${i + 1}. **${p.title}** — ${p.source}${p.subreddit ? ` (r/${p.subreddit})` : ''} | Score: ${p.score} | [Link](${p.url})`).join('\n')}
-
-*Note: AI analysis unavailable. Showing raw results. Add your Claude API key for full trend briefs.*`
+*AI analysis unavailable for this query. Showing top sources found.*`
 }
