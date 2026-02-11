@@ -56,9 +56,9 @@ Find 15-25 threads from the last 30 days. Return MORE rather than fewer.`
 }
 
 /**
- * Search the general web via OpenAI's web_search tool
+ * Search the general web via OpenAI's web_search tool (legacy, kept for reference)
  */
-export async function searchWebViaOpenAI(
+export async function _searchWebViaOpenAI_legacy(
   topic: string,
   queryType: string,
 ): Promise<SourcePost[]> {
@@ -70,6 +70,42 @@ export async function searchWebViaOpenAI(
 Skip Reddit and Hacker News results.
 Prioritize: Industry blogs, news outlets, company announcements, expert analyses.
 
+For each result provide the URL, title, and a 1-2 sentence summary.`
+
+  return await executeWebSearch(apiKey, prompt, 'web')
+}
+
+/**
+ * Search for NEWS articles via OpenAI's web_search tool
+ */
+export async function searchNewsViaOpenAI(
+  topic: string,
+  queryType: string,
+): Promise<SourcePost[]> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return []
+
+  const prompt = `Find 10-15 recent news articles about "${topic}" from the last 30 days.
+Focus on: Major news outlets (TechCrunch, The Verge, Bloomberg, Reuters, Forbes, Wired, Ars Technica), industry publications, and breaking news.
+Skip Reddit, Hacker News, and YouTube results.
+For each result provide the URL, title, and a 1-2 sentence summary.`
+
+  return await executeWebSearch(apiKey, prompt, 'web')
+}
+
+/**
+ * Search for BLOG posts and expert analyses via OpenAI's web_search tool
+ */
+export async function searchBlogsViaOpenAI(
+  topic: string,
+  queryType: string,
+): Promise<SourcePost[]> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return []
+
+  const prompt = `Find 8-12 recent blog posts, analyses, or expert opinions about "${topic}" from the last 30 days.
+Focus on: Expert blogs, Substack newsletters, Medium articles, company engineering blogs, research reports.
+Skip Reddit, Hacker News, YouTube, and major news outlets.
 For each result provide the URL, title, and a 1-2 sentence summary.`
 
   return await executeWebSearch(apiKey, prompt, 'web')

@@ -10,7 +10,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { searchX, searchXHandles } from './x-search'
-import { searchRedditViaOpenAI, searchWebViaOpenAI } from './openai-search'
+import { searchRedditViaOpenAI, searchNewsViaOpenAI, searchBlogsViaOpenAI } from './openai-search'
 
 // ─── Query Intent Detection ───
 
@@ -176,33 +176,96 @@ async function searchHN(topic: string): Promise<SourcePost[]> {
 }
 
 async function searchYouTube(topic: string): Promise<SourcePost[]> {
-  const apiKey = process.env.YOUTUBE_API_KEY
-  if (!apiKey) return []
+  const INVIDIOUS_INSTANCES = [
+    'vid.puffyan.us',
+    'inv.nadeko.net',
+    'invidious.nerdvpn.de',
+  ]
 
-  const posts: SourcePost[] = []
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  // Try each Invidious instance with 5s timeout
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const url = `https://${instance}/api/v1/search?q=${encodeURIComponent(topic)}&type=video&sort=upload_date&fields=title,videoId,publishedText,viewCount,author`
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (!res.ok) continue
 
-  try {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(topic)}&type=video&order=viewCount&publishedAfter=${thirtyDaysAgo}&maxResults=10&key=${apiKey}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-    if (!res.ok) return posts
+      const data = await res.json()
+      if (!Array.isArray(data) || data.length === 0) continue
 
-    const data = await res.json()
-    for (const item of data.items || []) {
-      posts.push({
-        title: item.snippet?.title || '',
-        url: `https://www.youtube.com/watch?v=${item.id?.videoId}`,
-        source: 'youtube',
-        score: 0,
-        comments: 0,
-        created_at: item.snippet?.publishedAt || new Date().toISOString(),
-      })
+      const posts: SourcePost[] = []
+      for (const item of data.slice(0, 15)) {
+        if (!item.videoId || !item.title) continue
+        posts.push({
+          title: item.title,
+          url: `https://youtube.com/watch?v=${item.videoId}`,
+          source: 'youtube',
+          score: item.viewCount || 0,
+          comments: 0,
+          created_at: new Date().toISOString(),
+        })
+      }
+
+      if (posts.length > 0) return posts
+    } catch {
+      // Try next instance
     }
-  } catch {
-    // Fail silently
   }
 
-  return posts
+  // All Invidious instances failed — fall back to OpenAI web_search
+  try {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) return []
+
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        tools: [{ type: 'web_search' }],
+        input: `Find 10-15 recent YouTube videos about "${topic}" from the last 30 days. For each video, provide the exact YouTube URL (youtube.com/watch?v=...), the video title, and the channel name.`,
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (!response.ok) return []
+
+    const data = await response.json()
+    const posts: SourcePost[] = []
+    const seenIds = new Set<string>()
+
+    for (const output of data.output || []) {
+      if (output.type !== 'message' || !output.content) continue
+      for (const content of output.content) {
+        if (content.annotations) {
+          for (const ann of content.annotations) {
+            if (ann.type !== 'url_citation' || !ann.url) continue
+            // Only YouTube URLs
+            const ytMatch = ann.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)
+            if (!ytMatch) continue
+            const videoId = ytMatch[1]
+            if (seenIds.has(videoId)) continue
+            seenIds.add(videoId)
+
+            posts.push({
+              title: ann.title || ann.url,
+              url: `https://youtube.com/watch?v=${videoId}`,
+              source: 'youtube',
+              score: 0,
+              comments: 0,
+              created_at: new Date().toISOString(),
+            })
+          }
+        }
+      }
+    }
+
+    return posts
+  } catch {
+    return []
+  }
 }
 
 // ─── Web Search (DuckDuckGo HTML scrape — no API key needed) ───
@@ -468,18 +531,19 @@ export async function deepResearch(
   // and general web search (replaces DuckDuckGo hack). Fall back to direct APIs if OpenAI unavailable.
   // All sources in parallel — fast APIs return in <2s, Grok calls take ~35s
   // If Grok times out, we still have Reddit direct + HN + YouTube
-  const [directReddit, hnPosts, ytPosts, aiReddit, aiWeb, xPhase1] = await Promise.all([
+  const [directReddit, hnPosts, ytPosts, aiReddit, aiNews, aiBlogs, xPhase1] = await Promise.all([
     searchReddit(topic),
     searchHN(topic),
     searchYouTube(topic),
     searchRedditViaOpenAI(topic).catch(() => [] as SourcePost[]),
-    searchWebViaOpenAI(topic, queryType).catch(() => [] as SourcePost[]),
+    searchNewsViaOpenAI(topic, queryType).catch(() => [] as SourcePost[]),
+    searchBlogsViaOpenAI(topic, queryType).catch(() => [] as SourcePost[]),
     searchX(topic),
   ])
 
   // Merge Reddit: AI-discovered + direct API (dedup handles overlaps)
   const redditPhase1 = [...aiReddit, ...directReddit]
-  const webPosts = aiWeb
+  const webPosts = [...aiNews, ...aiBlogs]
 
   // ── Phase 2: Entity extraction + supplemental search ──
   const entities = extractEntities(redditPhase1, hnPosts)
@@ -533,7 +597,7 @@ export async function deepResearch(
     hn_stories: hnPosts.length,
     hn_points: hnPosts.reduce((sum, p) => sum + p.score, 0),
     youtube_videos: ytPosts.length,
-    web_pages: webPosts.length,
+    web_pages: [...aiNews, ...aiBlogs].length,
     x_posts: allX.length,
   }
 
