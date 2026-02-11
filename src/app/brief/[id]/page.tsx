@@ -292,6 +292,107 @@ function SentimentBar({ sentiment }: { sentiment: StructuredBrief["sentiment"] }
   );
 }
 
+/* ─── Content Drafts ─── */
+function ContentDrafts({ topic, briefText }: { topic: string; briefText: string }) {
+  const [activeDraft, setActiveDraft] = useState<string | null>(null)
+  const [draftContent, setDraftContent] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const draftTypes = [
+    { id: 'linkedin', label: 'LinkedIn Post', icon: 'M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2V9zm2-4a2 2 0 110 4 2 2 0 010-4z' },
+    { id: 'tweet', label: 'Tweet Thread', icon: 'M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z' },
+    { id: 'email', label: 'Email Snippet', icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm16 2l-8 5-8-5' },
+  ]
+
+  async function generateDraft(type: string) {
+    setActiveDraft(type)
+    setLoading(true)
+    setDraftContent('')
+    setCopied(false)
+
+    try {
+      const res = await fetch('/api/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ briefText, topic, type }),
+      })
+
+      if (!res.ok) throw new Error('Failed to generate')
+      const data = await res.json()
+      setDraftContent(data.draft)
+    } catch {
+      setDraftContent('Failed to generate draft. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(draftContent)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
+
+  return (
+    <Card className="mb-6">
+      <SectionHeader>Create Content</SectionHeader>
+      <p className="text-sm text-gray-500 mb-4">Turn this research into ready-to-publish content.</p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {draftTypes.map(dt => (
+          <button
+            key={dt.id}
+            onClick={() => generateDraft(dt.id)}
+            disabled={loading}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all cursor-pointer disabled:opacity-50 ${
+              activeDraft === dt.id
+                ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
+                : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={dt.icon} />
+            </svg>
+            {dt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Draft output */}
+      {activeDraft && (
+        <div className="mt-4">
+          {loading ? (
+            <div className="flex items-center gap-3 py-8 justify-center">
+              <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+              <span className="text-sm text-gray-500">Generating draft...</span>
+            </div>
+          ) : draftContent ? (
+            <div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-900 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+                {draftContent}
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <button
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                  {copied ? 'Copied!' : 'Copy to clipboard'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 /* ─── Structured Brief Layout ─── */
 function StructuredBriefView({
   data,
@@ -381,6 +482,12 @@ function StructuredBriefView({
           </div>
         </div>
       )}
+
+      {/* Content Drafts */}
+      <ContentDrafts
+        topic={topic}
+        briefText={`Executive Summary: ${data.executive_summary}\n\nKey Themes:\n${data.key_themes.map(t => `- ${t}`).join('\n')}\n\nRecommended Actions:\n${data.recommended_actions.map(a => `- ${a}`).join('\n')}`}
+      />
     </>
   );
 }
@@ -504,6 +611,9 @@ export default function BriefPage({ params }: { params: Promise<{ id: string }> 
               <SectionHeader>Analysis</SectionHeader>
               <BriefMarkdown text={brief.brief} />
             </Card>
+
+            {/* Content Drafts */}
+            <ContentDrafts topic={brief.topic} briefText={brief.brief} />
           </>
         )}
 

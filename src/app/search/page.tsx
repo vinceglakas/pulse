@@ -12,28 +12,69 @@ const STATUS_MESSAGES = [
   "Building your brief...",
 ];
 
+const PERSONA_OPTIONS = [
+  { id: 'marketer', label: 'Marketer', desc: 'Campaigns, positioning, audience targeting', icon: 'M3 3h7v7H3V3zm11 0h7v7h-7V3zm-11 11h7v7H3v-7zm11 0h7v7h-7v-7z' },
+  { id: 'creator', label: 'Content Creator', desc: 'Hooks, viral angles, trending formats', icon: 'M12 19l7-7 3 3-7 7-3-3zm-5.5-2.5l-4-4 9-9 4 4-9 9zM2 22l1.5-4.5L7 21l-5 1z' },
+  { id: 'sales', label: 'Sales', desc: 'Talking points, prospect intel, objections', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
+  { id: 'product', label: 'Product Manager', desc: 'Market gaps, user needs, feature ideas', icon: 'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z' },
+  { id: 'founder', label: 'Founder / Executive', desc: 'Strategic signals, market direction', icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
+  { id: 'analyst', label: 'Analyst / Researcher', desc: 'Deep data, patterns, full landscape', icon: 'M18 20V10M12 20V4M6 20v-6' },
+];
+
+function PersonaPicker({ onSelect }: { onSelect: (p: string) => void }) {
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="max-w-2xl w-full text-center">
+        <p className="text-sm text-gray-400 uppercase tracking-wider mb-2">Almost there</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">How will you use this research?</h2>
+        <p className="text-sm text-gray-500 mb-8">Pick your role and we&apos;ll tailor the brief to your needs.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {PERSONA_OPTIONS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p.id)}
+              className="flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={p.icon} />
+                </svg>
+              </div>
+              <span className="text-sm font-semibold text-gray-900">{p.label}</span>
+              <span className="text-xs text-gray-500">{p.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
 
+  const [persona, setPersona] = useState<string | null>(null);
   const [statusIndex, setStatusIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isResearching, setIsResearching] = useState(false);
 
-  const runResearch = useCallback(async () => {
+  const runResearch = useCallback(async (selectedPersona: string) => {
     if (!query.trim()) {
       router.replace("/");
       return;
     }
 
     setError(null);
+    setIsResearching(true);
 
     try {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: query.trim() }),
+        body: JSON.stringify({ topic: query.trim(), persona: selectedPersona }),
       });
 
       if (!res.ok) {
@@ -52,27 +93,53 @@ function SearchContent() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      setIsResearching(false);
     }
   }, [query, router]);
 
+  // Check URL for persona param on mount
   useEffect(() => {
-    runResearch();
-  }, [runResearch]);
+    const p = searchParams.get("persona");
+    if (p) {
+      setPersona(p);
+    }
+  }, [searchParams]);
+
+  // Auto-run research if persona came from URL param
+  useEffect(() => {
+    if (persona && !isResearching && !error) {
+      runResearch(persona);
+    }
+    // Only run when persona is first set from URL
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persona]);
 
   // Cycle through status messages
   useEffect(() => {
-    if (error) return;
+    if (error || !isResearching) return;
     const interval = setInterval(() => {
       setStatusIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, [error]);
+  }, [error, isResearching]);
+
+  function handlePersonaSelect(p: string) {
+    setPersona(p);
+    runResearch(p);
+  }
 
   function handleRetry() {
     setIsRetrying(true);
     setError(null);
     setStatusIndex(0);
-    runResearch().finally(() => setIsRetrying(false));
+    if (persona) {
+      runResearch(persona).finally(() => setIsRetrying(false));
+    }
+  }
+
+  // No persona selected yet — show the picker
+  if (!persona && !isResearching && !error) {
+    return <PersonaPicker onSelect={handlePersonaSelect} />;
   }
 
   if (error) {

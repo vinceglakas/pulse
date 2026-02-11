@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { topic, apiKey } = body as { topic?: string; apiKey?: string }
+    const { topic, apiKey, persona } = body as { topic?: string; apiKey?: string; persona?: string }
 
     if (!topic || typeof topic !== 'string') {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Run the deep research pipeline
-    const result = await deepResearch(trimmedTopic, apiKey)
+    const result = await deepResearch(trimmedTopic, apiKey, persona)
 
     if (result.sources.length === 0) {
       return NextResponse.json(
@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
         brief: result.brief,
         sources: result.sources,
         stats: result.stats,
+        persona: (persona as ResearchResponse['persona']) || undefined,
         created_at: new Date().toISOString(),
       } satisfies ResearchResponse)
     }
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
       topic: savedBrief.topic as string,
       brief: savedBrief.brief_text as string,
       sources: savedBrief.sources as ResearchResponse['sources'],
+      persona: (persona as ResearchResponse['persona']) || undefined,
       created_at: savedBrief.created_at as string,
     }
 

@@ -84,6 +84,7 @@ export interface ResearchResult {
   brief: string
   sources: SourcePost[]
   queryType: QueryType
+  persona?: string
   stats: {
     reddit_threads: number
     reddit_upvotes: number
@@ -522,6 +523,7 @@ function recencyMultiplier(dateStr: string, now: number): number {
 export async function deepResearch(
   topic: string,
   apiKey?: string,
+  persona?: string,
 ): Promise<ResearchResult> {
   // ── Detect query intent ──
   const queryType = detectQueryType(topic)
@@ -601,13 +603,14 @@ export async function deepResearch(
     x_posts: allX.length,
   }
 
-  const brief = await synthesizeWithClaude(topic, allSources.slice(0, 40), stats, queryType, apiKey)
+  const brief = await synthesizeWithClaude(topic, allSources.slice(0, 40), stats, queryType, apiKey, persona)
 
   return {
     topic,
     brief,
     sources: allSources.slice(0, 50),
     queryType,
+    persona,
     stats,
   }
 }
@@ -620,6 +623,7 @@ async function synthesizeWithClaude(
   stats: { reddit_threads: number; reddit_upvotes: number; reddit_comments: number; hn_stories: number; hn_points: number; youtube_videos: number; web_pages: number; x_posts: number },
   queryType: QueryType,
   apiKey?: string,
+  persona?: string,
 ): Promise<string> {
   const key = apiKey || process.env.ANTHROPIC_API_KEY
   if (!key) {
@@ -635,6 +639,17 @@ async function synthesizeWithClaude(
     general: 'The user wants a BROAD UNDERSTANDING of this topic. Cover all angles — what people are saying, debating, and predicting.',
   }
 
+  const personaInstructions: Record<string, string> = {
+    marketer: 'Write for a MARKETING PROFESSIONAL. Focus on: campaign angles, audience targeting opportunities, competitive positioning, content strategy implications, and channel recommendations. Recommended actions should be marketing-specific (e.g., "Launch a LinkedIn campaign around X", "Reposition messaging to emphasize Y").',
+    creator: 'Write for a CONTENT CREATOR. Focus on: viral hooks, trending angles, content formats that work, engagement patterns, and what audiences are responding to. Recommended actions should be content-specific (e.g., "Create a thread on X topic", "Record a reaction video about Y", "Write a newsletter issue on Z").',
+    sales: 'Write for a SALES PROFESSIONAL. Focus on: prospect pain points, industry challenges, competitive landscape, objection handling ammunition, and conversation starters. Recommended actions should be sales-specific (e.g., "Use X as a cold email hook", "Bring up Y trend in discovery calls", "Position against Z competitor").',
+    product: 'Write for a PRODUCT MANAGER. Focus on: unmet user needs, market gaps, feature opportunities, competitive feature analysis, and user sentiment about existing solutions. Recommended actions should be product-specific (e.g., "Add X feature to roadmap", "Run user research on Y need", "Prioritize Z based on demand signals").',
+    founder: 'Write for a FOUNDER or EXECUTIVE. Focus on: strategic market shifts, investment signals, competitive threats, partnership opportunities, and big-picture implications. Recommended actions should be strategic (e.g., "Explore partnership with X", "Allocate budget to Y trend", "Reassess Z strategy").',
+    analyst: 'Write for a RESEARCH ANALYST. Focus on: comprehensive data patterns, quantitative signals, market sizing, trend trajectories, and methodological rigor. Recommended actions should be research-oriented (e.g., "Deep dive into X segment", "Monitor Y metric quarterly", "Build a model for Z scenario").',
+  }
+
+  const personaPrompt = persona && personaInstructions[persona] ? personaInstructions[persona] : ''
+
   const systemPrompt = `You are Pulsed, an expert research analyst. You produce structured intelligence briefs as JSON.
 
 CRITICAL RULES:
@@ -646,6 +661,8 @@ CRITICAL RULES:
 - Be direct, specific, and opinionated — no filler, no hedging
 
 ${queryTypeInstructions[queryType]}
+
+${personaPrompt}
 
 You MUST respond with ONLY a valid JSON object (no markdown fences, no extra text). The JSON schema:
 {
