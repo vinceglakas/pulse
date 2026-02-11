@@ -2,15 +2,34 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signInWithGoogle, signUpWithEmail } from "@/lib/auth";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleGoogleSignIn() {
+    setError("");
+    const { error } = await signInWithGoogle();
+    if (error) setError(error.message);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: hook up auth
+    setError("");
+    setLoading(true);
+    const { error } = await signUpWithEmail(email, password, fullName);
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      router.push("/");
+    }
   }
 
   return (
@@ -34,9 +53,16 @@ export default function SignupPage() {
             </p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
           {/* Google OAuth button */}
           <button
             type="button"
+            onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center gap-3 h-[48px] bg-white border border-gray-200 rounded-xl text-sm text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 mb-6 cursor-pointer shadow-sm"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -104,9 +130,10 @@ export default function SignupPage() {
             </div>
             <button
               type="submit"
-              className="w-full h-[48px] bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer"
+              disabled={loading}
+              className="w-full h-[48px] bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
             >
-              Create account
+              {loading ? "Creating account..." : "Create account"}
             </button>
           </form>
 
