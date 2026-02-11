@@ -6,14 +6,13 @@ import type { ResearchResponse, SourcePost } from "@/lib/types";
 
 /* ─── Helper: source display info ─── */
 function getSourceName(source: SourcePost): string {
-  if (source.source === "reddit" && source.subreddit) {
-    return `r/${source.subreddit}`;
+  // Extract domain from URL for display
+  try {
+    const url = new URL(source.url);
+    return url.hostname.replace(/^www\./, '');
+  } catch {
+    return "Source";
   }
-  if (source.source === "hackernews") return "Hacker News";
-  if (source.source === "youtube") return "YouTube";
-  if (source.source === "x") return "X/Twitter";
-  if (source.source === "web") return "Web";
-  return "Reddit";
 }
 
 function formatScore(score: number): string {
