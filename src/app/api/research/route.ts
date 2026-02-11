@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { deepResearch } from '@/lib/deep-research'
 import type { ResearchResponse } from '@/lib/types'
 
-export const maxDuration = 300 // Allow up to 5min for deep research (Grok-4 web_search is slow)
+export const maxDuration = 120 // 2 min — fast APIs return in <2s, Grok adds AI-powered results if it finishes in time
 
 export async function POST(request: NextRequest) {
   try {

@@ -466,22 +466,16 @@ export async function deepResearch(
   // ── Phase 1: Broad initial search (parallel) ──
   // Use OpenAI web_search for Reddit discovery (finds threads Reddit's own search misses)
   // and general web search (replaces DuckDuckGo hack). Fall back to direct APIs if OpenAI unavailable.
-  // Phase 1a: Fast direct APIs (parallel, sub-second)
-  const [directReddit, hnPosts, ytPosts] = await Promise.all([
+  // All sources in parallel — fast APIs return in <2s, Grok calls take ~35s
+  // If Grok times out, we still have Reddit direct + HN + YouTube
+  const [directReddit, hnPosts, ytPosts, aiReddit, aiWeb, xPhase1] = await Promise.all([
     searchReddit(topic),
     searchHN(topic),
     searchYouTube(topic),
-  ])
-
-  // Phase 1b: AI-powered search (sequential — Grok-4 is slow, ~35s each)
-  // Run Reddit AI search and X search in parallel (different endpoints)
-  const [aiReddit, xPhase1] = await Promise.all([
     searchRedditViaOpenAI(topic).catch(() => [] as SourcePost[]),
+    searchWebViaOpenAI(topic, queryType).catch(() => [] as SourcePost[]),
     searchX(topic),
   ])
-
-  // Then web search (separate Grok call)
-  const aiWeb = await searchWebViaOpenAI(topic, queryType).catch(() => [] as SourcePost[])
 
   // Merge Reddit: AI-discovered + direct API (dedup handles overlaps)
   const redditPhase1 = [...aiReddit, ...directReddit]
