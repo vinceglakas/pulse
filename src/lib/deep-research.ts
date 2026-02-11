@@ -466,20 +466,26 @@ export async function deepResearch(
   // ── Phase 1: Broad initial search (parallel) ──
   // Use OpenAI web_search for Reddit discovery (finds threads Reddit's own search misses)
   // and general web search (replaces DuckDuckGo hack). Fall back to direct APIs if OpenAI unavailable.
-  const [openaiReddit, directReddit, hnPosts, ytPosts, openaiWeb, ddgWeb, xPhase1] = await Promise.all([
-    searchRedditViaOpenAI(topic).catch(() => [] as SourcePost[]),
+  // Phase 1a: Fast direct APIs (parallel, sub-second)
+  const [directReddit, hnPosts, ytPosts] = await Promise.all([
     searchReddit(topic),
     searchHN(topic),
     searchYouTube(topic),
-    searchWebViaOpenAI(topic, queryType).catch(() => [] as SourcePost[]),
-    searchWeb(topic, queryType), // DDG fallback
+  ])
+
+  // Phase 1b: AI-powered search (sequential — Grok-4 is slow, ~35s each)
+  // Run Reddit AI search and X search in parallel (different endpoints)
+  const [aiReddit, xPhase1] = await Promise.all([
+    searchRedditViaOpenAI(topic).catch(() => [] as SourcePost[]),
     searchX(topic),
   ])
 
-  // Merge Reddit: OpenAI-discovered + direct API (dedup handles overlaps)
-  const redditPhase1 = [...openaiReddit, ...directReddit]
-  // Merge Web: OpenAI + DDG fallback
-  const webPosts = openaiWeb.length > 0 ? openaiWeb : ddgWeb
+  // Then web search (separate Grok call)
+  const aiWeb = await searchWebViaOpenAI(topic, queryType).catch(() => [] as SourcePost[])
+
+  // Merge Reddit: AI-discovered + direct API (dedup handles overlaps)
+  const redditPhase1 = [...aiReddit, ...directReddit]
+  const webPosts = aiWeb
 
   // ── Phase 2: Entity extraction + supplemental search ──
   const entities = extractEntities(redditPhase1, hnPosts)
