@@ -311,7 +311,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
             <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do. And your agent gets smarter every time you use it.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 rounded-2xl overflow-hidden">
             {[
               { replaces: 'Your CRM', desc: 'Tracks contacts, manages pipeline, sends follow-ups, logs every interaction automatically.' },
               { replaces: 'Your research tools', desc: 'Scans the entire internet, synthesizes findings, delivers executive briefs in seconds.' },
@@ -363,14 +363,19 @@ export default function Home() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { name: 'Web Chat', desc: 'Full-featured chat interface at pulsed.ai/agent. Rich markdown, code blocks, file attachments.', status: 'Live' },
-              { name: 'Telegram', desc: 'Message your agent from Telegram. Get proactive alerts, research updates, and task completions on mobile.', status: 'Live' },
-              { name: 'Discord', desc: 'Add your agent to any Discord server. Works in DMs and channels. Perfect for team workflows.', status: 'Live' },
-              { name: 'Slack', desc: 'Install your agent in your Slack workspace. Mention it in any channel or DM for instant help.', status: 'Coming soon' },
+              { name: 'Web Chat', desc: 'Full-featured chat interface at pulsed.ai/agent. Rich markdown, code blocks, file attachments.', status: 'Live', icon: '💬', color: '#6366f1' },
+              { name: 'Telegram', desc: 'Message your agent from Telegram. Get proactive alerts, research updates, and task completions on mobile.', status: 'Live', icon: '✈️', color: '#229ED9' },
+              { name: 'Discord', desc: 'Add your agent to any Discord server. Works in DMs and channels. Perfect for team workflows.', status: 'Live', icon: '🎮', color: '#5865F2' },
+              { name: 'Slack', desc: 'Install your agent in your Slack workspace. Mention it in any channel or DM for instant help.', status: 'Coming soon', icon: '💼', color: '#4A154B' },
             ].map((integration) => (
               <div key={integration.name} className="rounded-2xl border border-gray-200 p-6 bg-white hover:border-gray-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-gray-900">{integration.name}</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: `${integration.color}15` }}>
+                      {integration.icon}
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">{integration.name}</h3>
+                  </div>
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                     integration.status === 'Live'
                       ? 'bg-emerald-50 text-emerald-700'
@@ -576,42 +581,42 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-100 py-10">
+      <footer className="py-10" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-lg font-bold text-gray-900">Pulsed</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                <span className="text-lg font-bold text-white">Pulsed</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
               </div>
               <p className="text-sm text-gray-400">The last software you will ever need.</p>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Product</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><a href="/search" className="hover:text-gray-900 transition-colors">Research</a></li>
-                <li><a href="/agent" className="hover:text-gray-900 transition-colors">Agent</a></li>
-                <li><a href="/pricing" className="hover:text-gray-900 transition-colors">Pricing</a></li>
+              <h4 className="text-sm font-semibold text-white mb-3">Product</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="/signup" className="hover:text-white transition-colors">Research</a></li>
+                <li><a href="/agent" className="hover:text-white transition-colors">Agent</a></li>
+                <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Platform</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><a href="/agent" className="hover:text-gray-900 transition-colors">Web Chat</a></li>
-                <li><span className="text-gray-400">Telegram</span></li>
-                <li><span className="text-gray-400">Discord</span></li>
-                <li><span className="text-gray-400">Slack (coming soon)</span></li>
+              <h4 className="text-sm font-semibold text-white mb-3">Platform</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="/agent" className="hover:text-white transition-colors">Web Chat</a></li>
+                <li><span>Telegram</span></li>
+                <li><span>Discord</span></li>
+                <li><span className="text-gray-500">Slack (coming soon)</span></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Legal</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li><a href="/privacy" className="hover:text-gray-900 transition-colors">Privacy</a></li>
-                <li><a href="/terms" className="hover:text-gray-900 transition-colors">Terms</a></li>
+              <h4 className="text-sm font-semibold text-white mb-3">Legal</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
+                <li><a href="/terms" className="hover:text-white transition-colors">Terms</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-100 pt-6 text-sm text-gray-400 text-center">
+          <div className="border-t border-white/10 pt-6 text-sm text-gray-500 text-center">
             &copy; 2026 Pulsed. All rights reserved.
           </div>
         </div>
