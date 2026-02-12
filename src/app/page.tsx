@@ -1,103 +1,42 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import BriefOfTheDay from './components/BriefOfTheDay';
 import ReferralCapture from './components/ReferralCapture';
 
 export default function Home() {
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [showBanner, setShowBanner] = useState(true);
-  const [activePersona, setActivePersona] = useState(0);
+  const [activeUseCase, setActiveUseCase] = useState(0);
 
-  const [exampleIndex, setExampleIndex] = useState(0);
-  const [pillSet, setPillSet] = useState(0);
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [savedPersona, setSavedPersona] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const p = localStorage.getItem('pulsed_persona');
-      if (p) setSavedPersona(p);
-    } catch {}
-  }, []);
-
-  const placeholderExamples = [
-    'e.g. "AI agents in customer support — what are people saying?"',
-    'e.g. "How are startups using Claude vs GPT in 2026?"',
-    'e.g. "Public sentiment on electric vehicles this month"',
-    'e.g. "What CRM tools are sales teams switching to?"',
-    'e.g. "Remote work trends — are companies going back to office?"',
-    'e.g. "What are developers saying about Rust vs Go?"',
-  ];
-  const placeholder = query ? '' : placeholderExamples[placeholderIndex];
-
-  const personas = [
-    { role: 'Sales Teams', desc: 'Research prospects, track competitor moves, and find market signals before your next call.', examples: [
-      '"What are healthcare CIOs prioritizing this quarter?"',
-      '"How are mid-market companies evaluating CRM platforms?"',
-      '"What objections are buyers raising about cloud migration?"',
-    ]},
-    { role: 'Marketing Teams', desc: 'Spot trending topics, understand audience sentiment, and find content gaps in your market.', examples: [
-      '"What content is resonating in the fitness industry right now?"',
-      '"How is Gen Z talking about sustainable fashion?"',
-      '"What marketing channels are DTC brands shifting budget to?"',
-    ]},
-    { role: 'Content Creators', desc: 'Find what people actually care about, discover underserved topics, and validate ideas fast.', examples: [
-      '"What personal finance topics are trending on YouTube?"',
-      '"What questions are home cooks asking about meal prep?"',
-      '"What are people saying about the best productivity apps?"',
-    ]},
-    { role: 'Founders & VCs', desc: 'Validate markets, track emerging trends, and research competitors before making your next move.', examples: [
-      '"What\'s the sentiment around climate tech funding?"',
-      '"What are people saying about Cursor vs Windsurf for coding?"',
-      '"What problems are small business owners facing with payments?"',
-    ]},
-    { role: 'Product Teams', desc: 'Understand user pain points, track feature requests, and monitor industry shifts.', examples: [
-      '"What features are Figma users requesting the most?"',
-      '"What are teachers saying about EdTech tools in 2026?"',
-      '"How are remote teams dealing with async communication?"',
-    ]},
+  const useCases = [
+    {
+      command: '"Build me a CRM that tracks my pipeline and sends follow-up reminders"',
+      result: 'Your agent creates a full CRM with contact management, deal tracking, automated follow-ups, and weekly pipeline reports. No code. No setup. Just tell it what you need.',
+    },
+    {
+      command: '"Research every AI startup that raised Series A this quarter and find me the decision makers"',
+      result: 'Your agent searches the web, cross-references Crunchbase data, identifies key contacts, and delivers a structured brief with names, roles, LinkedIn profiles, and talking points.',
+    },
+    {
+      command: '"Monitor my competitors and alert me when they launch something new"',
+      result: 'Your agent watches competitor websites, social media, press releases, and product pages. When something changes, it sends you a Telegram message with a summary and recommended response.',
+    },
+    {
+      command: '"Create a Clay-style enrichment workflow for this list of 500 leads"',
+      result: 'Your agent takes your CSV, enriches each lead with company data, tech stack, recent news, and social profiles. Outputs a clean spreadsheet ready for outreach.',
+    },
+    {
+      command: '"Analyze the sentiment around our brand across Reddit, Twitter, and HN this month"',
+      result: 'Your agent scans thousands of posts, extracts themes, measures sentiment, identifies influencers, and delivers an executive brief with actionable recommendations.',
+    },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActivePersona((prev) => (prev + 1) % personas.length);
-      setExampleIndex(0);
+      setActiveUseCase((prev) => (prev + 1) % useCases.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [personas.length]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setExampleIndex((prev) => (prev + 1) % 3);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [activePersona]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPillSet((prev) => (prev + 1) % 3);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % placeholderExamples.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [placeholderExamples.length]);
-
-  const handleSearch = (e: FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-  };
-
-  const handleTopic = (topic: string) => {
-    router.push(`/search?q=${encodeURIComponent(topic)}`);
-  };
+  }, [useCases.length]);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -105,21 +44,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Referral Capture */}
       <ReferralCapture />
-
-      {/* Announcement Bar */}
-      {showBanner && (
-        <div className="bg-indigo-600 text-white text-sm text-center py-2.5 px-4 relative">
-          <span>Get 3 free searches. No credit card needed.</span>
-          <button
-            onClick={() => setShowBanner(false)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-lg leading-none"
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
@@ -132,141 +57,181 @@ export default function Home() {
             </span>
           </div>
           <div className="flex items-center gap-8">
+            <button onClick={() => scrollTo('what-it-does')} className="hidden md:block text-sm text-gray-500 hover:text-gray-900 transition-colors">What it does</button>
             <button onClick={() => scrollTo('how-it-works')} className="hidden md:block text-sm text-gray-500 hover:text-gray-900 transition-colors">How it works</button>
-            <button onClick={() => scrollTo('why-pulsed')} className="hidden md:block text-sm text-gray-500 hover:text-gray-900 transition-colors">Why Pulsed</button>
             <div className="flex items-center gap-3">
-              <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pro</a>
-              <a href="/agent" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Agent</a>
-              <a href="/history" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">History</a>
+              <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
+              <a href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</a>
               <a href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Sign in</a>
-              <a href="/search" className="text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">Get Started</a>
+              <a href="/signup" className="text-sm font-semibold text-white bg-gray-900 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">Get Started</a>
             </div>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-20 pb-14 md:pt-28 md:pb-20">
+      <section className="relative pt-24 pb-20 md:pt-32 md:pb-28">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h1 className="text-5xl md:text-[60px] font-extrabold text-gray-900 tracking-[-0.04em] leading-[1.05]">
-            Research any topic.<br />Get answers in 30 seconds.
+          <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-6">THE LAST SOFTWARE YOU WILL EVER NEED</p>
+          <h1 className="text-5xl md:text-[72px] font-extrabold text-gray-900 tracking-[-0.04em] leading-[1.02] max-w-4xl mx-auto">
+            One AI agent that replaces everything
           </h1>
-          <p className="mt-6 text-lg text-gray-500 leading-relaxed max-w-xl mx-auto">
-            AI-powered intelligence briefs on any topic — key themes, sentiment analysis, and actionable insights from across the internet.
+          <p className="mt-8 text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
+            Tell it what you need. It builds it. CRM, research, workflows, automation, analytics — powered by your own AI model, controlled entirely by you.
           </p>
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <a href="/signup" className="bg-gray-900 text-white font-semibold rounded-lg px-8 py-4 text-base hover:bg-gray-800 transition-colors">Start building now</a>
+            <button onClick={() => scrollTo('what-it-does')} className="border border-gray-300 text-gray-700 font-semibold rounded-lg px-8 py-4 text-base hover:border-gray-400 hover:text-gray-900 transition-all">See what it can do</button>
+          </div>
+          <p className="mt-6 text-sm text-gray-400">Free to start. Bring your own API key. Cancel anytime.</p>
+        </div>
+      </section>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="mt-10 max-w-[640px] mx-auto">
-            <div className="flex items-center h-[52px] bg-white border border-gray-200 rounded-xl shadow-sm focus-within:border-indigo-300 focus-within:shadow-md transition-all">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={placeholder}
-                className="flex-1 h-full px-5 bg-transparent text-gray-900 placeholder-gray-400 text-base outline-none rounded-l-xl"
-              />
-              <button
-                type="submit"
-                className="h-[40px] px-5 mr-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 shrink-0"
-              >
-                Search
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-              </button>
+      {/* The line */}
+      <div className="max-w-6xl mx-auto px-6">
+        <hr className="border-gray-100" />
+      </div>
+
+      {/* What It Does — Use Case Rotator */}
+      <section id="what-it-does" className="py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">WHAT IT DOES</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight max-w-3xl mx-auto">You describe the outcome. Your agent figures out the rest.</h2>
+          </div>
+
+          {/* Use case selector */}
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-2 mb-10">
+              {['Build a CRM', 'Research leads', 'Monitor competitors', 'Enrich data', 'Analyze sentiment'].map((label, i) => (
+                <button
+                  key={label}
+                  onClick={() => setActiveUseCase(i)}
+                  className={`text-sm px-5 py-2.5 rounded-lg font-medium transition-all ${
+                    activeUseCase === i
+                      ? 'bg-gray-900 text-white'
+                      : 'text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          </form>
 
-          {/* Persona indicator */}
-          {savedPersona && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500">
-              <span>Researching as</span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium capitalize">
-                {savedPersona === 'analyst' ? '📊 Analyst' : savedPersona === 'sales' ? '💼 Sales' : savedPersona === 'marketing' ? '📣 Marketing' : savedPersona === 'creator' ? '✏️ Creator' : savedPersona}
-              </span>
-              <button
-                onClick={() => {
-                  try { localStorage.removeItem('pulsed_persona'); } catch {}
-                  setSavedPersona(null);
-                }}
-                className="text-indigo-500 hover:text-indigo-700 underline underline-offset-2 transition-colors"
-              >
-                Change
-              </button>
+            {/* Command + Result */}
+            <div className="rounded-2xl border border-gray-200 overflow-hidden">
+              {/* Terminal-style command */}
+              <div className="bg-gray-950 px-6 py-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+                </div>
+                <p className="text-gray-400 text-sm font-mono">
+                  <span className="text-indigo-400">you</span>
+                  <span className="text-gray-600"> &gt; </span>
+                  <span className="text-gray-200">{useCases[activeUseCase].command}</span>
+                </p>
+              </div>
+              {/* Result */}
+              <div className="bg-white px-6 py-6">
+                <p className="text-gray-600 leading-relaxed">{useCases[activeUseCase].result}</p>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+      </section>
 
-          {/* Suggested Topics — rotating sets */}
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
+      {/* Replaces Everything */}
+      <section className="py-20 md:py-28 bg-gray-950">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
+            <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do. And your agent gets smarter every time you use it.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-800 rounded-2xl overflow-hidden">
             {[
-              ['AI agents in enterprise', 'Remote work trends', 'Climate tech funding', 'Developer tools market'],
-              ['Best CRM for startups', 'Plant-based food trends', 'TikTok marketing strategies', 'EV market sentiment'],
-              ['Freelancer tax tools', 'Mental health apps', 'Real estate market 2026', 'Podcast growth tactics'],
-            ][pillSet].map((topic) => (
-              <button
-                key={topic}
-                onClick={() => handleTopic(topic)}
-                className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-all"
-              >
-                {topic}
-              </button>
+              { replaces: 'Your CRM', desc: 'Tracks contacts, manages pipeline, sends follow-ups, logs every interaction automatically.' },
+              { replaces: 'Your research tools', desc: 'Scans the entire internet, synthesizes findings, delivers executive briefs in seconds.' },
+              { replaces: 'Your data enrichment', desc: 'Takes a list of names or companies and fills in everything — emails, tech stack, funding, news.' },
+              { replaces: 'Your workflow automation', desc: 'Builds multi-step workflows on the fly. No drag-and-drop builders. Just describe what you want.' },
+              { replaces: 'Your analytics dashboards', desc: 'Analyzes your data, spots trends, generates reports. Ask questions in plain English.' },
+              { replaces: 'Your project management', desc: 'Tracks tasks, sets deadlines, sends reminders, writes status updates. Manages itself.' },
+            ].map((item) => (
+              <div key={item.replaces} className="bg-gray-950 p-8">
+                <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Replaces</p>
+                <h3 className="text-xl font-bold text-white mb-3">{item.replaces}</h3>
+                <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Brief of the Day */}
-      <BriefOfTheDay />
-
-      {/* Built For — Persona Rotator */}
-      <section className="py-14 border-y border-gray-100">
+      {/* BYOLLM */}
+      <section className="py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
-          <p className="text-sm text-gray-400 uppercase tracking-widest text-center mb-8">Built for every team that needs to stay informed</p>
-          {/* Persona tabs */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {personas.map((p, i) => (
-              <button
-                key={p.role}
-                onClick={() => setActivePersona(i)}
-                className={`text-sm px-4 py-2 rounded-lg font-medium transition-all ${
-                  activePersona === i
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                {p.role}
-              </button>
-            ))}
-          </div>
-          {/* Active persona content */}
-          <div className="max-w-2xl mx-auto text-center">
-            <p className="text-lg text-gray-700 leading-relaxed">{personas[activePersona].desc}</p>
-            <div className="mt-4 h-8 flex items-center justify-center">
-              <p key={`${activePersona}-${exampleIndex}`} className="text-sm text-indigo-600 font-medium italic animate-fade-example">
-                {personas[activePersona].examples[exampleIndex]}
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">YOUR MODEL. YOUR DATA. YOUR RULES.</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Bring your own LLM</h2>
+              <p className="mt-5 text-lg text-gray-500 leading-relaxed">
+                Connect your API key from Anthropic, OpenAI, Google, or any provider. Your data never touches our servers. Swap models as better ones drop. Zero vendor lock-in.
               </p>
+              <div className="mt-8 space-y-4">
+                {[
+                  'Your API key, your costs — we never mark up model usage',
+                  'Switch between Claude, GPT, Gemini, Llama, Kimi anytime',
+                  'Data stays in your environment — nothing stored on our side',
+                  'Works with any OpenAI-compatible endpoint',
+                ].map((point) => (
+                  <div key={point} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-gray-900 flex items-center justify-center mt-0.5 shrink-0">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <p className="text-gray-600">{point}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
+              <p className="text-sm text-gray-400 uppercase tracking-wider mb-6">Supported providers</p>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku' },
+                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex' },
+                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro' },
+                  { name: 'Moonshot', sub: 'Kimi K2' },
+                  { name: 'Meta', sub: 'Llama 4 via OpenRouter' },
+                  { name: 'Any provider', sub: 'OpenAI-compatible API' },
+                ].map((p) => (
+                  <div key={p.name} className="bg-white rounded-xl p-4 border border-gray-100">
+                    <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-16 md:py-20 bg-[#F9FAFB]">
+      <section id="how-it-works" className="py-20 md:py-28 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-widest text-indigo-600 font-semibold">HOW IT WORKS</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900">From question to insight in three steps</h2>
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">HOW IT WORKS</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Three minutes from signup to your first agent</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {[
-              { step: '01', title: 'Enter your topic', desc: 'Type any trend, market, technology, or question you want to research.', iconPath: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
-              { step: '02', title: 'AI analyzes the landscape', desc: 'Two-phase deep search: discover key voices and communities, then drill into what they\'re actually saying.', iconPath: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-              { step: '03', title: 'Get your brief', desc: 'A structured intelligence report with key themes, sentiment, and actionable insights.', iconPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+              { step: '01', title: 'Create your account', desc: 'Sign up with Google or email. Takes 10 seconds.' },
+              { step: '02', title: 'Add your API key', desc: 'Paste your key from Anthropic, OpenAI, or any supported provider. Your key, your model, your costs.' },
+              { step: '03', title: 'Tell it what to build', desc: 'Describe what you need in plain English. Your agent handles the rest — research, code, files, automation, everything.' },
             ].map((s) => (
-              <div key={s.step} className="relative bg-white rounded-2xl p-8 border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all">
-                <span className="absolute top-6 right-8 text-5xl font-bold text-gray-100">{s.step}</span>
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center mb-5">
-                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={s.iconPath} /></svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{s.title}</h3>
+              <div key={s.step} className="relative">
+                <span className="text-8xl font-bold text-gray-100 leading-none">{s.step}</span>
+                <h3 className="text-xl font-bold text-gray-900 mt-4 mb-2">{s.title}</h3>
                 <p className="text-gray-500 leading-relaxed">{s.desc}</p>
               </div>
             ))}
@@ -274,15 +239,46 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Product Demo / Brief Preview */}
-      <section id="demo" className="py-16 md:py-20">
+      {/* Integrations */}
+      <section id="integrations" className="py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-widest text-indigo-600 font-semibold">SEE IT IN ACTION</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900">Intelligence reports, not just search results</h2>
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">INTEGRATIONS</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Your agent works where you work</h2>
+            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">Chat with your agent from any platform. Get alerts, updates, and reports delivered wherever you are.</p>
           </div>
-          <div className="max-w-3xl mx-auto rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
-            {/* Window Chrome */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { name: 'Web Chat', desc: 'Full-featured chat interface at pulsed.ai/agent. Rich markdown, code blocks, file attachments.', status: 'Live' },
+              { name: 'Telegram', desc: 'Message your agent from Telegram. Get proactive alerts, research updates, and task completions on mobile.', status: 'Live' },
+              { name: 'Discord', desc: 'Add your agent to any Discord server. Works in DMs and channels. Perfect for team workflows.', status: 'Live' },
+              { name: 'Slack', desc: 'Install your agent in your Slack workspace. Mention it in any channel or DM for instant help.', status: 'Coming soon' },
+            ].map((integration) => (
+              <div key={integration.name} className="rounded-2xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">{integration.name}</h3>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    integration.status === 'Live'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>{integration.status}</span>
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed">{integration.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Research Engine */}
+      <section className="py-20 md:py-28 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">BUILT-IN RESEARCH ENGINE</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Every agent comes with a superpower</h2>
+            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">The Pulsed research engine scans Reddit, Hacker News, X, YouTube, Google Trends, and the open web. Your agent uses it to answer any question with real, current data.</p>
+          </div>
+          <div className="max-w-3xl mx-auto rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 flex items-center gap-2 border-b border-gray-100">
               <div className="w-3 h-3 rounded-full bg-red-400"></div>
               <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
@@ -291,46 +287,39 @@ export default function Home() {
                 <div className="bg-white rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-400 text-center max-w-xs mx-auto">pulsed.ai/brief/ai-agents-enterprise</div>
               </div>
             </div>
-            {/* Brief Content */}
             <div className="bg-white p-6 md:p-10">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
                 <h3 className="text-xl font-bold text-gray-900">Brief: AI Agents in Enterprise SaaS</h3>
-                <span className="text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full whitespace-nowrap">AI-powered brief</span>
+                <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full whitespace-nowrap">247 sources analyzed</span>
               </div>
-              <p className="text-sm text-gray-400 mb-5">Generated Feb 10, 2026</p>
+              <p className="text-sm text-gray-400 mb-5">Generated in 28 seconds</p>
               <hr className="border-gray-100 mb-6" />
-
-              {/* Executive Summary */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-2">Executive Summary</h4>
+                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-2">EXECUTIVE SUMMARY</h4>
                 <p className="text-sm text-gray-500 leading-relaxed">AI agents are rapidly moving from experimental to production-ready in enterprise SaaS. Adoption is accelerating across customer support, sales development, and internal operations, with a projected 340% increase in enterprise spending by 2027.</p>
               </div>
-
-              {/* Key Themes */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">Key Themes</h4>
+                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">KEY THEMES</h4>
                 <ul className="space-y-2">
                   {[
-                    'Autonomous agents replacing traditional SaaS workflows in support & SDR roles',
+                    'Autonomous agents replacing traditional SaaS workflows in support and SDR roles',
                     'Enterprise buyers demanding SOC 2 compliance and audit trails for AI agents',
                     'Multi-agent orchestration emerging as the next platform paradigm',
-                    'Open-source agent frameworks (CrewAI, AutoGen) gaining enterprise traction',
+                    'Open-source agent frameworks gaining enterprise traction',
                   ].map((t, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-1.5 shrink-0"></span>
                       {t}
                     </li>
                   ))}
                 </ul>
               </div>
-
-              {/* Sentiment Analysis */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">Sentiment Analysis</h4>
-                <div className="flex rounded-full overflow-hidden h-3">
-                  <div className="bg-emerald-400" style={{ width: '62%' }}></div>
-                  <div className="bg-yellow-400" style={{ width: '25%' }}></div>
-                  <div className="bg-red-400" style={{ width: '13%' }}></div>
+                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">SENTIMENT</h4>
+                <div className="flex rounded-full overflow-hidden h-2.5">
+                  <div className="bg-gray-900" style={{ width: '62%' }}></div>
+                  <div className="bg-gray-400" style={{ width: '25%' }}></div>
+                  <div className="bg-gray-200" style={{ width: '13%' }}></div>
                 </div>
                 <div className="flex justify-between mt-1.5 text-xs text-gray-400">
                   <span>62% Positive</span>
@@ -338,13 +327,11 @@ export default function Home() {
                   <span>13% Negative</span>
                 </div>
               </div>
-
-              {/* Recommended Actions */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">Recommended Actions</h4>
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">RECOMMENDED ACTIONS</h4>
                 <ul className="space-y-2">
                   {[
-                    'Evaluate CrewAI and AutoGen for internal automation use cases',
+                    'Evaluate agent frameworks for internal automation use cases',
                     'Monitor SOC 2 certification progress among top AI agent vendors',
                     'Brief leadership on the multi-agent orchestration trend by Q2',
                   ].map((a, i) => (
@@ -355,172 +342,131 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-
-              {/* Follow-up */}
-              <div className="bg-indigo-50 rounded-xl p-4">
-                <p className="text-sm font-semibold text-indigo-900 mb-2">Want to go deeper?</p>
-                <div className="flex flex-wrap gap-2">
-                  {['Compare agent frameworks', 'Enterprise adoption timeline', 'Pricing models analysis'].map((q, i) => (
-                    <span key={i} className="text-xs bg-white text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100">{q}</span>
-                  ))}
-                </div>
-              </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Pulsed */}
-      <section id="why-pulsed" className="py-16 md:py-20 bg-[#F9FAFB]">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-widest text-indigo-600 font-semibold">WHY PULSED</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900">Stop drowning in tabs. Start making decisions.</h2>
-            <p className="mt-3 text-lg text-gray-500 max-w-2xl mx-auto">Traditional research takes hours of reading, bookmarking, and synthesizing. Pulsed does it in seconds.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { title: 'Hours → Seconds', desc: 'What used to take a morning of research now takes 30 seconds. Get the full picture instantly.', iconPath: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-              { title: 'Comprehensive Coverage', desc: "Our AI doesn't just search — it reads, analyzes, and synthesizes from hundreds of sources.", iconPath: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-              { title: 'Actionable Intelligence', desc: 'Not just data — structured briefs with themes, sentiment, and recommended next steps.', iconPath: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-            ].map((item) => (
-              <div key={item.title} className="bg-white rounded-2xl p-8 border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all">
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center mb-5">
-                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={item.iconPath} /></svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison */}
-      <section className="py-16 md:py-20">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Google gives you links. Pulsed gives you answers.</h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="rounded-2xl border border-gray-200 p-6">
-              <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Traditional research</p>
-              <ul className="space-y-3">
-                {['Open 20+ tabs', 'Skim articles for relevant info', 'Cross-reference multiple sources', 'Manually synthesize findings', 'Write up your own summary', 'Hope you didn\'t miss anything'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-2.5 text-sm text-gray-500">
-                    <span className="text-red-400">✕</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 text-sm font-semibold text-gray-400">~2-4 hours</p>
-            </div>
-            <div className="rounded-2xl border-2 border-indigo-200 bg-indigo-50/30 p-6">
-              <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider mb-4">With Pulsed</p>
-              <ul className="space-y-3">
-                {['Type your topic', 'AI reads hundreds of sources for you', 'Key themes extracted automatically', 'Sentiment analysis included', 'Actionable recommendations ready', 'Shareable brief with one click'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-2.5 text-sm text-gray-700">
-                    <span className="text-emerald-500">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 text-sm font-semibold text-indigo-600">~30 seconds</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Bar */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-0 md:divide-x divide-gray-100">
-            {[
-              { num: '100s', label: 'Sources analyzed per query' },
-              { num: '30s', label: 'Average brief generation time' },
-              { num: '500+', label: 'Beta users and counting' },
-              { num: '6+', label: 'Platforms scanned per query' },
-            ].map((stat) => (
-              <div key={stat.num} className="text-center px-4">
-                <p className="text-4xl font-bold text-gray-900">{stat.num}</p>
-                <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-gray-900 py-20">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white">Start making smarter decisions</h2>
-          <p className="mt-4 text-gray-400 text-lg">Join 500+ researchers using Pulsed to stay ahead.</p>
-          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <a href="/search" className="bg-white text-gray-900 font-semibold rounded-lg px-8 py-3 hover:bg-gray-50 transition-colors">Get Started Free</a>
-            <button onClick={() => scrollTo('demo')} className="border border-gray-600 text-gray-300 rounded-lg px-8 py-3 hover:border-gray-400 hover:text-white transition-colors">See an example brief →</button>
-          </div>
-          <p className="mt-6 text-sm text-gray-500">No credit card required · 3 free searches per month</p>
-        </div>
-      </section>
-
-      {/* Ultron — AI Agent Teaser */}
-      <section className="py-16 md:py-20 bg-gradient-to-br from-indigo-50 via-white to-violet-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-widest text-indigo-600 font-semibold">COMING SOON</p>
-            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900">Meet Ultron</h2>
-            <p className="mt-3 text-lg text-gray-500 max-w-2xl mx-auto">Your personal AI agent, powered by your own API keys</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { emoji: '🧠', title: 'Your Brain, Your Model', desc: 'Bring your own API key from Anthropic, OpenAI, Google, or any provider. Your data, your model, your control.' },
-              { emoji: '🔧', title: 'Build Anything', desc: 'Research, code, automate, analyze. Your agent can search the web, write code, manage files, and execute tasks autonomously.' },
-              { emoji: '🔌', title: 'Connect Everything', desc: 'Integrate with Telegram, Discord, Slack, and more. Your agent works where you work.' },
-            ].map((card) => (
-              <div key={card.title} className="bg-white rounded-2xl p-8 border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all">
-                <div className="text-3xl mb-5">{card.emoji}</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{card.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{card.desc}</p>
-              </div>
-            ))}
           </div>
           <div className="text-center mt-10">
-            <a href="/agent" className="inline-block text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-3 rounded-lg hover:opacity-90 transition-opacity">Get Early Access</a>
-            <p className="mt-4 text-sm text-gray-400">Launching February 17 · Agent $49/mo · Ultra $99/mo</p>
+            <a href="/search" className="text-sm font-semibold text-gray-900 underline underline-offset-4 hover:text-gray-600 transition-colors">Try a free research brief</a>
           </div>
+        </div>
+      </section>
+
+      {/* Pricing Preview */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">PRICING</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">The last subscription you will ever pay for</h2>
+            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">One agent replaces your entire tool stack. You pay for the platform. You control the AI costs.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              {
+                name: 'Pro',
+                price: '$19',
+                desc: 'AI-powered research briefs',
+                features: ['50 research briefs per month', 'All personas and search modes', 'Search history and bookmarks'],
+                cta: '/pricing',
+                ctaText: 'Get Pro',
+                highlight: false,
+              },
+              {
+                name: 'Agent',
+                price: '$49',
+                desc: 'Your personal AI that builds anything',
+                features: ['Everything in Pro', 'Personal AI agent', 'BYOLLM — any model, any provider', 'Web search, code, file management', 'Telegram and Discord integrations'],
+                cta: '/pricing',
+                ctaText: 'Get Agent',
+                highlight: true,
+              },
+              {
+                name: 'Ultra',
+                price: '$99',
+                desc: 'Unlimited power. Full autonomy.',
+                features: ['Everything in Agent', 'Unlimited research briefs', 'Autonomous scheduled tasks', 'All integrations', 'Priority support'],
+                cta: '/pricing',
+                ctaText: 'Get Ultra',
+                highlight: false,
+              },
+            ].map((tier) => (
+              <div key={tier.name} className={`rounded-2xl p-8 border ${tier.highlight ? 'border-gray-900 ring-1 ring-gray-900' : 'border-gray-200'}`}>
+                <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-gray-900">{tier.price}</span>
+                  <span className="text-gray-500">/mo</span>
+                </div>
+                <p className="mt-2 text-sm text-gray-500">{tier.desc}</p>
+                <ul className="mt-6 space-y-3">
+                  {tier.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-gray-600">
+                      <svg className="w-4 h-4 text-gray-900 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <a href={tier.cta} className={`mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold transition-colors ${
+                  tier.highlight
+                    ? 'bg-gray-900 text-white hover:bg-gray-800'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}>{tier.ctaText}</a>
+              </div>
+            ))}
+          </div>
+          <p className="text-center mt-8 text-sm text-gray-400">All plans include a free tier with 3 research briefs per month. No credit card required to start.</p>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="bg-gray-950 py-24">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
+            Stop subscribing to tools.<br />Start building with intelligence.
+          </h2>
+          <p className="mt-6 text-lg text-gray-400">One agent. Any task. Your model. Your data.</p>
+          <div className="mt-10">
+            <a href="/signup" className="inline-block bg-white text-gray-900 font-semibold rounded-lg px-10 py-4 text-base hover:bg-gray-100 transition-colors">Get started free</a>
+          </div>
+          <p className="mt-6 text-sm text-gray-500">No credit card required. Set up in under 3 minutes.</p>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <span className="text-lg font-bold text-gray-900">Pulsed</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
               </div>
-              <p className="text-sm text-gray-400">AI-powered market intelligence</p>
+              <p className="text-sm text-gray-400">The last software you will ever need.</p>
             </div>
             <div>
               <h4 className="text-sm font-semibold text-gray-900 mb-3">Product</h4>
               <ul className="space-y-2 text-sm text-gray-500">
-                <li><button onClick={() => scrollTo('how-it-works')} className="hover:text-gray-900 transition-colors">How it works</button></li>
-                <li><button onClick={() => scrollTo('why-pulsed')} className="hover:text-gray-900 transition-colors">Why Pulsed</button></li>
-                <li><a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="/search" className="hover:text-gray-900 transition-colors">Research</a></li>
+                <li><a href="/agent" className="hover:text-gray-900 transition-colors">Agent</a></li>
+                <li><a href="/pricing" className="hover:text-gray-900 transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Company</h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Platform</h4>
               <ul className="space-y-2 text-sm text-gray-500">
-                <li><a href="#" className="hover:text-gray-900 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-gray-900 transition-colors">Terms</a></li>
+                <li><a href="/agent" className="hover:text-gray-900 transition-colors">Web Chat</a></li>
+                <li><span className="text-gray-400">Telegram</span></li>
+                <li><span className="text-gray-400">Discord</span></li>
+                <li><span className="text-gray-400">Slack (coming soon)</span></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Legal</h4>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li><a href="/privacy" className="hover:text-gray-900 transition-colors">Privacy</a></li>
+                <li><a href="/terms" className="hover:text-gray-900 transition-colors">Terms</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-100 pt-6 text-sm text-gray-400 text-center">
-            © 2026 Pulsed. All rights reserved.
+            &copy; 2026 Pulsed. All rights reserved.
           </div>
         </div>
       </footer>
