@@ -140,11 +140,19 @@ function SearchContent() {
     }
   }, [query, router]);
 
-  // Check URL for persona param on mount
+  // Check URL for persona param on mount, then localStorage
   useEffect(() => {
     const p = searchParams.get("persona");
     if (p) {
       setPersona(p);
+    } else {
+      try {
+        const saved = localStorage.getItem('pulsed_persona');
+        if (saved) {
+          setPersona(saved);
+          runResearch(saved);
+        }
+      } catch {}
     }
   }, [searchParams]);
 
@@ -168,6 +176,7 @@ function SearchContent() {
 
   function handlePersonaSelect(p: string) {
     setPersona(p);
+    try { localStorage.setItem('pulsed_persona', p); } catch {}
     runResearch(p);
   }
 

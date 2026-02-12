@@ -13,6 +13,25 @@ export default function Home() {
 
   const [exampleIndex, setExampleIndex] = useState(0);
   const [pillSet, setPillSet] = useState(0);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [savedPersona, setSavedPersona] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const p = localStorage.getItem('pulsed_persona');
+      if (p) setSavedPersona(p);
+    } catch {}
+  }, []);
+
+  const placeholderExamples = [
+    'e.g. "AI agents in customer support — what are people saying?"',
+    'e.g. "How are startups using Claude vs GPT in 2026?"',
+    'e.g. "Public sentiment on electric vehicles this month"',
+    'e.g. "What CRM tools are sales teams switching to?"',
+    'e.g. "Remote work trends — are companies going back to office?"',
+    'e.g. "What are developers saying about Rust vs Go?"',
+  ];
+  const placeholder = query ? '' : placeholderExamples[placeholderIndex];
 
   const personas = [
     { role: 'Sales Teams', desc: 'Research prospects, track competitor moves, and find market signals before your next call.', examples: [
@@ -63,6 +82,13 @@ export default function Home() {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % placeholderExamples.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [placeholderExamples.length]);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -136,7 +162,7 @@ export default function Home() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="What do you want to research?"
+                placeholder={placeholder}
                 className="flex-1 h-full px-5 bg-transparent text-gray-900 placeholder-gray-400 text-base outline-none rounded-l-xl"
               />
               <button
@@ -148,6 +174,25 @@ export default function Home() {
               </button>
             </div>
           </form>
+
+          {/* Persona indicator */}
+          {savedPersona && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500">
+              <span>Researching as</span>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium capitalize">
+                {savedPersona === 'analyst' ? '📊 Analyst' : savedPersona === 'sales' ? '💼 Sales' : savedPersona === 'marketing' ? '📣 Marketing' : savedPersona === 'creator' ? '✏️ Creator' : savedPersona}
+              </span>
+              <button
+                onClick={() => {
+                  try { localStorage.removeItem('pulsed_persona'); } catch {}
+                  setSavedPersona(null);
+                }}
+                className="text-indigo-500 hover:text-indigo-700 underline underline-offset-2 transition-colors"
+              >
+                Change
+              </button>
+            </div>
+          )}
 
           {/* Suggested Topics — rotating sets */}
           <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -394,7 +439,7 @@ export default function Home() {
               { num: '100s', label: 'Sources analyzed per query' },
               { num: '30s', label: 'Average brief generation time' },
               { num: '500+', label: 'Beta users and counting' },
-              { num: '30 days', label: 'Of trend data analyzed' },
+              { num: '6+', label: 'Platforms scanned per query' },
             ].map((stat) => (
               <div key={stat.num} className="text-center px-4">
                 <p className="text-4xl font-bold text-gray-900">{stat.num}</p>
