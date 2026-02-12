@@ -79,10 +79,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Log usage for quota tracking
-    try {
-      await supabase.from('search_usage').insert({ ip_address: identifier, topic: trimmedTopic })
-    } catch { /* non-blocking */ }
+    // Extract user_id from auth header if present
+    let userId: string | null = null
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const userSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          { global: { headers: { Authorization: authHeader } } }
+        )
+        const { data: { user } } = await userSupabase.auth.getUser()
+        if (user) userId = user.id
+      } catch { /* ignore */ }
+    }
 
     // Save to Supabase
     const { data: savedBrief, error: dbError } = await supabase
@@ -92,9 +103,20 @@ export async function POST(request: NextRequest) {
         brief_text: result.brief,
         sources: result.sources,
         raw_data: { stats: result.stats },
+        ...(userId ? { user_id: userId } : {}),
       })
       .select('id, topic, brief_text, sources, created_at')
       .single()
+
+    // Log usage for quota tracking (after brief insert so we have brief_id)
+    try {
+      await supabase.from('search_usage').insert({
+        ip_address: identifier,
+        topic: trimmedTopic,
+        ...(userId ? { user_id: userId } : {}),
+        ...(savedBrief ? { brief_id: savedBrief.id } : {}),
+      })
+    } catch { /* non-blocking */ }
 
     if (dbError) {
       console.error('Supabase insert error:', dbError)
