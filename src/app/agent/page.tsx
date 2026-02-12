@@ -22,6 +22,7 @@ export default function AgentPage() {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userPlan, setUserPlan] = useState<string>('free');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,6 +34,16 @@ export default function AgentPage() {
         setAuthChecked(true);
         const token = await getAccessToken();
         setAccessToken(token);
+        // Check user plan
+        try {
+          const profileRes = await fetch('/api/profile', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          const profileData = await profileRes.json();
+          setUserPlan(profileData?.plan || 'free');
+        } catch {
+          setUserPlan('free');
+        }
         // Check if user has API keys
         try {
           const res = await fetch('/api/keys', {
@@ -172,8 +183,35 @@ export default function AgentPage() {
         </div>
       </nav>
 
+      {/* Plan Gate */}
+      {userPlan !== 'agent' && userPlan !== 'ultra' && (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center max-w-md">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mb-6 mx-auto shadow-lg">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10a7 7 0 0 1-14 0" />
+                <path d="M12 17v5" />
+                <path d="M8 22h8" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Unlock Your AI Agent</h2>
+            <p className="text-gray-500 mb-6">
+              Get a personal AI research agent powered by your own API key. Ask anything — market research, competitive analysis, trend reports, and more.
+            </p>
+            <Link
+              href="/pricing"
+              className="inline-block bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold py-3 px-8 rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Upgrade to Agent — $49/mo
+            </Link>
+            <p className="mt-3 text-xs text-gray-400">BYOLLM — bring your own API key. You control the model and costs.</p>
+          </div>
+        </div>
+      )}
+
       {/* API Key Banner */}
-      {!hasApiKey && (
+      {(userPlan === 'agent' || userPlan === 'ultra') && !hasApiKey && (
         <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -197,7 +235,7 @@ export default function AgentPage() {
       )}
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto">
+      {(userPlan === 'agent' || userPlan === 'ultra') && <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center pt-24 text-center">
@@ -264,9 +302,10 @@ export default function AgentPage() {
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </div>
+      </div>}
 
       {/* Input Bar */}
+      {(userPlan === 'agent' || userPlan === 'ultra') &&
       <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-4 py-4">
         <form
           onSubmit={handleSubmit}
@@ -302,7 +341,7 @@ export default function AgentPage() {
             )}
           </button>
         </form>
-      </div>
+      </div>}
     </div>
   );
 }

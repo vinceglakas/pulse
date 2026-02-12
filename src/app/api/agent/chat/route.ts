@@ -42,6 +42,21 @@ export async function POST(req: NextRequest) {
 
     const userId = user.id;
 
+    // Check plan — agent chat requires 'agent' or 'ultra' plan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', userId)
+      .single();
+
+    const plan = profile?.plan || 'free';
+    if (plan !== 'agent' && plan !== 'ultra') {
+      return new Response(JSON.stringify({ error: 'Agent requires an Agent or Ultra plan. Upgrade at /pricing' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Get user's API key (use service role to read encrypted keys)
     const { data: keys } = await supabase
       .from('api_keys')
