@@ -223,10 +223,10 @@ function SearchContent() {
           <div className="flex items-center justify-center gap-3">
             {quotaExceeded ? (
               <button
-                onClick={() => router.replace("/")}
+                onClick={() => router.push("/pricing")}
                 className="px-6 py-3 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity duration-200 cursor-pointer"
               >
-                Upgrade to Pro — Coming Soon
+                Upgrade to Pro
               </button>
             ) : (
               <button

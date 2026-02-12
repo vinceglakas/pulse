@@ -85,7 +85,7 @@ export default function Home() {
       {/* Announcement Bar */}
       {showBanner && (
         <div className="bg-indigo-600 text-white text-sm text-center py-2.5 px-4 relative">
-          <span>Pulsed is in beta — get 3 free searches. No credit card needed.</span>
+          <span>Get 3 free searches. No credit card needed.</span>
           <button
             onClick={() => setShowBanner(false)}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-lg leading-none"
@@ -433,7 +433,7 @@ export default function Home() {
               <ul className="space-y-2 text-sm text-gray-500">
                 <li><button onClick={() => scrollTo('how-it-works')} className="hover:text-gray-900 transition-colors">How it works</button></li>
                 <li><button onClick={() => scrollTo('why-pulsed')} className="hover:text-gray-900 transition-colors">Why Pulsed</button></li>
-                <li><span className="text-gray-300">Pricing (Coming Soon)</span></li>
+                <li><a href="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
