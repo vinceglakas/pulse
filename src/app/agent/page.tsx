@@ -54,6 +54,23 @@ export default function AgentPage() {
         } catch {
           setHasApiKey(false);
         }
+        // Load conversation history
+        try {
+          const histRes = await fetch('/api/agent/history?sessionKey=default&limit=100', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (histRes.ok) {
+            const histData = await histRes.json();
+            if (histData.messages && histData.messages.length > 0) {
+              setMessages(histData.messages.map((m: any) => ({
+                id: m.id,
+                role: m.role === 'user' ? 'user' : 'agent',
+                content: m.content,
+                timestamp: new Date(m.created_at),
+              })));
+            }
+          }
+        } catch {}
       }
     });
   }, [router]);
@@ -76,6 +93,15 @@ export default function AgentPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsStreaming(true);
+
+    // Save user message to history (fire and forget)
+    if (accessToken) {
+      fetch('/api/agent/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ role: 'user', content: text, sessionKey: 'default' }),
+      }).catch(() => {});
+    }
 
     const agentMsgId = crypto.randomUUID();
     setMessages((prev) => [
@@ -145,6 +171,20 @@ export default function AgentPage() {
       );
     } finally {
       setIsStreaming(false);
+      // Save agent response to history
+      if (accessToken) {
+        setMessages((prev) => {
+          const agentMsg = prev.find((m) => m.id === agentMsgId);
+          if (agentMsg && agentMsg.content && agentMsg.content !== 'Something went wrong. Please try again.') {
+            fetch('/api/agent/history', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({ role: 'agent', content: agentMsg.content, sessionKey: 'default' }),
+            }).catch(() => {});
+          }
+          return prev;
+        });
+      }
     }
   };
 
