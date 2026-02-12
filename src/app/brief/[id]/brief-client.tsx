@@ -416,7 +416,7 @@ function StructuredBriefView({
           &ldquo;{topic}&rdquo;
         </h1>
         <p className="text-sm text-gray-500">
-          {sourceCount} sources analyzed · {createdDate}
+          Generated {createdDate}
         </p>
       </Card>
 
@@ -681,7 +681,7 @@ export default function BriefPage({ params }: { params: Promise<{ id: string }> 
                 &ldquo;{brief.topic}&rdquo;
               </h1>
               <p className="text-sm text-gray-500">
-                {brief.sources.length} sources analyzed · {createdDate}
+                Generated {createdDate}
               </p>
             </Card>
 

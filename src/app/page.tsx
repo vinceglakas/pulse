@@ -249,9 +249,9 @@ export default function Home() {
             <div className="bg-white p-6 md:p-10">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
                 <h3 className="text-xl font-bold text-gray-900">Brief: AI Agents in Enterprise SaaS</h3>
-                <span className="text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full whitespace-nowrap">30 sources analyzed</span>
+                <span className="text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full whitespace-nowrap">AI-powered brief</span>
               </div>
-              <p className="text-sm text-gray-400 mb-5">Generated Feb 10, 2026 · 47 sources · 1,240 upvotes analyzed · 30 second read</p>
+              <p className="text-sm text-gray-400 mb-5">Generated Feb 10, 2026</p>
               <hr className="border-gray-100 mb-6" />
 
               {/* Executive Summary */}

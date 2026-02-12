@@ -94,7 +94,7 @@ export async function GET(
               fontWeight: 600,
             }}
           >
-            {sourceCount} sources analyzed
+            AI-powered intelligence brief
           </div>
         </div>
       </div>

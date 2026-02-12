@@ -158,7 +158,6 @@ export default async function BriefPublicPage({ params }: Props) {
         {/* Meta line */}
         <p className="text-sm text-gray-400 mb-10">
           Generated {createdDate}
-          {` · ${readTime} second read`}
         </p>
 
         {structured ? (
