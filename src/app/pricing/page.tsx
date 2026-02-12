@@ -42,7 +42,7 @@ const tiers = [
     desc: 'Your personal AI research agent',
     features: [
       'Everything in Pro',
-      'Personal AI agent (powered by OpenClaw)',
+      'Personal AI agent',
       'BYOLLM — bring your own API key',
       'Web search, code execution, file workspace',
       'Chat interface at /agent',

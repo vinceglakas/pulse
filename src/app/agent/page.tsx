@@ -705,7 +705,7 @@ export default function AgentPage() {
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Ultron Agent</h2>
                 <p className="text-gray-500 max-w-md mb-10">
-                  Your personal AI agent powered by OpenClaw. Ask anything — research, analysis, tasks, and more.
+                  Your personal AI agent. Ask anything — research, analysis, tasks, and more.
                 </p>
 
                 {/* Suggestion chips */}
