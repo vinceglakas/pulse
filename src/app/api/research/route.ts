@@ -42,21 +42,61 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ── Quota enforcement (free tier: 3/month) ──
+    // ── Quota enforcement ──
+    const FREE_LIMIT = 3
+    const PRO_LIMIT = 50
+
     const fp = (body as any).fingerprint as string | undefined
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     const identifier = fp ? `fp:${fp}` : ip
 
+    // Check if user is Pro via auth header
+    let userPlan = 'free'
+    let authUserId: string | null = null
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const userSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          { global: { headers: { Authorization: authHeader } } }
+        )
+        const { data: { user } } = await userSupabase.auth.getUser()
+        if (user) {
+          authUserId = user.id
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', user.id)
+            .single()
+          if (profile?.plan === 'pro') userPlan = 'pro'
+        }
+      } catch { /* ignore */ }
+    }
+
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-    const { count: usedCount } = await supabase
-      .from('search_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('ip_address', identifier)
-      .gte('created_at', monthStart)
+    // Count usage — by user_id for logged-in users, by fingerprint/IP for anonymous
+    let usedCount = 0
+    if (authUserId) {
+      const { count } = await supabase
+        .from('search_usage')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUserId)
+        .gte('created_at', monthStart)
+      usedCount = count || 0
+    } else {
+      const { count } = await supabase
+        .from('search_usage')
+        .select('*', { count: 'exact', head: true })
+        .eq('ip_address', identifier)
+        .gte('created_at', monthStart)
+      usedCount = count || 0
+    }
 
-    const FREE_LIMIT = 3
+    const baseLimit = userPlan === 'pro' ? PRO_LIMIT : FREE_LIMIT
 
     // Check for referral bonus searches
     let bonusSearches = 0
@@ -69,11 +109,14 @@ export async function POST(request: NextRequest) {
       bonusSearches = bonusRow?.bonus_searches || 0
     } catch { /* no bonus row */ }
 
-    const totalLimit = FREE_LIMIT + bonusSearches
-    if ((usedCount || 0) >= totalLimit) {
+    const totalLimit = baseLimit + bonusSearches
+    if (usedCount >= totalLimit) {
+      const errorMsg = userPlan === 'pro'
+        ? 'You\'ve used all 50 Pro searches this month. They reset on the 1st.'
+        : 'You\'ve used all 3 free searches this month. Upgrade to Pro for 50 searches/month.'
       return NextResponse.json(
         {
-          error: 'You\'ve used all 3 free searches this month. Upgrade to Pro for unlimited research.',
+          error: errorMsg,
           quota_exceeded: true,
           used: usedCount,
           limit: totalLimit,
@@ -92,23 +135,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract user_id from auth header if present
-    let userId: string | null = null
-    const authHeader = request.headers.get('authorization')
-    if (authHeader) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js')
-        const userSupabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          { global: { headers: { Authorization: authHeader } } }
-        )
-        const { data: { user } } = await userSupabase.auth.getUser()
-        if (user) userId = user.id
-      } catch { /* ignore */ }
-    }
-
-    // Save to Supabase
+    // Save to Supabase (authUserId already extracted during quota check)
+    const userId = authUserId
     const { data: savedBrief, error: dbError } = await supabase
       .from('briefs')
       .insert({

@@ -21,9 +21,9 @@ const tiers = [
     name: 'Pro',
     price: '$19',
     period: '/mo',
-    desc: 'Unlimited intelligence for power users',
+    desc: 'Full intelligence for power users',
     features: [
-      'Unlimited briefs',
+      '50 briefs per month',
       'Priority deep research',
       'Export & share briefs',
       'Advanced sentiment analysis',

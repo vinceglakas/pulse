@@ -128,7 +128,6 @@ async function pickTrendingTopic(): Promise<string | null> {
   const all = [...hnCandidates, ...redditCandidates, ...googleCandidates]
 
   if (all.length === 0) {
-    // Fallback: evergreen topics
     const fallbacks = [
       'AI agents in enterprise 2026',
       'future of remote work',
@@ -139,10 +138,40 @@ async function pickTrendingTopic(): Promise<string | null> {
     return fallbacks[Math.floor(Math.random() * fallbacks.length)]
   }
 
-  // Sort by score, pick randomly from top 8 for variety
-  all.sort((a, b) => b.score - a.score)
-  const top = all.slice(0, 8)
-  return top[Math.floor(Math.random() * top.length)].title
+  // Normalize scores within each source so no single source dominates
+  const normalize = (candidates: TrendCandidate[]) => {
+    if (candidates.length === 0) return
+    const maxScore = Math.max(...candidates.map(c => c.score))
+    if (maxScore > 0) {
+      for (const c of candidates) {
+        c.score = (c.score / maxScore) * 100
+      }
+    }
+  }
+  normalize(hnCandidates)
+  normalize(redditCandidates)
+  normalize(googleCandidates)
+
+  // Re-merge after normalization
+  const normalized = [...hnCandidates, ...redditCandidates, ...googleCandidates]
+  normalized.sort((a, b) => b.score - a.score)
+
+  // Ensure diversity: pick from top 10 but prefer mixed sources
+  const top = normalized.slice(0, 12)
+  const sources = new Set(top.map(t => t.source))
+  
+  // If multiple sources available, try to pick from an underrepresented one sometimes
+  if (sources.size > 1) {
+    // 50% chance: pick from a non-HN source if available (HN tends to be too niche)
+    if (Math.random() < 0.5) {
+      const nonHN = top.filter(t => t.source !== 'hn')
+      if (nonHN.length > 0) {
+        return nonHN[Math.floor(Math.random() * Math.min(nonHN.length, 5))].title
+      }
+    }
+  }
+
+  return top[Math.floor(Math.random() * Math.min(top.length, 8))].title
 }
 
 function cleanTitle(title: string): string {
@@ -176,7 +205,7 @@ async function getHNTrending(): Promise<TrendCandidate[]> {
 }
 
 async function getRedditTrending(): Promise<TrendCandidate[]> {
-  const subs = ['technology', 'artificial', 'business', 'Futurology']
+  const subs = ['technology', 'artificial', 'business', 'Futurology', 'startups', 'SaaS', 'marketing', 'productivity', 'ChatGPT', 'singularity', 'datascience', 'MachineLearning']
   const results: TrendCandidate[] = []
 
   await Promise.all(subs.map(async (sub) => {

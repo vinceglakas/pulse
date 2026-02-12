@@ -208,7 +208,7 @@ function SearchContent() {
           </div>
 
           <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {quotaExceeded ? "Free searches used up" : "Research failed"}
+            {quotaExceeded ? "Monthly searches used up" : "Research failed"}
           </h2>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
             {error}
