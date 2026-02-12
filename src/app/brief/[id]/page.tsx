@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import type { StructuredBrief, SourcePost } from "@/lib/types";
 import { ShareButtons } from "./share-buttons";
-import { SourcesCollapsible } from "./sources-collapsible";
+// sources-collapsible removed — sources are hidden
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -221,7 +221,7 @@ export default async function BriefPublicPage({ params }: Props) {
             {topic}
           </h1>
           <p className="text-sm text-gray-500">
-            {sources.length} sources analyzed · {createdDate}
+            {createdDate}
           </p>
         </Card>
 
@@ -290,10 +290,7 @@ export default async function BriefPublicPage({ params }: Props) {
         {/* Share / Action buttons (client component) — ABOVE sources */}
         <ShareButtons url={briefUrl} topic={topic} briefText={structured?.executive_summary || (data.brief_text as string)} />
 
-        {/* Sources — collapsed by default */}
-        {sources.length > 0 && (
-          <SourcesCollapsible sources={sources} />
-        )}
+        {/* Sources hidden — secret sauce */}
 
         {/* CTA */}
         <div className="mt-12 text-center">
