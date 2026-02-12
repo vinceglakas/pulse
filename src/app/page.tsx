@@ -109,6 +109,7 @@ export default function Home() {
             <button onClick={() => scrollTo('how-it-works')} className="hidden md:block text-sm text-gray-500 hover:text-gray-900 transition-colors">How it works</button>
             <button onClick={() => scrollTo('why-pulsed')} className="hidden md:block text-sm text-gray-500 hover:text-gray-900 transition-colors">Why Pulsed</button>
             <div className="flex items-center gap-3">
+              <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pro</a>
               <a href="/history" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">History</a>
               <a href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Sign in</a>
               <a href="/search" className="text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">Get Started</a>
