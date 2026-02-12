@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import type { StructuredBrief, SourcePost } from "@/lib/types";
 import { ShareButtons } from "./share-buttons";
+import { SourcesCollapsible } from "./sources-collapsible";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -286,40 +287,13 @@ export default async function BriefPublicPage({ params }: Props) {
           </Card>
         )}
 
-        {/* Sources */}
-        {sources.length > 0 && (
-          <Card className="mb-6">
-            <SectionHeader>Sources</SectionHeader>
-            <ul className="space-y-3">
-              {sources.slice(0, 10).map((source, i) => (
-                <li key={i}>
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-3 group"
-                  >
-                    <span className="text-xs font-mono text-gray-400 mt-0.5 shrink-0">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <div className="min-w-0">
-                      <span className="text-sm text-indigo-600 group-hover:text-indigo-700 underline underline-offset-2 line-clamp-1">
-                        {source.title}
-                      </span>
-                      <span className="block text-xs text-gray-400 mt-0.5">
-                        {source.source}
-                        {source.score > 0 && ` · ${source.score} points`}
-                      </span>
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+        {/* Share / Action buttons (client component) — ABOVE sources */}
+        <ShareButtons url={briefUrl} topic={topic} briefText={structured?.executive_summary || (data.brief_text as string)} />
 
-        {/* Share buttons (client component) */}
-        <ShareButtons url={briefUrl} topic={topic} />
+        {/* Sources — collapsed by default */}
+        {sources.length > 0 && (
+          <SourcesCollapsible sources={sources} />
+        )}
 
         {/* CTA */}
         <div className="mt-12 text-center">
