@@ -57,13 +57,26 @@ export async function POST(request: NextRequest) {
       .gte('created_at', monthStart)
 
     const FREE_LIMIT = 3
-    if ((usedCount || 0) >= FREE_LIMIT) {
+
+    // Check for referral bonus searches
+    let bonusSearches = 0
+    try {
+      const { data: bonusRow } = await supabase
+        .from('referral_bonuses')
+        .select('bonus_searches')
+        .eq('user_id', identifier)
+        .single()
+      bonusSearches = bonusRow?.bonus_searches || 0
+    } catch { /* no bonus row */ }
+
+    const totalLimit = FREE_LIMIT + bonusSearches
+    if ((usedCount || 0) >= totalLimit) {
       return NextResponse.json(
         {
           error: 'You\'ve used all 3 free searches this month. Upgrade to Pro for unlimited research.',
           quota_exceeded: true,
           used: usedCount,
-          limit: FREE_LIMIT,
+          limit: totalLimit,
         },
         { status: 429 }
       )

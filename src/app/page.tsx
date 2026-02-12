@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import BriefOfTheDay from './components/BriefOfTheDay';
+import ReferralCapture from './components/ReferralCapture';
 
 export default function Home() {
   const router = useRouter();
@@ -78,6 +79,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Referral Capture */}
+      <ReferralCapture />
+
       {/* Announcement Bar */}
       {showBanner && (
         <div className="bg-indigo-600 text-white text-sm text-center py-2.5 px-4 relative">

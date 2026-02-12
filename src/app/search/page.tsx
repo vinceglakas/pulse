@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import ReferralSection from "../components/ReferralSection";
 
 const STATUS_MESSAGES = [
   "Scanning discussions...",
@@ -50,6 +51,31 @@ function PersonaPicker({ onSelect }: { onSelect: (p: string) => void }) {
   );
 }
 
+async function tryAutoRedeem(fingerprint: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  const refCode = localStorage.getItem('pulsed_ref_code')
+  if (!refCode) return false
+  // Only try once
+  const redeemed = localStorage.getItem('pulsed_ref_redeemed')
+  if (redeemed) return false
+
+  try {
+    const res = await fetch('/api/referrals/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: refCode, fingerprint }),
+    })
+    if (res.ok) {
+      localStorage.setItem('pulsed_ref_redeemed', 'true')
+      localStorage.removeItem('pulsed_ref_code')
+      return true
+    }
+  } catch { /* ignore */ }
+  // Mark as attempted even on failure to avoid infinite retries
+  localStorage.setItem('pulsed_ref_redeemed', 'attempted')
+  return false
+}
+
 function getFingerprint(): string {
   if (typeof window === 'undefined') return 'server'
   let fp = localStorage.getItem('pulsed_fp')
@@ -82,6 +108,9 @@ function SearchContent() {
     setIsResearching(true);
 
     try {
+      // Auto-redeem referral code on first search
+      await tryAutoRedeem(getFingerprint());
+
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -184,6 +213,12 @@ function SearchContent() {
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
             {error}
           </p>
+
+          {quotaExceeded && (
+            <div className="mb-6 max-w-md mx-auto">
+              <ReferralSection />
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-3">
             {quotaExceeded ? (
