@@ -29,7 +29,7 @@ export default function Home() {
       result: 'Your agent takes your CSV, enriches each lead with company data, tech stack, recent news, and social profiles. Outputs a clean spreadsheet ready for outreach.',
     },
     {
-      command: '"Analyze the sentiment around our brand across Reddit, Twitter, and HN this month"',
+      command: '"Analyze the sentiment around our brand across every major platform this month"',
       result: 'Your agent scans thousands of posts, extracts themes, measures sentiment, identifies influencers, and delivers an executive brief with actionable recommendations.',
     },
   ];
@@ -308,7 +308,7 @@ export default function Home() {
       </section>
 
       {/* Replaces Everything */}
-      <section className="py-20 md:py-28 bg-gray-950">
+      <section className="py-20 md:py-28 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
@@ -323,7 +323,7 @@ export default function Home() {
               { replaces: 'Your analytics dashboards', desc: 'Analyzes your data, spots trends, generates reports. Ask questions in plain English.' },
               { replaces: 'Your project management', desc: 'Tracks tasks, sets deadlines, sends reminders, writes status updates. Manages itself.' },
             ].map((item) => (
-              <div key={item.replaces} className="bg-gray-950 p-8 transition-all duration-200 hover:bg-gray-900/50">
+              <div key={item.replaces} className="p-8 transition-all duration-200 hover:bg-white/5" style={{ background: 'rgba(15, 23, 42, 0.5)' }}>
                 <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Replaces</p>
                 <h3 className="text-xl font-bold text-white mb-3">{item.replaces}</h3>
                 <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
@@ -393,7 +393,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">BUILT-IN RESEARCH ENGINE</p>
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Every agent comes with a superpower</h2>
-            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">The Pulsed research engine scans Reddit, Hacker News, X, YouTube, Google Trends, and the open web. Your agent uses it to answer any question with real, current data.</p>
+            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">The Pulsed research engine scans thousands of sources across the internet in real time. Your agent uses it to answer any question with current, verified data.</p>
           </div>
           <div className="max-w-3xl mx-auto rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 flex items-center gap-2 border-b border-gray-100">
@@ -569,7 +569,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-gray-950 py-24">
+      <section className="py-24" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)' }}>
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
             Stop subscribing to tools.<br />Start building with intelligence.
