@@ -115,7 +115,6 @@ export default function Home() {
             <button onClick={() => scrollTo('how-it-works')} className="hidden md:block text-sm text-gray-500 hover:text-gray-900 transition-colors">How it works</button>
             <div className="flex items-center gap-3">
               <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
-              <a href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</a>
               <a href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Sign in</a>
               <a
                 href="/signup"
@@ -283,16 +282,17 @@ export default function Home() {
               <p className="text-sm text-gray-400 uppercase tracking-wider mb-6">Supported providers</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku' },
-                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex' },
-                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro' },
-                  { name: 'Moonshot', sub: 'Kimi K2' },
-                  { name: 'Meta', sub: 'Llama 4 via OpenRouter' },
-                  { name: 'Any provider', sub: 'OpenAI-compatible API' },
+                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku', color: '#D97757' },
+                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex', color: '#10A37F' },
+                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro', color: '#4285F4' },
+                  { name: 'Moonshot', sub: 'Kimi K2', color: '#1a1a2e' },
+                  { name: 'Meta', sub: 'Llama 4 via OpenRouter', color: '#0668E1' },
+                  { name: 'Any provider', sub: 'OpenAI-compatible API', color: '#6366f1' },
                 ].map((p) => (
                   <div
                     key={p.name}
-                    className="rounded-lg px-4 py-3 border border-gray-100 transition-all duration-200 hover:border-indigo-200 hover:bg-indigo-50/50 cursor-default"
+                    className="rounded-lg px-4 py-3 border border-gray-100 transition-all duration-200 hover:border-gray-200 hover:shadow-sm cursor-default"
+                    style={{ borderLeft: `3px solid ${p.color}` }}
                   >
                     <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
