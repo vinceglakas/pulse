@@ -281,24 +281,21 @@ export default function Home() {
             </div>
             <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
               <p className="text-sm text-gray-400 uppercase tracking-wider mb-6">Supported providers</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku', icon: '🟠' },
-                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex', icon: '🟢' },
-                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro', icon: '🔵' },
-                  { name: 'Moonshot', sub: 'Kimi K2', icon: '🌙' },
-                  { name: 'Meta', sub: 'Llama 4 via OpenRouter', icon: '🦙' },
-                  { name: 'Any provider', sub: 'OpenAI-compatible API', icon: '🔌' },
+                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku' },
+                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex' },
+                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro' },
+                  { name: 'Moonshot', sub: 'Kimi K2' },
+                  { name: 'Meta', sub: 'Llama 4 via OpenRouter' },
+                  { name: 'Any provider', sub: 'OpenAI-compatible API' },
                 ].map((p) => (
                   <div
                     key={p.name}
-                    className="bg-gray-50 rounded-xl p-4 border border-gray-100 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-gray-200 cursor-default"
+                    className="rounded-lg px-4 py-3 border border-gray-100 transition-all duration-200 hover:border-indigo-200 hover:bg-indigo-50/50 cursor-default"
                   >
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-lg">{p.icon}</span>
-                      <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-0.5 ml-7">{p.sub}</p>
+                    <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
                   </div>
                 ))}
               </div>
