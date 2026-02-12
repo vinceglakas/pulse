@@ -431,38 +431,34 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">SENTIMENT</h4>
-                <div className="flex rounded-full overflow-hidden h-2.5">
-                  <div className="bg-gray-900" style={{ width: '62%' }}></div>
-                  <div className="bg-gray-400" style={{ width: '25%' }}></div>
-                  <div className="bg-gray-200" style={{ width: '13%' }}></div>
+              {/* Blurred teaser */}
+              <div className="relative">
+                <div className="filter blur-[6px] select-none pointer-events-none">
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">SENTIMENT</h4>
+                    <div className="flex rounded-full overflow-hidden h-2.5">
+                      <div className="bg-gray-900" style={{ width: '62%' }}></div>
+                      <div className="bg-gray-400" style={{ width: '25%' }}></div>
+                      <div className="bg-gray-200" style={{ width: '13%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">RECOMMENDED ACTIONS</h4>
+                    <ul className="space-y-2">
+                      <li className="text-sm text-gray-600">Evaluate agent frameworks for internal automation</li>
+                      <li className="text-sm text-gray-600">Monitor certification progress among top vendors</li>
+                      <li className="text-sm text-gray-600">Brief leadership on orchestration trend by Q2</li>
+                    </ul>
+                  </div>
                 </div>
-                <div className="flex justify-between mt-1.5 text-xs text-gray-400">
-                  <span>62% Positive</span>
-                  <span>25% Neutral</span>
-                  <span>13% Negative</span>
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60">
+                  <a href="/signup" className="inline-flex items-center gap-2 bg-gray-900 text-white font-semibold rounded-lg px-6 py-3 text-sm hover:bg-gray-800 transition-colors shadow-lg">
+                    Sign up to see full brief
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </a>
                 </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">RECOMMENDED ACTIONS</h4>
-                <ul className="space-y-2">
-                  {[
-                    'Evaluate agent frameworks for internal automation use cases',
-                    'Monitor SOC 2 certification progress among top AI agent vendors',
-                    'Brief leadership on the multi-agent orchestration trend by Q2',
-                  ].map((a, i) => (
-                    <li key={i} className="flex items-center gap-2.5 text-sm text-gray-600">
-                      <div className="w-4 h-4 rounded border border-gray-300 shrink-0"></div>
-                      {a}
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
-          </div>
-          <div className="text-center mt-10">
-            <a href="/search" className="text-sm font-semibold text-gray-900 underline underline-offset-4 hover:text-gray-600 transition-colors">Try a free research brief</a>
           </div>
         </div>
       </section>
