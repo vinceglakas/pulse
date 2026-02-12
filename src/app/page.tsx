@@ -425,7 +425,7 @@ export default function Home() {
                     'Open-source agent frameworks gaining enterprise traction',
                   ].map((t, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-1.5 shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
                       {t}
                     </li>
                   ))}
@@ -437,9 +437,9 @@ export default function Home() {
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">SENTIMENT</h4>
                     <div className="flex rounded-full overflow-hidden h-2.5">
-                      <div className="bg-gray-900" style={{ width: '62%' }}></div>
-                      <div className="bg-gray-400" style={{ width: '25%' }}></div>
-                      <div className="bg-gray-200" style={{ width: '13%' }}></div>
+                      <div className="bg-indigo-600" style={{ width: '62%' }}></div>
+                      <div className="bg-violet-400" style={{ width: '25%' }}></div>
+                      <div className="bg-gray-300" style={{ width: '13%' }}></div>
                     </div>
                   </div>
                   <div>
