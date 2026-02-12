@@ -68,6 +68,17 @@ export default function AgentPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  /* ── Onboarding state ── */
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingTransition, setOnboardingTransition] = useState(false);
+  const [onboardingName, setOnboardingName] = useState('');
+  const [onboardingRole, setOnboardingRole] = useState('');
+  const [onboardingIndustry, setOnboardingIndustry] = useState('');
+  const [onboardingFocus, setOnboardingFocus] = useState('');
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [onboardingExiting, setOnboardingExiting] = useState(false);
+
   /* ── Auth + load history ── */
   useEffect(() => {
     getSession().then(async (session) => {
@@ -111,6 +122,7 @@ export default function AgentPage() {
             }
           }
         } catch {}
+        setHistoryLoaded(true);
       }
     });
   }, [router]);
@@ -260,6 +272,167 @@ export default function AgentPage() {
     }
   };
 
+  /* ── Onboarding helpers ── */
+  const showOnboarding =
+    (userPlan === 'agent' || userPlan === 'ultra') &&
+    historyLoaded &&
+    messages.length === 0 &&
+    !onboardingComplete &&
+    !isStreaming;
+
+  const advanceStep = () => {
+    setOnboardingTransition(true);
+    setTimeout(() => {
+      setOnboardingStep((s) => s + 1);
+      setOnboardingTransition(false);
+    }, 300);
+  };
+
+  const finishOnboarding = async () => {
+    setOnboardingTransition(true);
+
+    // Save profile (best-effort — might 400 if fields don't exist yet)
+    if (accessToken) {
+      try {
+        await fetch('/api/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            name: onboardingName,
+            role: onboardingRole,
+            industry: onboardingIndustry,
+            current_focus: onboardingFocus,
+          }),
+        });
+      } catch {
+        // swallow — profile API may not support these fields yet
+      }
+    }
+
+    // Build the first message
+    const firstMessage = `My name is ${onboardingName}. I'm a ${onboardingRole} in ${onboardingIndustry}. I'm currently working on: ${onboardingFocus}. Say hello and tell me how you can help.`;
+
+    // Exit animation
+    setOnboardingExiting(true);
+    setTimeout(() => {
+      setOnboardingComplete(true);
+      setOnboardingExiting(false);
+      setOnboardingTransition(false);
+
+      // Auto-send the first message by injecting into input and submitting
+      setInput(firstMessage);
+      // Use a micro-delay so state settles before we submit
+      setTimeout(() => {
+        // Directly trigger the send logic (can't use handleSubmit since input state won't be settled)
+        const text = firstMessage;
+        const userMsg: Message = {
+          id: crypto.randomUUID(),
+          role: 'user',
+          content: text,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, userMsg]);
+        setInput('');
+        setIsStreaming(true);
+
+        if (accessToken) {
+          fetch('/api/agent/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ role: 'user', content: text, sessionKey: 'default' }),
+          }).catch(() => {});
+        }
+
+        const agentMsgId = crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev,
+          { id: agentMsgId, role: 'agent', content: '', timestamp: new Date() },
+        ]);
+
+        (async () => {
+          try {
+            const res = await fetch('/api/agent/chat', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+              },
+              body: JSON.stringify({ message: text, sessionKey: 'default' }),
+            });
+
+            if (!res.ok || !res.body) throw new Error('Failed to connect');
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') break;
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.text) {
+                      setMessages((prev) =>
+                        prev.map((m) =>
+                          m.id === agentMsgId
+                            ? { ...m, content: m.content + parsed.text }
+                            : m
+                        )
+                      );
+                    }
+                  } catch {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === agentMsgId
+                          ? { ...m, content: m.content + data }
+                          : m
+                      )
+                    );
+                  }
+                }
+              }
+            }
+          } catch {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === agentMsgId
+                  ? { ...m, content: 'Something went wrong. Please try again.' }
+                  : m
+              )
+            );
+          } finally {
+            setIsStreaming(false);
+            if (accessToken) {
+              setMessages((prev) => {
+                const agentMsg = prev.find((m) => m.id === agentMsgId);
+                if (agentMsg && agentMsg.content && agentMsg.content !== 'Something went wrong. Please try again.') {
+                  fetch('/api/agent/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                    body: JSON.stringify({ role: 'agent', content: agentMsg.content, sessionKey: 'default' }),
+                  }).catch(() => {});
+                }
+                return prev;
+              });
+            }
+          }
+        })();
+      }, 50);
+    }, 400);
+  };
+
   /* ── Loading spinner ── */
   if (!authChecked) {
     return (
@@ -295,6 +468,23 @@ export default function AgentPage() {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           animation: shimmer 2s ease-in-out infinite;
+        }
+        @keyframes onboard-in {
+          0% { opacity: 0; transform: translateY(16px) scale(0.97); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes onboard-out {
+          0% { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(-12px) scale(0.97); }
+        }
+        .onboard-step-enter {
+          animation: onboard-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .onboard-step-exit {
+          animation: onboard-out 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .onboard-card-exit {
+          animation: onboard-out 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
       `}</style>
 
@@ -367,8 +557,125 @@ export default function AgentPage() {
         </div>
       )}
 
+      {/* ════════════════════════ Onboarding Wizard ════════════════════════ */}
+      {(userPlan === 'agent' || userPlan === 'ultra') && showOnboarding && (
+        <div className={`flex-1 flex items-center justify-center px-4 ${onboardingExiting ? 'onboard-card-exit' : ''}`}>
+          <div className="w-full max-w-md">
+            <div
+              className={`bg-white rounded-2xl shadow-xl border border-gray-100 p-8 ${
+                onboardingTransition ? 'onboard-step-exit' : 'onboard-step-enter'
+              }`}
+            >
+              {/* Step 1: Name */}
+              {onboardingStep === 0 && (
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Pulsed 👋</h1>
+                  <p className="text-gray-500 mb-8">Let&apos;s set up your agent. This takes 30 seconds.</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">What should I call you?</label>
+                  <input
+                    type="text"
+                    value={onboardingName}
+                    onChange={(e) => setOnboardingName(e.target.value)}
+                    placeholder="Your first name"
+                    autoFocus
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!onboardingName.trim()}
+                    onClick={advanceStep}
+                    className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+
+              {/* Step 2: Role + Industry */}
+              {onboardingStep === 1 && (
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Nice to meet you, {onboardingName} 🤝</h1>
+                  <p className="text-gray-500 mb-8">Help your agent understand what you do.</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your role?</label>
+                  <input
+                    type="text"
+                    value={onboardingRole}
+                    onChange={(e) => setOnboardingRole(e.target.value)}
+                    placeholder="e.g. Sales Director, Founder, Product Manager"
+                    autoFocus
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-4"
+                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">What industry?</label>
+                  <input
+                    type="text"
+                    value={onboardingIndustry}
+                    onChange={(e) => setOnboardingIndustry(e.target.value)}
+                    placeholder="e.g. SaaS, Healthcare, Government"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && onboardingRole.trim() && onboardingIndustry.trim()) advanceStep();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!onboardingRole.trim() || !onboardingIndustry.trim()}
+                    onClick={advanceStep}
+                    className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+
+              {/* Step 3: Current focus */}
+              {onboardingStep === 2 && (
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">One more thing ✨</h1>
+                  <p className="text-gray-500 mb-8">What are you working on right now? Your agent will remember this.</p>
+                  <textarea
+                    value={onboardingFocus}
+                    onChange={(e) => setOnboardingFocus(e.target.value)}
+                    placeholder="e.g. Building outbound sequences for Q1, researching competitors in the AI space..."
+                    autoFocus
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all resize-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={!onboardingFocus.trim()}
+                    onClick={finishOnboarding}
+                    className="mt-6 w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
+                  >
+                    Start chatting
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Progress dots */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {[0, 1, 2].map((dot) => (
+                <div
+                  key={dot}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    dot === onboardingStep
+                      ? 'w-6 bg-indigo-500'
+                      : dot < onboardingStep
+                      ? 'w-2 bg-indigo-400'
+                      : 'w-2 bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ════════════════════════ Chat Area ════════════════════════ */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && (
+      {(userPlan === 'agent' || userPlan === 'ultra') && !showOnboarding && (
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto relative">
           {/* Streaming progress bar at top */}
           {isStreaming && (
@@ -531,7 +838,7 @@ export default function AgentPage() {
       )}
 
       {/* ════════════════════════ Input Bar ════════════════════════ */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && (
+      {(userPlan === 'agent' || userPlan === 'ultra') && !showOnboarding && (
         <div className="sticky bottom-0 bg-gray-50/80 backdrop-blur-sm border-t border-gray-100 px-4 py-4">
           <form
             onSubmit={handleSubmit}
