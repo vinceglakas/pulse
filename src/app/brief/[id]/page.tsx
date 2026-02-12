@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import type { StructuredBrief, SourcePost } from "@/lib/types";
 import { ShareButtons } from "./share-buttons";
-// sources-collapsible removed — sources are hidden
+import { DeeperSection } from "./deeper-section";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -33,23 +33,18 @@ function parseStructuredBrief(text: string): StructuredBrief | null {
 
 async function getBrief(id: string) {
   if (!id || !UUID_REGEX.test(id)) return null;
-
   const { data } = await supabase
     .from("briefs")
     .select("id, topic, brief_text, sources, created_at")
     .eq("id", id)
     .single();
-
   return data;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const data = await getBrief(id);
-
-  if (!data) {
-    return { title: "Brief Not Found | Pulsed" };
-  }
+  if (!data) return { title: "Brief Not Found | Pulsed" };
 
   const topic = data.topic ?? "Research Brief";
   const structured = parseStructuredBrief(data.brief_text as string);
@@ -57,8 +52,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? structured.executive_summary.slice(0, 160)
     : (data.brief_text as string).slice(0, 160);
 
-  const url = `https://pulsed.ai/brief/${id}`;
-  const ogImageUrl = `https://pulsed.ai/api/og/${id}`;
+  const url = `https://runpulsed.ai/brief/${id}`;
+  const ogImageUrl = `https://runpulsed.ai/api/og/${id}`;
 
   return {
     title: `${topic} — Market Intelligence Brief | Pulsed`,
@@ -81,81 +76,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/* ─── UI Components ─── */
-function Card({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`bg-white border border-gray-200 shadow-sm rounded-xl p-6 ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-      {children}
-    </h2>
-  );
-}
-
-function SentimentBar({
-  sentiment,
-}: {
-  sentiment: StructuredBrief["sentiment"];
-}) {
+function SentimentBar({ sentiment }: { sentiment: StructuredBrief["sentiment"] }) {
   const { positive, neutral, negative } = sentiment;
   return (
     <div>
-      <div className="flex w-full h-3 rounded-full overflow-hidden">
+      <div className="flex w-full h-4 rounded-full overflow-hidden">
         {positive > 0 && (
-          <div
-            className="h-full"
-            style={{ width: `${positive}%`, backgroundColor: "#22c55e" }}
-          />
+          <div className="h-full" style={{ width: `${positive}%`, backgroundColor: "#22c55e" }} />
         )}
         {neutral > 0 && (
-          <div
-            className="h-full"
-            style={{ width: `${neutral}%`, backgroundColor: "#eab308" }}
-          />
+          <div className="h-full" style={{ width: `${neutral}%`, backgroundColor: "#eab308" }} />
         )}
         {negative > 0 && (
-          <div
-            className="h-full"
-            style={{ width: `${negative}%`, backgroundColor: "#ec4899" }}
-          />
+          <div className="h-full" style={{ width: `${negative}%`, backgroundColor: "#ec4899" }} />
         )}
       </div>
-      <div className="flex items-center gap-6 mt-3">
-        <div className="flex items-center gap-1.5">
-          <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: "#22c55e" }}
-          />
-          <span className="text-xs text-gray-600">{positive}% Positive</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: "#eab308" }}
-          />
-          <span className="text-xs text-gray-600">{neutral}% Neutral</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: "#ec4899" }}
-          />
-          <span className="text-xs text-gray-600">{negative}% Negative</span>
-        </div>
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-xs text-gray-500">{positive}% Positive</span>
+        <span className="text-xs text-gray-500">{neutral}% Neutral</span>
+        <span className="text-xs text-gray-500">{negative}% Negative</span>
       </div>
     </div>
   );
@@ -164,41 +103,36 @@ function SentimentBar({
 export default async function BriefPublicPage({ params }: Props) {
   const { id } = await params;
   const data = await getBrief(id);
-
-  if (!data) {
-    notFound();
-  }
+  if (!data) notFound();
 
   const topic = data.topic ?? "Research Brief";
   const sources = (data.sources ?? []) as SourcePost[];
   const createdDate = data.created_at
     ? new Date(data.created_at).toLocaleDateString("en-US", {
-        month: "long",
+        month: "short",
         day: "numeric",
         year: "numeric",
       })
     : "";
 
   const structured = parseStructuredBrief(data.brief_text as string);
-  const briefUrl = `https://pulsed.ai/brief/${id}`;
+  const briefUrl = `https://runpulsed.ai/brief/${id}`;
+
+  // Calculate total upvotes from sources
+  const totalUpvotes = sources.reduce((sum, s) => sum + (s.score || 0), 0);
+
+  // Estimate read time (~200 words/min)
+  const briefLength = (data.brief_text as string).length;
+  const readTime = Math.max(15, Math.round(briefLength / 800 * 60));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Minimal header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-gray-100">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
@@ -206,115 +140,127 @@ export default async function BriefPublicPage({ params }: Props) {
           </a>
           <a
             href="/signup"
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 transition-opacity"
           >
             Try Pulsed Free
           </a>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 pt-10 pb-16">
-        {/* Topic Header */}
-        <Card className="mb-6">
-          <SectionHeader>Research Brief</SectionHeader>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            {topic}
+      <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
+        {/* Title + Badge */}
+        <div className="flex items-start justify-between mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Brief: {topic}
           </h1>
-          <p className="text-sm text-gray-500">
-            {createdDate}
-          </p>
-        </Card>
+          {sources.length > 0 && (
+            <span className="shrink-0 ml-4 mt-1 px-3 py-1 text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 rounded-full">
+              {sources.length} sources analyzed
+            </span>
+          )}
+        </div>
+
+        {/* Meta line */}
+        <p className="text-sm text-gray-400 mb-10">
+          Generated {createdDate}
+          {sources.length > 0 && ` · ${sources.length} sources`}
+          {totalUpvotes > 0 && ` · ${totalUpvotes.toLocaleString()} upvotes analyzed`}
+          {` · ${readTime} second read`}
+        </p>
 
         {structured ? (
           <>
-            {/* Executive Summary */}
-            <Card className="mb-6">
-              <SectionHeader>Executive Summary</SectionHeader>
-              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+            {/* EXECUTIVE SUMMARY */}
+            <div className="mb-10">
+              <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-4">
+                Executive Summary
+              </h2>
+              <p className="text-[15px] text-gray-700 leading-relaxed">
                 {structured.executive_summary}
-              </div>
-            </Card>
+              </p>
+            </div>
 
-            {/* Key Themes */}
+            {/* KEY THEMES */}
             {structured.key_themes.length > 0 && (
-              <Card className="mb-6">
-                <SectionHeader>Key Findings</SectionHeader>
+              <div className="mb-10">
+                <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-4">
+                  Key Themes
+                </h2>
                 <ul className="space-y-3">
                   {structured.key_themes.map((theme, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <span className="w-2 h-2 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
-                      <span className="text-sm text-gray-900 font-medium">
-                        {theme}
-                      </span>
+                      <span className="w-2 h-2 rounded-full bg-purple-600 mt-2 shrink-0" />
+                      <span className="text-[15px] text-gray-700">{theme}</span>
                     </li>
                   ))}
                 </ul>
-              </Card>
+              </div>
             )}
 
-            {/* Sentiment */}
+            {/* SENTIMENT ANALYSIS */}
             {structured.sentiment && (
-              <Card className="mb-6">
-                <SectionHeader>Sentiment Analysis</SectionHeader>
+              <div className="mb-10">
+                <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-4">
+                  Sentiment Analysis
+                </h2>
                 <SentimentBar sentiment={structured.sentiment} />
-              </Card>
+              </div>
             )}
 
-            {/* Recommended Actions */}
+            {/* RECOMMENDED ACTIONS */}
             {structured.recommended_actions?.length > 0 && (
-              <Card className="mb-6">
-                <SectionHeader>Recommended Actions</SectionHeader>
+              <div className="mb-10">
+                <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-4">
+                  Recommended Actions
+                </h2>
                 <ul className="space-y-3">
                   {structured.recommended_actions.map((action, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <span className="w-2 h-2 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
-                      <span className="text-sm text-gray-900">{action}</span>
+                      <input type="checkbox" className="mt-1 w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 shrink-0" readOnly />
+                      <span className="text-[15px] text-gray-700">{action}</span>
                     </li>
                   ))}
                 </ul>
-              </Card>
+              </div>
             )}
           </>
         ) : (
-          /* Fallback for unstructured briefs */
-          <Card className="mb-6">
-            <SectionHeader>Analysis</SectionHeader>
-            <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+          <div className="mb-10">
+            <h2 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-4">
+              Analysis
+            </h2>
+            <div className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-line">
               {data.brief_text as string}
             </div>
-          </Card>
+          </div>
         )}
 
-        {/* Share / Action buttons (client component) — ABOVE sources */}
-        <ShareButtons url={briefUrl} topic={topic} briefText={structured?.executive_summary || (data.brief_text as string)} />
+        {/* Want to go deeper? */}
+        <DeeperSection topic={topic} briefText={structured?.executive_summary || ""} keyThemes={structured?.key_themes || []} />
 
-        {/* Sources hidden — secret sauce */}
+        {/* Share / Draft buttons */}
+        <ShareButtons
+          url={briefUrl}
+          topic={topic}
+          briefText={structured?.executive_summary || (data.brief_text as string)}
+        />
 
         {/* CTA */}
         <div className="mt-12 text-center">
-          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-8 text-white">
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 text-white">
             <h2 className="text-xl font-bold mb-2">
               Get instant intelligence on any topic
             </h2>
-            <p className="text-indigo-100 text-sm mb-6">
+            <p className="text-purple-100 text-sm mb-6">
               Pulsed analyzes Reddit, Hacker News, X, and the web to create
               actionable research briefs in seconds.
             </p>
             <a
               href="/signup"
-              className="inline-flex items-center gap-2 px-8 py-3.5 text-base font-semibold text-indigo-600 bg-white rounded-xl hover:bg-indigo-50 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 px-8 py-3.5 text-base font-semibold text-purple-600 bg-white rounded-xl hover:bg-purple-50 transition-colors shadow-lg"
             >
               Try Pulsed Free
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14" />
                 <path d="m12 5 7 7-7 7" />
               </svg>
@@ -322,17 +268,11 @@ export default async function BriefPublicPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Footer branding */}
         <footer className="mt-12 text-center text-xs text-gray-400">
           <p>
             Made with{" "}
-            <a
-              href="/"
-              className="text-indigo-600 hover:text-indigo-700 font-medium"
-            >
-              Pulsed
-            </a>{" "}
-            — AI-powered market intelligence
+            <a href="/" className="text-purple-600 hover:text-purple-700 font-medium">Pulsed</a>
+            {" "}— AI-powered market intelligence
           </p>
         </footer>
       </main>
