@@ -463,6 +463,34 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Ultron — AI Agent Teaser */}
+      <section className="py-16 md:py-20 bg-gradient-to-br from-indigo-50 via-white to-violet-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-sm uppercase tracking-widest text-indigo-600 font-semibold">COMING SOON</p>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold text-gray-900">Meet Ultron</h2>
+            <p className="mt-3 text-lg text-gray-500 max-w-2xl mx-auto">Your personal AI agent, powered by your own API keys</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { emoji: '🧠', title: 'Your Brain, Your Model', desc: 'Bring your own API key from Anthropic, OpenAI, Google, or any provider. Your data, your model, your control.' },
+              { emoji: '🔧', title: 'Build Anything', desc: 'Research, code, automate, analyze. Your agent can search the web, write code, manage files, and execute tasks autonomously.' },
+              { emoji: '🔌', title: 'Connect Everything', desc: 'Integrate with Telegram, Discord, Slack, and more. Your agent works where you work.' },
+            ].map((card) => (
+              <div key={card.title} className="bg-white rounded-2xl p-8 border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all">
+                <div className="text-3xl mb-5">{card.emoji}</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{card.title}</h3>
+                <p className="text-gray-500 leading-relaxed">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-10">
+            <a href="/agent" className="inline-block text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-3 rounded-lg hover:opacity-90 transition-opacity">Get Early Access</a>
+            <p className="mt-4 text-sm text-gray-400">Launching February 17 · Agent $49/mo · Ultra $99/mo</p>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-6xl mx-auto px-6">

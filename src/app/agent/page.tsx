@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getSession, getAccessToken } from '@/lib/auth';
 
 interface Message {
@@ -226,7 +228,31 @@ export default function AgentPage() {
                     : 'bg-white border border-gray-200 text-gray-900'
                 }`}
               >
-                {msg.content || (
+                {msg.role === 'agent' && msg.content ? (
+                  <div className="prose prose-sm max-w-none
+                    [&_pre]:bg-[#1e1e2e] [&_pre]:text-gray-100 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm
+                    [&_code]:bg-violet-100 [&_code]:text-violet-800 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
+                    [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_pre_code]:rounded-none
+                    [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
+                    [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
+                    [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
+                    [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
+                    [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
+                    [&_li]:my-0.5
+                    [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800
+                    [&_table]:border-collapse [&_table]:w-full [&_table]:my-3
+                    [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold
+                    [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm
+                    [&_tr:nth-child(even)]:bg-gray-50
+                    [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
+                    [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-2
+                    [&_hr]:my-4 [&_hr]:border-gray-200
+                  ">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : msg.content ? (
+                  <span>{msg.content}</span>
+                ) : (
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:0ms]" />
                     <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:150ms]" />
