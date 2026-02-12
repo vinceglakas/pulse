@@ -311,7 +311,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
             <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do. And your agent gets smarter every time you use it.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-800 rounded-2xl overflow-hidden">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             {[
               { replaces: 'Your CRM', desc: 'Tracks contacts, manages pipeline, sends follow-ups, logs every interaction automatically.' },
               { replaces: 'Your research tools', desc: 'Scans the entire internet, synthesizes findings, delivers executive briefs in seconds.' },
@@ -320,7 +320,7 @@ export default function Home() {
               { replaces: 'Your analytics dashboards', desc: 'Analyzes your data, spots trends, generates reports. Ask questions in plain English.' },
               { replaces: 'Your project management', desc: 'Tracks tasks, sets deadlines, sends reminders, writes status updates. Manages itself.' },
             ].map((item) => (
-              <div key={item.replaces} className="p-8 transition-all duration-200 hover:bg-white/5" style={{ background: 'rgba(15, 23, 42, 0.5)' }}>
+              <div key={item.replaces} className="p-8 transition-all duration-200 hover:bg-white/5" style={{ background: 'rgba(15, 23, 42, 0.85)' }}>
                 <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Replaces</p>
                 <h3 className="text-xl font-bold text-white mb-3">{item.replaces}</h3>
                 <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
@@ -475,7 +475,7 @@ export default function Home() {
                 price: '$19',
                 desc: 'AI-powered research briefs',
                 features: ['50 research briefs per month', 'All personas and search modes', 'Search history and bookmarks'],
-                cta: '/pricing',
+                cta: '/signup?plan=pro',
                 ctaText: 'Get Pro',
                 highlight: false,
               },
@@ -484,7 +484,7 @@ export default function Home() {
                 price: '$49',
                 desc: 'Your personal AI that builds anything',
                 features: ['Everything in Pro', 'Personal AI agent', 'BYOLLM — any model, any provider', 'Web search, code, file management', 'Telegram and Discord integrations'],
-                cta: '/pricing',
+                cta: '/signup?plan=agent',
                 ctaText: 'Get Agent',
                 highlight: true,
               },
@@ -493,7 +493,7 @@ export default function Home() {
                 price: '$99',
                 desc: 'Unlimited power. Full autonomy.',
                 features: ['Everything in Agent', 'Unlimited research briefs', 'Autonomous scheduled tasks', 'All integrations', 'Priority support'],
-                cta: '/pricing',
+                cta: '/signup?plan=ultra',
                 ctaText: 'Get Ultra',
                 highlight: false,
               },
