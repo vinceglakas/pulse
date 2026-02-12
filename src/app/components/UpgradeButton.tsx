@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { getAuthClient } from '@/lib/auth';
 
-export default function UpgradeButton({ className = '' }: { className?: string }) {
+const PLAN_LABELS: Record<string, string> = {
+  pro: 'Upgrade to Pro',
+  agent: 'Get Agent',
+  ultra: 'Get Ultra',
+};
+
+export default function UpgradeButton({ className = '', plan = 'pro', label }: { className?: string; plan?: string; label?: string }) {
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
@@ -23,6 +29,7 @@ export default function UpgradeButton({ className = '' }: { className?: string }
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify({ plan }),
       });
 
       const data = await res.json();
@@ -45,7 +52,7 @@ export default function UpgradeButton({ className = '' }: { className?: string }
       disabled={loading}
       className={`font-semibold rounded-lg transition-all disabled:opacity-50 ${className}`}
     >
-      {loading ? 'Loading...' : 'Upgrade to Pro'}
+      {loading ? 'Loading...' : (label || PLAN_LABELS[plan] || 'Subscribe')}
     </button>
   );
 }

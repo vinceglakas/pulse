@@ -29,6 +29,7 @@ const tiers = [
       'Search history & bookmarks',
     ],
     cta: 'subscribe',
+    plan: 'pro',
     highlight: false,
     badge: null,
     byollm: false,
@@ -46,11 +47,12 @@ const tiers = [
       'Web search, code execution, file workspace',
       'Chat interface at /agent',
     ],
-    cta: 'coming-soon',
+    cta: 'subscribe',
+    plan: 'agent',
     highlight: true,
     badge: 'Most Popular',
     byollm: true,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     name: 'Ultra',
@@ -64,11 +66,12 @@ const tiers = [
       'Telegram/Discord/Slack integrations',
       'Priority compute',
     ],
-    cta: 'coming-soon',
+    cta: 'subscribe',
+    plan: 'ultra',
     highlight: false,
     badge: null,
     byollm: true,
-    comingSoon: true,
+    comingSoon: false,
   },
 ];
 
@@ -161,7 +164,7 @@ export default function PricingPage() {
 
               <div className="mt-8">
                 {tier.cta === 'subscribe' ? (
-                  <UpgradeButton className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 px-6 text-sm" />
+                  <UpgradeButton plan={tier.plan || 'pro'} className={`w-full ${tier.highlight ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-purple-600 hover:bg-purple-500'} text-white py-3 px-6 text-sm`} />
                 ) : tier.cta === 'get-started' ? (
                   <a
                     href="/signup"
@@ -169,17 +172,7 @@ export default function PricingPage() {
                   >
                     Get Started
                   </a>
-                ) : (
-                  <div className="text-center">
-                    <button
-                      disabled
-                      className="w-full bg-gray-300 text-gray-500 py-3 px-6 rounded-lg text-sm font-semibold cursor-not-allowed"
-                    >
-                      Coming Soon
-                    </button>
-                    <p className="mt-2 text-xs text-gray-400">Launching Feb 17</p>
-                  </div>
-                )}
+                ) : null}
               </div>
             </div>
           ))}

@@ -1,13 +1,31 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+const PRICE_MAP: Record<string, string | undefined> = {
+  pro: process.env.STRIPE_PRO_PRICE_ID,
+  agent: process.env.STRIPE_AGENT_PRICE_ID,
+  ultra: process.env.STRIPE_ULTRA_PRICE_ID,
+};
+
+const SUCCESS_MAP: Record<string, string> = {
+  pro: '/search?upgraded=true',
+  agent: '/agent?upgraded=true',
+  ultra: '/agent?upgraded=true',
+};
+
 export async function POST(request: Request) {
   try {
-    // Create a Supabase client with the user's auth token
+    const body = await request.json().catch(() => ({}));
+    const plan = (body.plan as string) || 'pro';
+
+    const priceId = PRICE_MAP[plan];
+    if (!priceId) {
+      return NextResponse.json({ error: `Invalid plan: ${plan}` }, { status: 400 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -32,15 +50,16 @@ export async function POST(request: Request) {
       mode: 'subscription',
       line_items: [
         {
-          price: process.env.STRIPE_PRO_PRICE_ID!,
+          price: priceId,
           quantity: 1,
         },
       ],
       customer_email: user.email,
       metadata: {
         user_id: user.id,
+        plan,
       },
-      success_url: `${origin}/search?upgraded=true`,
+      success_url: `${origin}${SUCCESS_MAP[plan] || '/search?upgraded=true'}`,
       cancel_url: `${origin}/pricing`,
     });
 

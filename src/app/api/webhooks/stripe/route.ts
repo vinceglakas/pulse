@@ -37,12 +37,13 @@ export async function POST(request: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.user_id;
+        const plan = session.metadata?.plan || 'pro';
 
         if (userId) {
           await supabase
             .from('profiles')
             .update({
-              plan: 'pro',
+              plan,
               stripe_customer_id: session.customer as string,
               stripe_subscription_id: session.subscription as string,
             })
