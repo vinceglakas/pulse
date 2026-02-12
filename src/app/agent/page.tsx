@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +14,46 @@ interface Message {
   timestamp: Date;
 }
 
+/* ── Relative timestamp helper ── */
+function relativeTime(date: Date): string {
+  const now = Date.now();
+  const diff = Math.floor((now - date.getTime()) / 1000);
+  if (diff < 10) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  const mins = Math.floor(diff / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return date.toLocaleDateString();
+}
+
+/* ── Tool‑use pattern detector ── */
+const TOOL_PATTERNS = [
+  { pattern: /Searching\.\.\./i, label: 'Searching…', icon: '🔍' },
+  { pattern: /Analyzing\.\.\./i, label: 'Analyzing…', icon: '📊' },
+  { pattern: /Generating\.\.\./i, label: 'Generating…', icon: '✨' },
+  { pattern: /Fetching\.\.\./i, label: 'Fetching…', icon: '📡' },
+  { pattern: /Processing\.\.\./i, label: 'Processing…', icon: '⚙️' },
+  { pattern: /Thinking\.\.\./i, label: 'Thinking…', icon: '🧠' },
+  { pattern: /Reading\.\.\./i, label: 'Reading…', icon: '📖' },
+  { pattern: /Writing\.\.\./i, label: 'Writing…', icon: '✍️' },
+];
+
+function detectToolUse(content: string): { label: string; icon: string } | null {
+  for (const t of TOOL_PATTERNS) {
+    if (t.pattern.test(content)) return { label: t.label, icon: t.icon };
+  }
+  return null;
+}
+
+/* ── Suggestion chips ── */
+const SUGGESTIONS = [
+  { emoji: '🔎', text: 'Research my competitors' },
+  { emoji: '🏗️', text: 'Build me a CRM' },
+  { emoji: '📈', text: 'Analyze market trends' },
+  { emoji: '📝', text: 'Draft a sales strategy' },
+];
+
 export default function AgentPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,9 +63,12 @@ export default function AgentPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<string>('free');
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  /* ── Auth + load history ── */
   useEffect(() => {
     getSession().then(async (session) => {
       if (!session) {
@@ -34,7 +77,6 @@ export default function AgentPage() {
         setAuthChecked(true);
         const token = await getAccessToken();
         setAccessToken(token);
-        // Check user plan
         try {
           const profileRes = await fetch('/api/profile', {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -44,7 +86,6 @@ export default function AgentPage() {
         } catch {
           setUserPlan('free');
         }
-        // Check if user has API keys
         try {
           const res = await fetch('/api/keys', {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -54,7 +95,6 @@ export default function AgentPage() {
         } catch {
           setHasApiKey(false);
         }
-        // Load conversation history
         try {
           const histRes = await fetch('/api/agent/history?sessionKey=default&limit=100', {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -75,10 +115,38 @@ export default function AgentPage() {
     });
   }, [router]);
 
+  /* ── Auto‑scroll ── */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  /* ── Scroll detection for "scroll to bottom" button ── */
+  const handleScroll = useCallback(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollBtn(distFromBottom > 200);
+  }, []);
+
+  useEffect(() => {
+    const el = chatContainerRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  /* ── Relative timestamp ticker ── */
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  /* ── Submit handler ── */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const text = input.trim();
@@ -94,7 +162,6 @@ export default function AgentPage() {
     setInput('');
     setIsStreaming(true);
 
-    // Save user message to history (fire and forget)
     if (accessToken) {
       fetch('/api/agent/history', {
         method: 'POST',
@@ -149,7 +216,6 @@ export default function AgentPage() {
                 );
               }
             } catch {
-              // non-JSON data line, append as text
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === agentMsgId
@@ -171,7 +237,6 @@ export default function AgentPage() {
       );
     } finally {
       setIsStreaming(false);
-      // Save agent response to history
       if (accessToken) {
         setMessages((prev) => {
           const agentMsg = prev.find((m) => m.id === agentMsgId);
@@ -195,6 +260,7 @@ export default function AgentPage() {
     }
   };
 
+  /* ── Loading spinner ── */
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -205,6 +271,33 @@ export default function AgentPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Keyframes injected via style tag — no deps needed */}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+          50% { box-shadow: 0 0 24px 8px rgba(99,102,241,0.15); }
+        }
+        @keyframes progress-slide {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .shimmer-text {
+          background: linear-gradient(90deg, #6366f1 25%, #a78bfa 50%, #6366f1 75%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmer 2s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -274,114 +367,213 @@ export default function AgentPage() {
         </div>
       )}
 
-      {/* Chat Area */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center pt-24 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mb-6 shadow-lg">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                  <path d="M19 10a7 7 0 0 1-14 0" />
-                  <path d="M12 17v5" />
-                  <path d="M8 22h8" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Ultron Agent</h2>
-              <p className="text-gray-500 max-w-md">
-                Your personal AI agent powered by OpenClaw. Ask anything — research, analysis, tasks, and more.
-              </p>
+      {/* ════════════════════════ Chat Area ════════════════════════ */}
+      {(userPlan === 'agent' || userPlan === 'ultra') && (
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto relative">
+          {/* Streaming progress bar at top */}
+          {isStreaming && (
+            <div className="sticky top-0 z-40 h-0.5 w-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full w-1/2 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-full"
+                style={{ animation: 'progress-slide 1.5s ease-in-out infinite' }}
+              />
             </div>
           )}
 
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  msg.role === 'user'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
-                    : 'bg-white border border-gray-200 text-gray-900'
-                }`}
-              >
-                {msg.role === 'agent' && msg.content ? (
-                  <div className="prose prose-sm max-w-none
-                    [&_pre]:bg-[#1e1e2e] [&_pre]:text-gray-100 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm
-                    [&_code]:bg-violet-100 [&_code]:text-violet-800 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
-                    [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_pre_code]:rounded-none
-                    [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
-                    [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
-                    [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
-                    [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
-                    [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
-                    [&_li]:my-0.5
-                    [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800
-                    [&_table]:border-collapse [&_table]:w-full [&_table]:my-3
-                    [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold
-                    [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm
-                    [&_tr:nth-child(even)]:bg-gray-50
-                    [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
-                    [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-2
-                    [&_hr]:my-4 [&_hr]:border-gray-200
-                  ">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                  </div>
-                ) : msg.content ? (
-                  <span>{msg.content}</span>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:0ms]" />
-                    <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:150ms]" />
-                    <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:300ms]" />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>}
+          <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+            {/* ── Empty state ── */}
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center pt-20 text-center">
+                {/* Large pulsing icon */}
+                <div
+                  className="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mb-8 shadow-xl"
+                  style={{ animation: 'pulse-glow 3s ease-in-out infinite' }}
+                >
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10a7 7 0 0 1-14 0" />
+                    <path d="M12 17v5" />
+                    <path d="M8 22h8" />
+                  </svg>
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Ultron Agent</h2>
+                <p className="text-gray-500 max-w-md mb-10">
+                  Your personal AI agent powered by OpenClaw. Ask anything — research, analysis, tasks, and more.
+                </p>
 
-      {/* Input Bar */}
-      {(userPlan === 'agent' || userPlan === 'ultra') &&
-      <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-4 py-4">
-        <form
-          onSubmit={handleSubmit}
-          className="max-w-3xl mx-auto flex items-end gap-3"
-        >
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message Ultron..."
-            rows={1}
-            className="flex-1 resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
-            style={{ maxHeight: '120px' }}
-            onInput={(e) => {
-              const el = e.target as HTMLTextAreaElement;
-              el.style.height = 'auto';
-              el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isStreaming}
-            className="h-[44px] w-[44px] rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-          >
-            {isStreaming ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m22 2-7 20-4-9-9-4z" />
-                <path d="M22 2 11 13" />
-              </svg>
+                {/* Suggestion chips */}
+                <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s.text}
+                      type="button"
+                      onClick={() => {
+                        setInput(s.text);
+                        inputRef.current?.focus();
+                      }}
+                      className="flex items-center gap-2.5 text-left px-4 py-3 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-sm text-gray-700 hover:text-indigo-700 shadow-sm hover:shadow"
+                    >
+                      <span className="text-base shrink-0">{s.emoji}</span>
+                      <span>{s.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
-          </button>
-        </form>
-      </div>}
+
+            {/* ── Messages ── */}
+            {messages.map((msg) => {
+              const isUser = msg.role === 'user';
+              const isAgent = msg.role === 'agent';
+              const toolUse = isAgent && isStreaming && msg.content ? detectToolUse(msg.content) : null;
+
+              return (
+                <div key={msg.id}>
+                  <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} gap-2.5`}>
+                    {/* Agent avatar */}
+                    {isAgent && (
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0 mt-1 shadow-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                        </svg>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col">
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                          isUser
+                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
+                            : 'bg-gray-50 text-gray-900'
+                        }`}
+                      >
+                        {isAgent && msg.content ? (
+                          <>
+                            {/* Tool use indicator */}
+                            {toolUse && (
+                              <div className="flex items-center gap-2 mb-2">
+                                <span
+                                  className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-full px-2.5 py-1"
+                                >
+                                  <svg
+                                    width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                    style={{ animation: 'spin-slow 1s linear infinite' }}
+                                  >
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                  </svg>
+                                  <span>{toolUse.icon} {toolUse.label}</span>
+                                </span>
+                              </div>
+                            )}
+                            <div className="prose prose-sm max-w-none
+                              [&_pre]:bg-[#1e1e2e] [&_pre]:text-gray-100 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm
+                              [&_code]:bg-violet-100 [&_code]:text-violet-800 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
+                              [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_pre_code]:rounded-none
+                              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
+                              [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
+                              [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
+                              [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
+                              [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
+                              [&_li]:my-0.5
+                              [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800
+                              [&_table]:border-collapse [&_table]:w-full [&_table]:my-3
+                              [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold
+                              [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm
+                              [&_tr:nth-child(even)]:bg-gray-50
+                              [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
+                              [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-2
+                              [&_hr]:my-4 [&_hr]:border-gray-200
+                            ">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                            </div>
+                          </>
+                        ) : msg.content ? (
+                          <span>{msg.content}</span>
+                        ) : (
+                          /* Streaming placeholder with "Thinking..." shimmer */
+                          <div className="flex flex-col items-start gap-2">
+                            <span className="text-xs font-medium shimmer-text">Thinking...</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce [animation-delay:0ms]" />
+                              <span className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce [animation-delay:150ms]" />
+                              <span className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce [animation-delay:300ms]" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Timestamp */}
+                      <span className={`text-[10px] text-gray-400 mt-1 ${isUser ? 'text-right' : 'text-left ml-1'}`}>
+                        {relativeTime(msg.timestamp)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* ── Scroll to bottom FAB ── */}
+          {showScrollBtn && (
+            <button
+              type="button"
+              onClick={scrollToBottom}
+              className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-50 transition-all hover:shadow-xl"
+            >
+              <span>↓</span>
+              <span>New messages</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════ Input Bar ════════════════════════ */}
+      {(userPlan === 'agent' || userPlan === 'ultra') && (
+        <div className="sticky bottom-0 bg-gray-50/80 backdrop-blur-sm border-t border-gray-100 px-4 py-4">
+          <form
+            onSubmit={handleSubmit}
+            className="max-w-3xl mx-auto"
+          >
+            <div className="flex items-end gap-3 bg-white rounded-2xl shadow-lg border border-gray-200 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all px-4 py-2">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Message Ultron..."
+                rows={1}
+                className="flex-1 resize-none bg-transparent py-2 text-gray-900 placeholder-gray-400 text-sm outline-none"
+                style={{ maxHeight: '120px' }}
+                onInput={(e) => {
+                  const el = e.target as HTMLTextAreaElement;
+                  el.style.height = 'auto';
+                  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isStreaming}
+                className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:scale-110 active:scale-95"
+              >
+                {isStreaming ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m22 2-7 20-4-9-9-4z" />
+                    <path d="M22 2 11 13" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-400 text-center mt-2">
+              Shift + Enter for new line
+            </p>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

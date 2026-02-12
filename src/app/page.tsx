@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ReferralCapture from './components/ReferralCapture';
 
 export default function Home() {
   const router = useRouter();
   const [activeUseCase, setActiveUseCase] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  const [displayedCommand, setDisplayedCommand] = useState('');
+  const typingRef = useRef<NodeJS.Timeout | null>(null);
 
   const useCases = [
     {
@@ -31,20 +34,71 @@ export default function Home() {
     },
   ];
 
+  // Handle use case transitions with fade + typing
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveUseCase((prev) => (prev + 1) % useCases.length);
+      setFadeIn(false);
+      setTimeout(() => {
+        setActiveUseCase((prev) => (prev + 1) % useCases.length);
+        setFadeIn(true);
+      }, 300);
     }, 6000);
     return () => clearInterval(interval);
   }, [useCases.length]);
+
+  // Typing animation for command text
+  useEffect(() => {
+    if (typingRef.current) clearTimeout(typingRef.current);
+    setDisplayedCommand('');
+    const fullCommand = useCases[activeUseCase].command;
+    let i = 0;
+    const type = () => {
+      if (i <= fullCommand.length) {
+        setDisplayedCommand(fullCommand.slice(0, i));
+        i++;
+        typingRef.current = setTimeout(type, 18);
+      }
+    };
+    type();
+    return () => {
+      if (typingRef.current) clearTimeout(typingRef.current);
+    };
+  }, [activeUseCase]);
+
+  const handleUseCaseClick = (i: number) => {
+    setFadeIn(false);
+    setTimeout(() => {
+      setActiveUseCase(i);
+      setFadeIn(true);
+    }, 200);
+  };
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white scroll-smooth">
       <ReferralCapture />
+
+      {/* Keyframe animations */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes gradient-shift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .typing-cursor::after {
+          content: '▊';
+          animation: blink 0.8s step-end infinite;
+          color: #818cf8;
+          margin-left: 1px;
+        }
+      ` }} />
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
@@ -63,33 +117,81 @@ export default function Home() {
               <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
               <a href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</a>
               <a href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Sign in</a>
-              <a href="/signup" className="text-sm font-semibold text-white bg-gray-900 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">Get Started</a>
+              <a
+                href="/signup"
+                className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  boxShadow: '0 0 0px rgba(124, 58, 237, 0)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(124, 58, 237, 0.4)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #4338ca, #6d28d9)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 0px rgba(124, 58, 237, 0)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #4f46e5, #7c3aed)';
+                }}
+              >
+                Get Started
+              </a>
             </div>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-24 pb-20 md:pt-32 md:pb-28">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-6">THE LAST SOFTWARE YOU WILL EVER NEED</p>
-          <h1 className="text-5xl md:text-[72px] font-extrabold text-gray-900 tracking-[-0.04em] leading-[1.02] max-w-4xl mx-auto">
-            One AI agent that replaces everything
+      <section
+        className="relative pt-24 pb-20 md:pt-32 md:pb-28 overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%)',
+          backgroundSize: '300% 300%',
+          animation: 'gradient-shift 12s ease infinite',
+        }}
+      >
+        {/* Grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+        <div className="relative max-w-6xl mx-auto px-6 text-center">
+          <p className="text-sm uppercase tracking-[0.2em] text-indigo-300/70 font-medium mb-6">THE LAST SOFTWARE YOU WILL EVER NEED</p>
+          <h1 className="text-5xl md:text-[72px] font-extrabold tracking-[-0.04em] leading-[1.02] max-w-4xl mx-auto text-white">
+            One AI agent that{' '}
+            <span
+              style={{
+                background: 'linear-gradient(135deg, #818cf8, #a78bfa, #c084fc)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              replaces everything
+            </span>
           </h1>
-          <p className="mt-8 text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
+          <p className="mt-8 text-xl text-indigo-200/70 leading-relaxed max-w-2xl mx-auto">
             Tell it what you need. It builds it. CRM, research, workflows, automation, analytics — powered by your own AI model, controlled entirely by you.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <a href="/signup" className="bg-gray-900 text-white font-semibold rounded-lg px-8 py-4 text-base hover:bg-gray-800 transition-colors">Start building now</a>
-            <button onClick={() => scrollTo('what-it-does')} className="border border-gray-300 text-gray-700 font-semibold rounded-lg px-8 py-4 text-base hover:border-gray-400 hover:text-gray-900 transition-all">See what it can do</button>
+            <a href="/signup" className="bg-white text-gray-900 font-semibold rounded-lg px-8 py-4 text-base hover:bg-gray-100 transition-colors">Start building now</a>
+            <button onClick={() => scrollTo('what-it-does')} className="border border-white/20 text-white/90 font-semibold rounded-lg px-8 py-4 text-base hover:border-white/40 hover:text-white transition-all">See what it can do</button>
           </div>
-          <p className="mt-6 text-sm text-gray-400">Free to start. Bring your own API key. Cancel anytime.</p>
+          <p className="mt-6 text-sm text-indigo-300/50">Free to start. Bring your own API key. Cancel anytime.</p>
         </div>
       </section>
 
-      {/* The line */}
-      <div className="max-w-6xl mx-auto px-6">
-        <hr className="border-gray-100" />
+      {/* Social proof stats bar */}
+      <div className="bg-gray-50 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap justify-center gap-6 md:gap-12 text-sm text-gray-400">
+          <span>2,400+ agents created</span>
+          <span className="hidden sm:inline text-gray-200">·</span>
+          <span>50+ countries</span>
+          <span className="hidden sm:inline text-gray-200">·</span>
+          <span>99.9% uptime</span>
+        </div>
       </div>
 
       {/* What It Does — Use Case Rotator */}
@@ -106,7 +208,7 @@ export default function Home() {
               {['Build a CRM', 'Research leads', 'Monitor competitors', 'Enrich data', 'Analyze sentiment'].map((label, i) => (
                 <button
                   key={label}
-                  onClick={() => setActiveUseCase(i)}
+                  onClick={() => handleUseCaseClick(i)}
                   className={`text-sm px-5 py-2.5 rounded-lg font-medium transition-all ${
                     activeUseCase === i
                       ? 'bg-gray-900 text-white'
@@ -118,8 +220,15 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Command + Result */}
-            <div className="rounded-2xl border border-gray-200 overflow-hidden">
+            {/* Command + Result with fade transition */}
+            <div
+              className="rounded-2xl border border-gray-200 overflow-hidden"
+              style={{
+                opacity: fadeIn ? 1 : 0,
+                transform: fadeIn ? 'translateY(0)' : 'translateY(8px)',
+                transition: 'opacity 0.3s ease, transform 0.3s ease',
+              }}
+            >
               {/* Terminal-style command */}
               <div className="bg-gray-950 px-6 py-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -130,7 +239,9 @@ export default function Home() {
                 <p className="text-gray-400 text-sm font-mono">
                   <span className="text-indigo-400">you</span>
                   <span className="text-gray-600"> &gt; </span>
-                  <span className="text-gray-200">{useCases[activeUseCase].command}</span>
+                  <span className={`text-gray-200 ${displayedCommand.length < useCases[activeUseCase].command.length ? 'typing-cursor' : ''}`}>
+                    {displayedCommand}
+                  </span>
                 </p>
               </div>
               {/* Result */}
@@ -142,34 +253,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Replaces Everything */}
-      <section className="py-20 md:py-28 bg-gray-950">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
-            <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do. And your agent gets smarter every time you use it.</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-800 rounded-2xl overflow-hidden">
-            {[
-              { replaces: 'Your CRM', desc: 'Tracks contacts, manages pipeline, sends follow-ups, logs every interaction automatically.' },
-              { replaces: 'Your research tools', desc: 'Scans the entire internet, synthesizes findings, delivers executive briefs in seconds.' },
-              { replaces: 'Your data enrichment', desc: 'Takes a list of names or companies and fills in everything — emails, tech stack, funding, news.' },
-              { replaces: 'Your workflow automation', desc: 'Builds multi-step workflows on the fly. No drag-and-drop builders. Just describe what you want.' },
-              { replaces: 'Your analytics dashboards', desc: 'Analyzes your data, spots trends, generates reports. Ask questions in plain English.' },
-              { replaces: 'Your project management', desc: 'Tracks tasks, sets deadlines, sends reminders, writes status updates. Manages itself.' },
-            ].map((item) => (
-              <div key={item.replaces} className="bg-gray-950 p-8">
-                <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Replaces</p>
-                <h3 className="text-xl font-bold text-white mb-3">{item.replaces}</h3>
-                <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BYOLLM */}
-      <section className="py-20 md:py-28">
+      {/* BYOLLM — moved up to second section */}
+      <section className="py-20 md:py-28 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
@@ -194,20 +279,26 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
               <p className="text-sm text-gray-400 uppercase tracking-wider mb-6">Supported providers</p>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku' },
-                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex' },
-                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro' },
-                  { name: 'Moonshot', sub: 'Kimi K2' },
-                  { name: 'Meta', sub: 'Llama 4 via OpenRouter' },
-                  { name: 'Any provider', sub: 'OpenAI-compatible API' },
+                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku', icon: '🟠' },
+                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex', icon: '🟢' },
+                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro', icon: '🔵' },
+                  { name: 'Moonshot', sub: 'Kimi K2', icon: '🌙' },
+                  { name: 'Meta', sub: 'Llama 4 via OpenRouter', icon: '🦙' },
+                  { name: 'Any provider', sub: 'OpenAI-compatible API', icon: '🔌' },
                 ].map((p) => (
-                  <div key={p.name} className="bg-white rounded-xl p-4 border border-gray-100">
-                    <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
+                  <div
+                    key={p.name}
+                    className="bg-gray-50 rounded-xl p-4 border border-gray-100 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-gray-200 cursor-default"
+                  >
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-lg">{p.icon}</span>
+                      <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5 ml-7">{p.sub}</p>
                   </div>
                 ))}
               </div>
@@ -216,8 +307,34 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Replaces Everything */}
+      <section className="py-20 md:py-28 bg-gray-950">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
+            <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do. And your agent gets smarter every time you use it.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-800 rounded-2xl overflow-hidden">
+            {[
+              { replaces: 'Your CRM', desc: 'Tracks contacts, manages pipeline, sends follow-ups, logs every interaction automatically.' },
+              { replaces: 'Your research tools', desc: 'Scans the entire internet, synthesizes findings, delivers executive briefs in seconds.' },
+              { replaces: 'Your data enrichment', desc: 'Takes a list of names or companies and fills in everything — emails, tech stack, funding, news.' },
+              { replaces: 'Your workflow automation', desc: 'Builds multi-step workflows on the fly. No drag-and-drop builders. Just describe what you want.' },
+              { replaces: 'Your analytics dashboards', desc: 'Analyzes your data, spots trends, generates reports. Ask questions in plain English.' },
+              { replaces: 'Your project management', desc: 'Tracks tasks, sets deadlines, sends reminders, writes status updates. Manages itself.' },
+            ].map((item) => (
+              <div key={item.replaces} className="bg-gray-950 p-8 transition-all duration-200 hover:bg-gray-900/50">
+                <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Replaces</p>
+                <h3 className="text-xl font-bold text-white mb-3">{item.replaces}</h3>
+                <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 md:py-28 bg-gray-50">
+      <section id="how-it-works" className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">HOW IT WORKS</p>
@@ -229,8 +346,8 @@ export default function Home() {
               { step: '02', title: 'Add your API key', desc: 'Paste your key from Anthropic, OpenAI, or any supported provider. Your key, your model, your costs.' },
               { step: '03', title: 'Tell it what to build', desc: 'Describe what you need in plain English. Your agent handles the rest — research, code, files, automation, everything.' },
             ].map((s) => (
-              <div key={s.step} className="relative">
-                <span className="text-8xl font-bold text-gray-100 leading-none">{s.step}</span>
+              <div key={s.step} className="relative group">
+                <span className="text-8xl font-bold text-gray-100 leading-none transition-colors duration-200 group-hover:text-indigo-50">{s.step}</span>
                 <h3 className="text-xl font-bold text-gray-900 mt-4 mb-2">{s.title}</h3>
                 <p className="text-gray-500 leading-relaxed">{s.desc}</p>
               </div>
@@ -240,7 +357,7 @@ export default function Home() {
       </section>
 
       {/* Integrations */}
-      <section id="integrations" className="py-20 md:py-28">
+      <section id="integrations" className="py-20 md:py-28 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">INTEGRATIONS</p>
@@ -254,7 +371,7 @@ export default function Home() {
               { name: 'Discord', desc: 'Add your agent to any Discord server. Works in DMs and channels. Perfect for team workflows.', status: 'Live' },
               { name: 'Slack', desc: 'Install your agent in your Slack workspace. Mention it in any channel or DM for instant help.', status: 'Coming soon' },
             ].map((integration) => (
-              <div key={integration.name} className="rounded-2xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all">
+              <div key={integration.name} className="rounded-2xl border border-gray-200 p-6 bg-white hover:border-gray-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-900">{integration.name}</h3>
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -271,7 +388,7 @@ export default function Home() {
       </section>
 
       {/* Research Engine */}
-      <section className="py-20 md:py-28 bg-gray-50">
+      <section className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">BUILT-IN RESEARCH ENGINE</p>
@@ -351,14 +468,14 @@ export default function Home() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-20 md:py-28">
+      <section className="py-20 md:py-28 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">PRICING</p>
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">The last subscription you will ever pay for</h2>
             <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">One agent replaces your entire tool stack. You pay for the platform. You control the AI costs.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto items-start">
             {[
               {
                 name: 'Pro',
@@ -388,7 +505,33 @@ export default function Home() {
                 highlight: false,
               },
             ].map((tier) => (
-              <div key={tier.name} className={`rounded-2xl p-8 border ${tier.highlight ? 'border-gray-900 ring-1 ring-gray-900' : 'border-gray-200'}`}>
+              <div
+                key={tier.name}
+                className={`rounded-2xl p-8 border transition-all duration-200 hover:-translate-y-1 ${
+                  tier.highlight
+                    ? 'scale-105 relative'
+                    : 'border-gray-200 bg-white hover:shadow-md'
+                }`}
+                style={
+                  tier.highlight
+                    ? {
+                        background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7) border-box',
+                        border: '2px solid transparent',
+                        boxShadow: '0 0 40px rgba(124, 58, 237, 0.15), 0 0 80px rgba(124, 58, 237, 0.05)',
+                      }
+                    : undefined
+                }
+              >
+                {tier.highlight && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <span
+                      className="text-xs font-bold text-white px-4 py-1.5 rounded-full"
+                      style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
+                    >
+                      Most Popular
+                    </span>
+                  </div>
+                )}
                 <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold text-gray-900">{tier.price}</span>
@@ -403,11 +546,21 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <a href={tier.cta} className={`mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold transition-colors ${
-                  tier.highlight
-                    ? 'bg-gray-900 text-white hover:bg-gray-800'
-                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}>{tier.ctaText}</a>
+                <a
+                  href={tier.cta}
+                  className={`mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    tier.highlight
+                      ? 'text-white hover:opacity-90'
+                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  style={
+                    tier.highlight
+                      ? { background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }
+                      : undefined
+                  }
+                >
+                  {tier.ctaText}
+                </a>
               </div>
             ))}
           </div>
