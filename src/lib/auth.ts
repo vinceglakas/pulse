@@ -48,6 +48,12 @@ export async function getSession() {
   return session
 }
 
+export async function getAccessToken() {
+  const supabase = getAuthClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token || null
+}
+
 export async function getUser() {
   const supabase = getAuthClient()
   const { data: { user } } = await supabase.auth.getUser()

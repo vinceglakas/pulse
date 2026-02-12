@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/auth';
+import { getSession, getAccessToken } from '@/lib/auth';
 
 interface Message {
   id: string;
@@ -17,20 +17,30 @@ export default function AgentPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(true);
+  const [hasApiKey, setHasApiKey] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    getSession().then((session) => {
+    getSession().then(async (session) => {
       if (!session) {
         router.push('/login');
       } else {
         setAuthChecked(true);
-        // TODO: Check if user has an API key configured
-        // For now, always show the banner
-        setHasApiKey(false);
+        const token = await getAccessToken();
+        setAccessToken(token);
+        // Check if user has API keys
+        try {
+          const res = await fetch('/api/keys', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          const data = await res.json();
+          setHasApiKey(Array.isArray(data) && data.length > 0);
+        } catch {
+          setHasApiKey(false);
+        }
       }
     });
   }, [router]);
@@ -63,7 +73,10 @@ export default function AgentPage() {
     try {
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({ message: text, sessionKey: 'default' }),
       });
 
