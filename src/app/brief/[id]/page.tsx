@@ -148,23 +148,16 @@ export default async function BriefPublicPage({ params }: Props) {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
-        {/* Title + Badge */}
-        <div className="flex items-start justify-between mb-2">
+        {/* Title */}
+        <div className="mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Brief: {topic}
           </h1>
-          {sources.length > 0 && (
-            <span className="shrink-0 ml-4 mt-1 px-3 py-1 text-xs font-semibold text-purple-600 bg-purple-50 border border-purple-200 rounded-full">
-              {sources.length} sources analyzed
-            </span>
-          )}
         </div>
 
         {/* Meta line */}
         <p className="text-sm text-gray-400 mb-10">
           Generated {createdDate}
-          {sources.length > 0 && ` · ${sources.length} sources`}
-          {totalUpvotes > 0 && ` · ${totalUpvotes.toLocaleString()} upvotes analyzed`}
           {` · ${readTime} second read`}
         </p>
 
@@ -252,8 +245,7 @@ export default async function BriefPublicPage({ params }: Props) {
               Get instant intelligence on any topic
             </h2>
             <p className="text-purple-100 text-sm mb-6">
-              Pulsed analyzes Reddit, Hacker News, X, and the web to create
-              actionable research briefs in seconds.
+              AI-powered research briefs on any topic in seconds.
             </p>
             <a
               href="/signup"

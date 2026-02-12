@@ -3,27 +3,27 @@
 import { useMemo } from "react";
 
 function generateFollowUps(topic: string, keyThemes: string[]): string[] {
-  // Generate 3 follow-up research suggestions based on the brief
   const suggestions: string[] = [];
+  const topicShort = topic.split(/\s+/).slice(0, 4).join(" ");
 
-  if (keyThemes.length >= 2) {
-    // Use key themes to derive follow-ups
-    const theme1 = keyThemes[0].split(/[,.]/).filter(s => s.trim().length > 5)[0]?.trim();
-    const theme2 = keyThemes[1].split(/[,.]/).filter(s => s.trim().length > 5)[0]?.trim();
-    if (theme1) suggestions.push(theme1);
-    if (theme2) suggestions.push(theme2);
+  // Pull compelling angles from key themes
+  if (keyThemes.length >= 1) {
+    const words = keyThemes[0].split(/\s+/).slice(0, 6).join(" ");
+    if (words.length > 10) suggestions.push(words);
+  }
+  if (keyThemes.length >= 3) {
+    const words = keyThemes[2].split(/\s+/).slice(0, 6).join(" ");
+    if (words.length > 10) suggestions.push(words);
   }
 
-  // Add generic follow-ups based on topic
-  const topicWords = topic.split(/\s+/).slice(0, 4).join(" ");
-  suggestions.push(`${topicWords} pricing models`);
-  suggestions.push(`${topicWords} competitive landscape`);
-  suggestions.push(`${topicWords} adoption timeline`);
+  // Add action-oriented follow-ups
+  suggestions.push(`Who's winning in ${topicShort}?`);
+  suggestions.push(`${topicShort} vs competitors`);
+  suggestions.push(`Future of ${topicShort}`);
 
-  // Return first 3 unique, cleaned up
   return [...new Set(suggestions)]
     .map(s => s.replace(/^[-•]\s*/, "").trim())
-    .filter(s => s.length > 5 && s.length < 60)
+    .filter(s => s.length > 5 && s.length < 55)
     .slice(0, 3);
 }
 
@@ -44,16 +44,20 @@ export function DeeperSection({
   if (followUps.length === 0) return null;
 
   return (
-    <div className="mb-8 p-5 bg-purple-50 border border-purple-100 rounded-xl">
-      <p className="text-sm font-bold text-purple-700 mb-3">Want to go deeper?</p>
+    <div className="mb-8 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl">
+      <p className="text-base font-bold text-purple-700 mb-4">🔍 Want to go deeper?</p>
       <div className="flex flex-wrap gap-2">
         {followUps.map((suggestion, i) => (
           <a
             key={i}
             href={`/search?q=${encodeURIComponent(suggestion)}`}
-            className="inline-flex items-center px-4 py-2 text-sm text-purple-600 bg-white border border-purple-200 rounded-full hover:bg-purple-100 hover:border-purple-300 transition-colors"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-purple-700 bg-white border-2 border-purple-200 rounded-full hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all shadow-sm hover:shadow-md cursor-pointer"
           >
             {suggestion}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
           </a>
         ))}
       </div>
