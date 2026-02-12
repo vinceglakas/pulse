@@ -267,9 +267,7 @@ export default async function BriefPublicPage({ params }: Props) {
                 <ul className="space-y-3">
                   {structured.recommended_actions.map((action, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <span className="text-xs font-mono text-indigo-600 mt-0.5 shrink-0">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
                       <span className="text-sm text-gray-900">{action}</span>
                     </li>
                   ))}
