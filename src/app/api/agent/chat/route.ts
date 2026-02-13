@@ -100,11 +100,12 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // Get user profile for context
-    const { data: profile } = await supabase
+    const { data: profileRaw } = await supabase
       .from('profiles')
       .select('full_name, role, industry, current_focus, plan, brain_model, worker_model')
       .eq('id', userId)
       .single();
+    const profile = profileRaw as any;
 
     const userContext = {
       name: profile?.full_name || user.user_metadata?.full_name || 'there',
@@ -145,12 +146,14 @@ export async function POST(req: NextRequest) {
     const provider = keyRow.provider;
 
     // Save user message to history
-    await supabase.from('agent_messages').insert({
-      user_id: userId,
-      session_key: sessionKey,
-      role: 'user',
-      content: message,
-    }).then(() => {}).catch(() => {});
+    try {
+      await (supabase.from('agent_messages' as any).insert({
+        user_id: userId,
+        session_key: sessionKey,
+        role: 'user',
+        content: message,
+      } as any) as any);
+    } catch {}
 
     // Ensure agent is spawned
     await spawnAgent(userId, apiKey, provider, userContext);
@@ -213,12 +216,14 @@ export async function POST(req: NextRequest) {
 
         // Save assistant response to history
         if (fullResponse.trim()) {
-          getSupabase().from('agent_messages').insert({
-            user_id: userId,
-            session_key: sessionKey,
-            role: 'assistant',
-            content: fullResponse.trim(),
-          }).then(() => {}).catch(() => {});
+          try {
+            await (getSupabase().from('agent_messages' as any).insert({
+              user_id: userId,
+              session_key: sessionKey,
+              role: 'assistant',
+              content: fullResponse.trim(),
+            } as any) as any);
+          } catch {}
         }
 
         controller.close();
