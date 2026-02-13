@@ -62,16 +62,7 @@ const WELCOME_CARDS = [
   { emoji: '✍️', title: 'Write Content', desc: 'Draft emails, posts, and documents', prompt: 'Help me write a ' },
 ];
 
-/* ── Placeholder sidebar conversations ── */
-const SIDEBAR_CONVERSATIONS = [
-  { id: 'default', title: 'Current conversation', time: 'Now', group: 'Today' },
-  { id: 'conv-2', title: 'Competitor analysis for Q1 launch', time: '2h ago', group: 'Today' },
-  { id: 'conv-3', title: 'Draft investor update email', time: '5h ago', group: 'Today' },
-  { id: 'conv-4', title: 'Market sizing for Southeast Asia', time: 'Yesterday', group: 'Yesterday' },
-  { id: 'conv-5', title: 'Product roadmap brainstorm', time: 'Yesterday', group: 'Yesterday' },
-  { id: 'conv-6', title: 'Sales pipeline review', time: 'Mon', group: 'This Week' },
-  { id: 'conv-7', title: 'Content calendar planning', time: 'Mon', group: 'This Week' },
-];
+/* Sidebar conversations removed — using real data now */
 
 /* ── Copy to clipboard helper ── */
 function copyToClipboard(text: string) {
@@ -282,7 +273,14 @@ export default function AgentPage() {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({ message: text, sessionKey: 'default' }),
+        body: JSON.stringify({
+          message: text,
+          sessionKey: 'default',
+          history: messages.filter(m => m.content && m.content !== 'Thinking...').map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
       });
 
       if (!res.ok || !res.body) throw new Error('Failed to connect');
@@ -441,7 +439,11 @@ export default function AgentPage() {
                 'Content-Type': 'application/json',
                 ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
               },
-              body: JSON.stringify({ message: text, sessionKey: 'default' }),
+              body: JSON.stringify({
+                message: text,
+                sessionKey: 'default',
+                history: [],
+              }),
             });
 
             if (!res.ok) {
@@ -531,14 +533,6 @@ export default function AgentPage() {
         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
-  }
-
-  /* ── Group sidebar conversations ── */
-  const sidebarGroups: { label: string; items: typeof SIDEBAR_CONVERSATIONS }[] = [];
-  const groupOrder = ['Today', 'Yesterday', 'This Week'];
-  for (const g of groupOrder) {
-    const items = SIDEBAR_CONVERSATIONS.filter((c) => c.group === g);
-    if (items.length > 0) sidebarGroups.push({ label: g, items });
   }
 
   const isAgentPlan = userPlan === 'agent' || userPlan === 'ultra' || userPlan === 'free';
@@ -1129,26 +1123,14 @@ export default function AgentPage() {
 
             {/* Conversation list */}
             <div className="flex-1 overflow-y-auto px-2 pb-4">
-              {sidebarGroups.map((group) => (
-                <div key={group.label} className="mb-3">
-                  <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider px-3 py-1.5">{group.label}</p>
-                  {group.items.map((conv) => (
-                    <button
-                      key={conv.id}
-                      type="button"
-                      onClick={() => setSidebarOpen(false)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all text-sm truncate ${
-                        conv.id === 'default'
-                          ? 'bg-indigo-50 text-indigo-700 font-medium'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      <div className="truncate text-[13px]">{conv.title}</div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">{conv.time}</div>
-                    </button>
-                  ))}
+              <div className="px-1 mt-1">
+                <div className="px-3 py-2.5 rounded-lg bg-indigo-50 text-sm font-medium text-indigo-900 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Current Chat
                 </div>
-              ))}
+              </div>
             </div>
           </aside>
 
