@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { deepResearch } from '@/lib/deep-research';
 
-const ULTRON_SECRET = process.env.ULTRON_API_SECRET || '';
+const ULTRON_SECRET = (process.env.ULTRON_API_SECRET || '').trim();
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
