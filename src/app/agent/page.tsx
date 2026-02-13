@@ -54,6 +54,16 @@ function detectToolUse(content: string): { label: string; icon: string } | null 
   return null;
 }
 
+/* ── Model → Provider mapping ── */
+function getPreferredProvider(model: string): string | undefined {
+  switch (model) {
+    case 'Claude': return 'anthropic';
+    case 'GPT-4': return 'openai';
+    case 'Gemini': return 'google';
+    default: return undefined; // 'Auto' → let backend pick
+  }
+}
+
 /* ── Welcome suggestion cards ── */
 const WELCOME_CARDS = [
   { emoji: '🔍', title: 'Deep Research', desc: 'Analyze any topic with real-time data', prompt: 'Help me do deep research on ' },
@@ -132,11 +142,15 @@ export default function AgentPage() {
   /* ── Message action state ── */
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
+  /* ── Agent name state ── */
+  const [agentName, setAgentName] = useState('Pulsed Agent');
+
   /* ── Onboarding state ── */
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingTransition, setOnboardingTransition] = useState(false);
   const [onboardingName, setOnboardingName] = useState('');
+  const [onboardingAgentName, setOnboardingAgentName] = useState('Pulsed Agent');
   const [onboardingRole, setOnboardingRole] = useState('');
   const [onboardingIndustry, setOnboardingIndustry] = useState('');
   const [onboardingFocus, setOnboardingFocus] = useState('');
@@ -164,6 +178,7 @@ export default function AgentPage() {
           const profileData = await profileRes.json();
           setUserPlan(profileData?.plan || 'free');
           if (profileData?.name) setUserName(profileData.name);
+          if (profileData?.agent_name) setAgentName(profileData.agent_name);
         } catch {
           setUserPlan('free');
         }
@@ -280,6 +295,7 @@ export default function AgentPage() {
             role: m.role,
             content: m.content,
           })),
+          ...(getPreferredProvider(selectedModel) ? { preferredProvider: getPreferredProvider(selectedModel) } : {}),
         }),
       });
 
@@ -385,6 +401,7 @@ export default function AgentPage() {
           },
           body: JSON.stringify({
             name: onboardingName,
+            agent_name: onboardingAgentName.trim() || 'Pulsed Agent',
             role: onboardingRole,
             industry: onboardingIndustry,
             current_focus: onboardingFocus,
@@ -403,6 +420,7 @@ export default function AgentPage() {
       setOnboardingExiting(false);
       setOnboardingTransition(false);
       setUserName(onboardingName);
+      setAgentName(onboardingAgentName.trim() || 'Pulsed Agent');
 
       setInput(firstMessage);
       setTimeout(() => {
@@ -443,6 +461,7 @@ export default function AgentPage() {
                 message: text,
                 sessionKey: 'default',
                 history: [],
+                ...(getPreferredProvider(selectedModel) ? { preferredProvider: getPreferredProvider(selectedModel) } : {}),
               }),
             });
 
@@ -628,6 +647,7 @@ export default function AgentPage() {
           <div className="flex items-center gap-6">
             <Link href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</Link>
             <span className="text-sm font-semibold text-indigo-600">Agent</span>
+            <Link href="/workspace" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Workspace</Link>
             <Link href="/history" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">History</Link>
           </div>
         </div>
@@ -705,6 +725,17 @@ export default function AgentPage() {
                     onChange={(e) => setOnboardingName(e.target.value)}
                     placeholder="Your first name"
                     autoFocus
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
+                    }}
+                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">What should your agent be called?</label>
+                  <input
+                    type="text"
+                    value={onboardingAgentName}
+                    onChange={(e) => setOnboardingAgentName(e.target.value)}
+                    placeholder="Pulsed Agent"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
@@ -1147,12 +1178,12 @@ export default function AgentPage() {
                     </svg>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">Pulsed Agent</span>
+                    <span className="text-sm font-semibold text-gray-900">{agentName}</span>
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
                       <span className="text-[11px] text-gray-400">Online</span>
                     </span>
-                    <span className="text-[11px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 ml-1">AI Agent</span>
+                    <span className="text-[11px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 ml-1">{selectedModel}</span>
                   </div>
                 </div>
                 <button
@@ -1256,7 +1287,7 @@ export default function AgentPage() {
                           <div className="flex-1 min-w-0">
                             {/* Agent label */}
                             <span className={`text-[12px] text-gray-400 font-medium mb-1 block ${isStreamingThis ? 'shimmer-text' : ''}`}>
-                              Pulsed Agent
+                              {agentName}
                             </span>
 
                             {msg.content ? (
@@ -1424,7 +1455,7 @@ export default function AgentPage() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Message Pulsed Agent..."
+                      placeholder={`Message ${agentName}...`}
                       rows={1}
                       className="w-full resize-none bg-transparent text-gray-900 placeholder-gray-400 outline-none"
                       style={{ maxHeight: '120px', fontSize: '15px', lineHeight: '1.6' }}

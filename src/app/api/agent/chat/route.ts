@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { decrypt } from '@/lib/encryption';
+import { superchargedResearch } from '@/lib/research-engine';
 
 const SYSTEM_PROMPT = `You are Pulsed Agent — the AI assistant built into Pulsed, an intelligence platform.
 
@@ -33,17 +34,54 @@ CONTEXT:
 export const maxDuration = 60; // Vercel Pro allows up to 60s
 
 // ---------------------------------------------------------------------------
-// Brave Web Search
+// Research detection — unified multi-source deep research
 // ---------------------------------------------------------------------------
-const SEARCH_TRIGGERS = [
-  'search for', 'look up', 'lookup', 'what\'s happening with',
-  'find me', 'find info', 'research', 'latest on', 'news about',
+
+// Explicit research intent phrases
+const RESEARCH_TRIGGERS = [
+  // Direct research requests
+  'research', 'look up', 'lookup', 'search for', 'find out about',
+  'find me', 'find info',
+  // Current events
+  'what\'s happening with', 'latest on', 'news about', 'what\'s new with',
+  // Analysis
+  'analyze', 'deep dive', 'report on', 'brief me on', 'brief on',
+  'investigate', 'intelligence on', 'intel on',
+  // Sentiment / opinion
+  'what do people think about', 'sentiment on', 'sentiment around',
+  'what are people saying about', 'opinions on',
+  // Market / competitive
+  'market analysis', 'competitive analysis', 'landscape of', 'landscape for',
+  'comprehensive analysis', 'full report', 'detailed report',
+  'give me everything on', 'full breakdown',
+  // General knowledge that benefits from live data
   'what is', 'who is', 'tell me about', 'how to',
 ];
 
-function shouldSearch(message: string): boolean {
+// Question patterns that likely need real-time data
+const REALTIME_QUESTION_PATTERNS = [
+  /\b(latest|recent|current|new|today|this week|this month|2024|2025|2026)\b/i,
+  /\bwhat(?:'s| is| are) (?:the )?(best|top|trending|popular|hot|biggest|most)\b/i,
+  /\bhow (?:does|do|is|are|to)\b/i,
+  /\bwhy (?:is|are|did|does|do)\b/i,
+  /\bcompare\b/i,
+  /\bvs\.?\b/i,
+  /\balternatives? to\b/i,
+];
+
+function shouldResearch(message: string): boolean {
   const lower = message.toLowerCase();
-  return SEARCH_TRIGGERS.some((t) => lower.includes(t));
+
+  // Check explicit triggers
+  if (RESEARCH_TRIGGERS.some((t) => lower.includes(t))) return true;
+
+  // Check real-time question patterns
+  if (REALTIME_QUESTION_PATTERNS.some((p) => p.test(message))) return true;
+
+  // Questions (ending with ?) that are long enough to be substantive
+  if (message.trim().endsWith('?') && message.split(/\s+/).length >= 4) return true;
+
+  return false;
 }
 
 function extractSearchQuery(message: string): string {
@@ -51,8 +89,17 @@ function extractSearchQuery(message: string): string {
   let q = message;
   const prefixes = [
     'search for', 'look up', 'lookup', 'find me', 'find info on',
-    'find info about', 'find', 'research', 'latest on', 'news about',
-    'tell me about', 'what\'s happening with',
+    'find info about', 'find out about', 'find',
+    'research', 'latest on', 'news about',
+    'tell me about', 'what\'s happening with', 'what\'s new with',
+    'deep dive', 'deep dive into', 'deep dive on',
+    'analyze the market for', 'comprehensive analysis of',
+    'full report on', 'brief on', 'brief me on', 'intelligence on',
+    'what\'s the landscape for', 'what\'s the landscape of',
+    'investigate', 'report on', 'analyze',
+    'what do people think about', 'sentiment on', 'sentiment around',
+    'what are people saying about', 'opinions on',
+    'give me everything on', 'full breakdown of',
   ];
   const lower = q.toLowerCase();
   for (const p of prefixes) {
@@ -64,37 +111,6 @@ function extractSearchQuery(message: string): string {
   }
   // Remove trailing punctuation
   return q.replace(/[?.!]+$/, '').trim() || message;
-}
-
-async function braveSearch(query: string): Promise<string | null> {
-  const apiKey = process.env.BRAVE_API_KEY;
-  if (!apiKey) return null;
-
-  try {
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`;
-    const res = await fetch(url, {
-      headers: { 'X-Subscription-Token': apiKey, Accept: 'application/json' },
-    });
-    if (!res.ok) {
-      console.error('Brave search error:', res.status, await res.text().catch(() => ''));
-      return null;
-    }
-    const data = await res.json();
-    const results = (data.web?.results || []).slice(0, 5);
-    if (results.length === 0) return null;
-
-    const formatted = results
-      .map(
-        (r: any, i: number) =>
-          `${i + 1}. Title: ${r.title} | URL: ${r.url} | Description: ${r.description || 'N/A'}`,
-      )
-      .join('\n');
-
-    return `[SEARCH RESULTS for "${query}"]\n${formatted}\n\nUse these search results to inform your response. Cite sources when relevant.`;
-  } catch (e: any) {
-    console.error('Brave search exception:', e.message);
-    return null;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -149,7 +165,7 @@ const SSE_HEADERS = {
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
-    const { message, history, sessionKey: rawSessionKey } = await req.json();
+    const { message, history, sessionKey: rawSessionKey, preferredProvider } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({ error: 'Message is required' }), {
@@ -187,24 +203,31 @@ export async function POST(req: NextRequest) {
 
     const userId = user.id;
 
-    // Get user's API key
-    const { data: keys } = await supabase
+    // Get user's API keys
+    const { data: allKeys } = await supabase
       .from('api_keys')
       .select('id, provider, encrypted_key')
-      .eq('user_id', userId)
-      .limit(1)
-      .single();
+      .eq('user_id', userId);
 
-    if (!keys) {
+    if (!allKeys || allKeys.length === 0) {
       return new Response(
         JSON.stringify({ error: 'No API key configured. Add one at /settings/keys' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
+    // If preferredProvider is set, try to find a matching key; otherwise use first available
+    let selectedKey = allKeys[0];
+    if (preferredProvider && typeof preferredProvider === 'string') {
+      const matched = allKeys.find((k: any) => k.provider === preferredProvider);
+      if (matched) {
+        selectedKey = matched;
+      }
+    }
+
     let apiKey: string;
     try {
-      apiKey = decrypt(keys.encrypted_key);
+      apiKey = decrypt(selectedKey.encrypted_key);
     } catch (e: any) {
       console.error('Decryption failed:', e.message);
       return new Response(
@@ -213,7 +236,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const provider = keys.provider;
+    const provider = selectedKey.provider;
 
     // ------------------------------------------------------------------
     // Build conversation messages
@@ -235,15 +258,18 @@ export async function POST(req: NextRequest) {
     msgs.push({ role: 'user', content: message });
 
     // ------------------------------------------------------------------
-    // Brave web search (if applicable)
+    // Research: deep multi-source (OpenAI web_search + Brave + Reddit + HN + YouTube)
     // ------------------------------------------------------------------
     let systemPrompt = SYSTEM_PROMPT;
 
-    if (shouldSearch(message)) {
+    if (shouldResearch(message)) {
       const query = extractSearchQuery(message);
-      const searchContext = await braveSearch(query);
-      if (searchContext) {
-        systemPrompt = `${SYSTEM_PROMPT}\n\n${searchContext}`;
+      // Pass the user's OpenAI key for web_search when their provider is OpenAI
+      // Falls back to platform OPENAI_API_KEY env var inside the research engine
+      const userOpenAIKey = provider === 'openai' ? apiKey : undefined;
+      const researchContext = await superchargedResearch(query, userOpenAIKey);
+      if (researchContext) {
+        systemPrompt = `${SYSTEM_PROMPT}\n\n${researchContext}`;
       }
     }
 
