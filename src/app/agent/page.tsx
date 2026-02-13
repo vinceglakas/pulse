@@ -60,6 +60,8 @@ function getPreferredProvider(model: string): string | undefined {
     case 'Claude': return 'anthropic';
     case 'GPT-4': return 'openai';
     case 'Gemini': return 'google';
+    case 'Brain': return 'brain';
+    case 'Worker': return 'worker';
     default: return undefined; // 'Auto' → let backend pick
   }
 }
@@ -133,6 +135,7 @@ export default function AgentPage() {
 
   /* ── Sidebar state ── */
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [savedBriefs, setSavedBriefs] = useState<any[]>([]);
 
   /* ── Input toolbar state ── */
   const [searchToggled, setSearchToggled] = useState(false);
@@ -192,6 +195,16 @@ export default function AgentPage() {
         } catch {
           setHasApiKey(false);
         }
+        // Fetch saved briefs for sidebar
+        try {
+          const briefsRes = await fetch('/api/briefs/saved', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (briefsRes.ok) {
+            const briefsData = await briefsRes.json();
+            setSavedBriefs(Array.isArray(briefsData) ? briefsData.slice(0, 10) : []);
+          }
+        } catch {}
         try {
           const histRes = await fetch('/api/agent/history?sessionKey=default&limit=100', {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -199,7 +212,16 @@ export default function AgentPage() {
           if (histRes.ok) {
             const histData = await histRes.json();
             if (histData.messages && histData.messages.length > 0) {
-              setMessages(histData.messages.map((m: any) => ({
+              // Deduplicate: remove consecutive messages with same role+content (from double-save bug)
+              const deduped: any[] = [];
+              for (const m of histData.messages) {
+                const prev = deduped[deduped.length - 1];
+                if (prev && prev.role === m.role && prev.content === m.content) {
+                  continue; // Skip duplicate
+                }
+                deduped.push(m);
+              }
+              setMessages(deduped.map((m: any) => ({
                 id: m.id,
                 role: m.role === 'user' ? 'user' : 'agent',
                 content: m.content,
@@ -268,13 +290,7 @@ export default function AgentPage() {
     setInput('');
     setIsStreaming(true);
 
-    if (accessToken) {
-      fetch('/api/agent/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ role: 'user', content: text, sessionKey: 'default' }),
-      }).catch(() => {});
-    }
+    // NOTE: Do NOT save user message here — the chat API route saves it to avoid duplicates
 
     const agentMsgId = crypto.randomUUID();
     setMessages((prev) => [
@@ -292,10 +308,6 @@ export default function AgentPage() {
         body: JSON.stringify({
           message: text,
           sessionKey: 'default',
-          history: messages.filter(m => m.content && m.content !== 'Thinking...').map(m => ({
-            role: m.role,
-            content: m.content,
-          })),
           ...(getPreferredProvider(selectedModel) ? { preferredProvider: getPreferredProvider(selectedModel) } : {}),
         }),
       });
@@ -351,19 +363,7 @@ export default function AgentPage() {
       );
     } finally {
       setIsStreaming(false);
-      if (accessToken) {
-        setMessages((prev) => {
-          const agentMsg = prev.find((m) => m.id === agentMsgId);
-          if (agentMsg && agentMsg.content && agentMsg.content !== 'Something went wrong. Please try again.') {
-            fetch('/api/agent/history', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-              body: JSON.stringify({ role: 'agent', content: agentMsg.content, sessionKey: 'default' }),
-            }).catch(() => {});
-          }
-          return prev;
-        });
-      }
+      // NOTE: Do NOT save assistant message here — the chat API route saves it to avoid duplicates
     }
   };
 
@@ -438,13 +438,7 @@ export default function AgentPage() {
         setInput('');
         setIsStreaming(true);
 
-        if (accessToken) {
-          fetch('/api/agent/history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-            body: JSON.stringify({ role: 'user', content: text, sessionKey: 'default' }),
-          }).catch(() => {});
-        }
+        // NOTE: Do NOT save user message here — the chat API route saves it to avoid duplicates
 
         const agentMsgId = crypto.randomUUID();
         setMessages((prev) => [
@@ -524,19 +518,7 @@ export default function AgentPage() {
             );
           } finally {
             setIsStreaming(false);
-            if (accessToken) {
-              setMessages((prev) => {
-                const agentMsg = prev.find((m) => m.id === agentMsgId);
-                if (agentMsg && agentMsg.content && agentMsg.content !== 'Something went wrong. Please try again.') {
-                  fetch('/api/agent/history', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                    body: JSON.stringify({ role: 'agent', content: agentMsg.content, sessionKey: 'default' }),
-                  }).catch(() => {});
-                }
-                return prev;
-              });
-            }
+            // NOTE: Do NOT save assistant message here — the chat API route saves it to avoid duplicates
           }
         })();
       }, 50);
@@ -1165,6 +1147,87 @@ export default function AgentPage() {
                   Current Chat
                 </div>
               </div>
+
+              {/* Research Section */}
+              <div className="mt-6 px-1">
+                <div className="flex items-center justify-between px-3 mb-2">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    Research
+                  </span>
+                </div>
+                <Link
+                  href="/search"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-indigo-600 hover:bg-indigo-50 transition-colors font-medium"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  New Brief
+                </Link>
+                {savedBriefs.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {savedBriefs.map((brief: any) => (
+                      <Link
+                        key={brief.id}
+                        href={`/brief/${brief.id}`}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
+                      >
+                        <span className="truncate flex-1 min-w-0">{brief.title || 'Untitled Brief'}</span>
+                        <span className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {brief.source_count != null && (
+                            <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 rounded-full px-1.5 py-0.5">
+                              {brief.source_count}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-gray-400">
+                            {brief.created_at ? new Date(brief.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                          </span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Workspace Section */}
+              <div className="mt-6 px-1">
+                <div className="flex items-center justify-between px-3 mb-2">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Workspace
+                  </span>
+                </div>
+                <Link
+                  href="/workspace"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                  </svg>
+                  Open Workspace
+                </Link>
+              </div>
+
+              {/* Settings Link */}
+              <div className="mt-6 px-1 border-t border-gray-100 pt-4">
+                <Link
+                  href="/settings/models"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Model Settings
+                </Link>
+              </div>
             </div>
           </aside>
 
@@ -1519,14 +1582,39 @@ export default function AgentPage() {
                             <path d="M8 22h8" />
                           </svg>
                           {selectedModel}
+                          {selectedModel === 'Auto' && <span className="text-[10px]">🧠⚡</span>}
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m6 9 6 6 6-6" />
                           </svg>
                         </button>
 
                         {modelDropdownOpen && (
-                          <div className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
-                            {['Auto', 'Claude', 'GPT-4', 'Gemini'].map((model) => (
+                          <div className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
+                            {[
+                              { value: 'Auto', label: 'Auto (Brain + Worker)', badge: '🧠⚡' },
+                              { value: 'Brain', label: 'Brain Only', badge: '🧠' },
+                              { value: 'Worker', label: 'Worker Only', badge: '⚡' },
+                            ].map((opt) => (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedModel(opt.value);
+                                  setModelDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                                  selectedModel === opt.value
+                                    ? 'text-indigo-600 bg-indigo-50 font-medium'
+                                    : 'text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                <span>{opt.label}</span>
+                                {selectedModel === opt.value && <span className="text-xs">{opt.badge}</span>}
+                              </button>
+                            ))}
+                            <div className="border-t border-gray-100 my-1" />
+                            {['Claude', 'GPT-4', 'Gemini'].map((model) => (
                               <button
                                 key={model}
                                 type="button"

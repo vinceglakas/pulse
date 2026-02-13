@@ -146,6 +146,28 @@ export default function ApiKeysPage() {
           </p>
         </div>
 
+        {/* Settings Nav */}
+        <div className="flex gap-2 mb-8">
+          {[
+            { href: '/settings/keys', label: 'API Keys', icon: '🔑' },
+            { href: '/settings/models', label: 'Models', icon: '🧠' },
+            { href: '/settings/integrations', label: 'Integrations', icon: '🔗' },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                item.href === '/settings/keys'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
+              }`}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
         {/* Error/Success */}
         {error && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400">

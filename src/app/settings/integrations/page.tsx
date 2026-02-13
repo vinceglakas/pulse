@@ -144,6 +144,7 @@ export default function IntegrationsPage() {
             <Link href="/agent" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Agent</Link>
             <Link href="/workspace" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Workspace</Link>
             <Link href="/settings/keys" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">API Keys</Link>
+            <Link href="/settings/models" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Models</Link>
             <span className="text-sm font-semibold text-gray-900">Integrations</span>
           </div>
         </div>
