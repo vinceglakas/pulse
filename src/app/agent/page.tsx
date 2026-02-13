@@ -361,7 +361,6 @@ export default function AgentPage() {
 
   /* ── Onboarding helpers ── */
   const showOnboarding =
-    (userPlan === 'agent' || userPlan === 'ultra') &&
     historyLoaded &&
     messages.length === 0 &&
     !onboardingComplete &&
@@ -445,7 +444,11 @@ export default function AgentPage() {
               body: JSON.stringify({ message: text, sessionKey: 'default' }),
             });
 
-            if (!res.ok || !res.body) throw new Error('Failed to connect');
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+              throw new Error(errData.error || `HTTP ${res.status}`);
+            }
+            if (!res.body) throw new Error('No response body');
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
@@ -486,11 +489,12 @@ export default function AgentPage() {
                 }
               }
             }
-          } catch {
+          } catch (err: any) {
+            console.error('Agent chat error:', err);
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === agentMsgId
-                  ? { ...m, content: 'Something went wrong. Please try again.' }
+                  ? { ...m, content: `Something went wrong: ${err?.message || 'Unknown error'}. Please try again.` }
                   : m
               )
             );
@@ -537,8 +541,8 @@ export default function AgentPage() {
     if (items.length > 0) sidebarGroups.push({ label: g, items });
   }
 
-  const isAgentPlan = userPlan === 'agent' || userPlan === 'ultra';
-  const showChat = isAgentPlan && !showOnboarding;
+  const isAgentPlan = userPlan === 'agent' || userPlan === 'ultra' || userPlan === 'free';
+  const showChat = !showOnboarding;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -936,7 +940,7 @@ export default function AgentPage() {
                     onClick={async () => {
                       if (accessToken && onboardingApiKey.trim()) {
                         try {
-                          await fetch('/api/keys', {
+                          const keyRes = await fetch('/api/keys', {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',
@@ -944,12 +948,19 @@ export default function AgentPage() {
                             },
                             body: JSON.stringify({
                               provider: onboardingProvider,
-                              key: onboardingApiKey.trim(),
-                              name: 'Default',
+                              apiKey: onboardingApiKey.trim(),
                             }),
                           });
-                          setHasApiKey(true);
-                        } catch {}
+                          const keyData = await keyRes.json();
+                          if (keyRes.ok) {
+                            setHasApiKey(true);
+                          } else {
+                            console.error('Key save failed:', keyData);
+                            alert(`Failed to save API key: ${keyData.error || 'Unknown error'}`);
+                          }
+                        } catch (err) {
+                          console.error('Key save error:', err);
+                        }
                       }
                       advanceStep();
                     }}
@@ -986,10 +997,10 @@ export default function AgentPage() {
                           </svg>
                           <span className="text-sm font-semibold text-gray-900">Telegram</span>
                         </div>
-                        <span className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">Coming Soon</span>
+                        <span className="text-[10px] font-medium text-white bg-emerald-500 rounded-full px-2 py-0.5">Live</span>
                       </div>
                       <p className="text-xs text-gray-600 leading-relaxed">Message your agent from Telegram. Get alerts, research updates, and task completions on mobile.</p>
-                      <p className="text-[10px] text-gray-400">We&apos;ll notify you when Telegram integration is ready.</p>
+                      <p className="text-[10px] text-gray-400">Enter your Telegram username to connect. Then DM <strong>@PulsedAI_bot</strong> to start chatting.</p>
                       <input
                         type="text"
                         value={onboardingTelegram}
