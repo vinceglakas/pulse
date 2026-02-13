@@ -13,24 +13,96 @@ export default function Home() {
 
   const useCases = [
     {
-      command: '"Build me a CRM that tracks my pipeline and sends follow-up reminders"',
-      result: 'Your agent creates a full CRM with contact management, deal tracking, automated follow-ups, and weekly pipeline reports. No code. No setup. Just tell it what you need.',
+      command: 'Build me a CRM that tracks my pipeline and sends follow-up reminders',
+      agentHtml: (
+        <div className="space-y-1.5">
+          <p className="text-gray-800 font-medium">Done! I&apos;ve created your CRM with:</p>
+          <ul className="space-y-1 text-sm text-gray-600">
+            <li>✅ <strong>Contact management</strong> — add, tag, and search contacts</li>
+            <li>✅ <strong>Deal pipeline</strong> — drag deals through stages</li>
+            <li>✅ <strong>Automated follow-ups</strong> — reminders at your intervals</li>
+            <li>✅ <strong>Weekly pipeline report</strong> — every Monday at 9am</li>
+          </ul>
+          <p className="text-sm text-gray-500 mt-2">Your CRM is live. Try saying <span className="text-indigo-600 font-medium">&quot;Add a lead: John Smith, Acme Corp&quot;</span></p>
+        </div>
+      ),
     },
     {
-      command: '"Research every AI startup that raised Series A this quarter and find me the decision makers"',
-      result: 'Your agent searches the web, cross-references Crunchbase data, identifies key contacts, and delivers a structured brief with names, roles, LinkedIn profiles, and talking points.',
+      command: 'Research every AI startup that raised Series A this quarter and find me the decision makers',
+      agentHtml: (
+        <div className="space-y-1.5">
+          <p className="text-gray-800 font-medium">Found <strong>34 AI startups</strong> with Series A rounds in Q1 2026. Here are the top 5:</p>
+          <ul className="space-y-1.5 text-sm text-gray-600">
+            <li>• <strong>NovaMind AI</strong> — $28M, CEO: Sarah Chen <span className="text-indigo-500">↗</span></li>
+            <li>• <strong>Axion Labs</strong> — $22M, CEO: James Park <span className="text-indigo-500">↗</span></li>
+            <li>• <strong>Cortex Systems</strong> — $19M, CTO: Priya Sharma <span className="text-indigo-500">↗</span></li>
+            <li>• <strong>Synth AI</strong> — $15M, CEO: Marco Rossi <span className="text-indigo-500">↗</span></li>
+            <li>• <strong>DeepForge</strong> — $14M, CEO: Lisa Wang <span className="text-indigo-500">↗</span></li>
+          </ul>
+          <p className="text-sm text-gray-500 mt-2">Full brief with LinkedIn profiles and talking points ready. <span className="text-indigo-600 font-medium">View brief →</span></p>
+        </div>
+      ),
     },
     {
-      command: '"Monitor my competitors and alert me when they launch something new"',
-      result: 'Your agent watches competitor websites, social media, press releases, and product pages. When something changes, it sends you a Telegram message with a summary and recommended response.',
+      command: 'Monitor my competitors and alert me when they launch something new',
+      agentHtml: (
+        <div className="space-y-1.5">
+          <p className="text-gray-800 font-medium">🔔 Monitoring set up! I&apos;m now watching:</p>
+          <ul className="space-y-1 text-sm text-gray-600">
+            <li>• <strong>3 competitor websites</strong> — product pages, pricing, blog</li>
+            <li>• <strong>Social media</strong> — Twitter/X, LinkedIn, Product Hunt</li>
+            <li>• <strong>Press releases</strong> — PR Newswire, TechCrunch, VentureBeat</li>
+          </ul>
+          <p className="text-sm text-gray-500 mt-2">I&apos;ll send you a <strong>Telegram alert</strong> within minutes of any change. You can also ask me for a weekly summary.</p>
+        </div>
+      ),
     },
     {
-      command: '"Create a Clay-style enrichment workflow for this list of 500 leads"',
-      result: 'Your agent takes your CSV, enriches each lead with company data, tech stack, recent news, and social profiles. Outputs a clean spreadsheet ready for outreach.',
+      command: 'Create a Clay-style enrichment workflow for this list of 500 leads',
+      agentHtml: (
+        <div className="space-y-1.5">
+          <p className="text-gray-800 font-medium">Enrichment complete! Processed <strong>500 leads</strong>:</p>
+          <div className="bg-gray-50 rounded-lg p-3 text-xs font-mono text-gray-600 space-y-0.5 border border-gray-100">
+            <p>✓ 487/500 matched to companies</p>
+            <p>✓ Added: email, title, company size, tech stack</p>
+            <p>✓ Added: recent news, funding data, social links</p>
+            <p>✓ Flagged 23 high-priority leads (recent funding)</p>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">Spreadsheet exported. <span className="text-indigo-600 font-medium">Download enriched_leads.csv →</span></p>
+        </div>
+      ),
     },
     {
-      command: '"Analyze the sentiment around our brand across every major platform this month"',
-      result: 'Your agent scans thousands of posts, extracts themes, measures sentiment, identifies influencers, and delivers an executive brief with actionable recommendations.',
+      command: 'Analyze the sentiment around our brand across every major platform this month',
+      agentHtml: (
+        <div className="space-y-1.5">
+          <p className="text-gray-800 font-medium">Brand sentiment analysis complete. Scanned <strong>2,847 mentions</strong>:</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Positive</span>
+              <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-indigo-500 h-full rounded-full" style={{ width: '64%' }}></div>
+              </div>
+              <span className="text-xs text-gray-500 font-medium">64%</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Neutral</span>
+              <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-violet-400 h-full rounded-full" style={{ width: '24%' }}></div>
+              </div>
+              <span className="text-xs text-gray-500 font-medium">24%</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Negative</span>
+              <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-gray-400 h-full rounded-full" style={{ width: '12%' }}></div>
+              </div>
+              <span className="text-xs text-gray-500 font-medium">12%</span>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">Top theme: <strong>&quot;great support&quot;</strong> (mentioned 89 times). <span className="text-indigo-600 font-medium">Full report →</span></p>
+        </div>
+      ),
     },
   ];
 
@@ -42,7 +114,7 @@ export default function Home() {
         setActiveUseCase((prev) => (prev + 1) % useCases.length);
         setFadeIn(true);
       }, 300);
-    }, 6000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [useCases.length]);
 
@@ -219,33 +291,54 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Command + Result with fade transition */}
+            {/* Chat mockup with fade transition */}
             <div
-              className="rounded-2xl border border-gray-200 overflow-hidden"
+              className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm"
               style={{
                 opacity: fadeIn ? 1 : 0,
                 transform: fadeIn ? 'translateY(0)' : 'translateY(8px)',
                 transition: 'opacity 0.3s ease, transform 0.3s ease',
               }}
             >
-              {/* Terminal-style command */}
-              <div className="bg-gray-950 px-6 py-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+              {/* Chat header */}
+              <div className="bg-gray-50 px-5 py-3 flex items-center gap-3 border-b border-gray-100">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                  <span className="text-white text-xs">⚡</span>
                 </div>
-                <p className="text-gray-400 text-sm font-mono">
-                  <span className="text-indigo-400">you</span>
-                  <span className="text-gray-600"> &gt; </span>
-                  <span className={`text-gray-200 ${displayedCommand.length < useCases[activeUseCase].command.length ? 'typing-cursor' : ''}`}>
-                    {displayedCommand}
-                  </span>
-                </p>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Pulsed Agent</p>
+                  <p className="text-xs text-emerald-500">Online</p>
+                </div>
               </div>
-              {/* Result */}
-              <div className="bg-white px-6 py-6">
-                <p className="text-gray-600 leading-relaxed">{useCases[activeUseCase].result}</p>
+              {/* Chat messages */}
+              <div className="px-5 py-5 space-y-4 min-h-[220px]">
+                {/* User message — right aligned */}
+                <div className="flex justify-end">
+                  <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-br-md text-white text-sm leading-relaxed" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                    {useCases[activeUseCase].command}
+                  </div>
+                </div>
+                {/* Agent message — left aligned */}
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                    <span className="text-white text-[10px]">⚡</span>
+                  </div>
+                  <div className="max-w-[85%]">
+                    <p className="text-[11px] text-gray-400 mb-1 font-medium">Pulsed Agent</p>
+                    <div className="bg-gray-50 border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-md">
+                      {useCases[activeUseCase].agentHtml}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Chat input bar */}
+              <div className="px-5 pb-4">
+                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50">
+                  <p className="text-sm text-gray-400 flex-1">Type a message...</p>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" /></svg>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -353,8 +446,187 @@ export default function Home() {
         </div>
       </section>
 
+      {/* See It In Action — Product Mockups */}
+      <section className="py-20 md:py-28 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">SEE IT IN ACTION</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Real results. Not marketing fluff.</h2>
+            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">Here&apos;s what your agent actually delivers — research, alerts, and tools built on demand.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1: Research Brief Mockup */}
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
+              <div className="p-5 flex-1">
+                {/* Mini browser chrome */}
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-3 py-1.5 flex items-center gap-1.5 border-b border-gray-100">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                    <div className="flex-1 mx-4">
+                      <div className="bg-white rounded border border-gray-200 px-2 py-0.5 text-[9px] text-gray-400 text-center">pulsed.ai/brief/ai-agents</div>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-xs font-bold text-gray-900 leading-tight">AI Agents in Enterprise</h4>
+                      <span className="text-[9px] font-semibold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full whitespace-nowrap">247 sources</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Key Themes</p>
+                      <ul className="space-y-1">
+                        <li className="flex items-start gap-1.5 text-[10px] text-gray-600">
+                          <span className="w-1 h-1 rounded-full bg-indigo-500 mt-1 shrink-0"></span>
+                          Autonomous agents replacing traditional SaaS
+                        </li>
+                        <li className="flex items-start gap-1.5 text-[10px] text-gray-600">
+                          <span className="w-1 h-1 rounded-full bg-indigo-500 mt-1 shrink-0"></span>
+                          Multi-agent orchestration emerging
+                        </li>
+                        <li className="flex items-start gap-1.5 text-[10px] text-gray-600">
+                          <span className="w-1 h-1 rounded-full bg-indigo-500 mt-1 shrink-0"></span>
+                          340% projected spending increase by 2027
+                        </li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Sentiment</p>
+                      <div className="flex rounded-full overflow-hidden h-1.5">
+                        <div className="bg-indigo-500" style={{ width: '62%' }}></div>
+                        <div className="bg-violet-400" style={{ width: '25%' }}></div>
+                        <div className="bg-gray-300" style={{ width: '13%' }}></div>
+                      </div>
+                      <div className="flex justify-between mt-0.5">
+                        <span className="text-[8px] text-gray-400">Positive 62%</span>
+                        <span className="text-[8px] text-gray-400">Neutral 25%</span>
+                        <span className="text-[8px] text-gray-400">Negative 13%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="px-5 pb-5 text-sm text-gray-500">Deep research on any topic in seconds</p>
+            </div>
+
+            {/* Card 2: Telegram Alert Mockup */}
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
+              <div className="p-5 flex-1">
+                <div className="rounded-lg overflow-hidden border border-gray-200" style={{ background: '#e8ddd3' }}>
+                  {/* Telegram header */}
+                  <div className="px-3 py-2 flex items-center gap-2" style={{ background: '#517da2' }}>
+                    <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center">
+                      <span className="text-white text-[8px]">⚡</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-[10px] font-semibold text-white">Pulsed AI</p>
+                        <span className="text-[7px] bg-white/25 text-white px-1 rounded font-medium">bot</span>
+                      </div>
+                      <p className="text-[8px] text-white/70">online</p>
+                    </div>
+                  </div>
+                  {/* Telegram messages */}
+                  <div className="px-3 py-3 space-y-2">
+                    {/* Bot message */}
+                    <div className="flex justify-start">
+                      <div className="bg-white rounded-lg rounded-bl-sm px-3 py-2 max-w-[88%] shadow-sm">
+                        <p className="text-[10px] text-gray-800 leading-relaxed">🔔 <strong>New competitor alert:</strong> Acme Corp just launched an AI assistant product. Here&apos;s what I found:</p>
+                        <ul className="mt-1 space-y-0.5 text-[10px] text-gray-600">
+                          <li>• Targets mid-market SaaS teams</li>
+                          <li>• Priced at $39/seat/month</li>
+                          <li>• Limited to GPT-4 only</li>
+                        </ul>
+                        <p className="text-[8px] text-gray-400 text-right mt-1">2:34 PM</p>
+                      </div>
+                    </div>
+                    {/* User reply */}
+                    <div className="flex justify-end">
+                      <div className="rounded-lg rounded-br-sm px-3 py-2 max-w-[75%] shadow-sm" style={{ background: '#dcf8c6' }}>
+                        <p className="text-[10px] text-gray-800">Draft a response strategy</p>
+                        <p className="text-[8px] text-gray-400 text-right mt-0.5">2:35 PM ✓✓</p>
+                      </div>
+                    </div>
+                    {/* Bot reply */}
+                    <div className="flex justify-start">
+                      <div className="bg-white rounded-lg rounded-bl-sm px-3 py-2 max-w-[88%] shadow-sm">
+                        <p className="text-[10px] text-gray-800">On it. I&apos;ll have a brief ready in 2 minutes. ⏳</p>
+                        <p className="text-[8px] text-gray-400 text-right mt-0.5">2:35 PM</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="px-5 pb-5 text-sm text-gray-500">Proactive alerts on Telegram</p>
+            </div>
+
+            {/* Card 3: Agent Building Mockup */}
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col">
+              <div className="p-5 flex-1">
+                <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                  {/* Chat header */}
+                  <div className="bg-gray-50 px-3 py-2 flex items-center gap-2 border-b border-gray-100">
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                      <span className="text-white text-[7px]">⚡</span>
+                    </div>
+                    <p className="text-[10px] font-semibold text-gray-700">Pulsed Agent</p>
+                  </div>
+                  {/* Messages */}
+                  <div className="px-3 py-3 space-y-2">
+                    {/* User */}
+                    <div className="flex justify-end">
+                      <div className="px-3 py-2 rounded-xl rounded-br-sm text-white text-[10px]" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                        Build me a lead tracker for my sales pipeline
+                      </div>
+                    </div>
+                    {/* Agent */}
+                    <div className="flex items-start gap-1.5">
+                      <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                        <span className="text-white text-[6px]">⚡</span>
+                      </div>
+                      <div className="bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl rounded-bl-sm max-w-[88%]">
+                        <p className="text-[10px] text-gray-800 font-medium">Done! I&apos;ve created a lead tracker with:</p>
+                        <ul className="mt-1 space-y-0.5 text-[10px] text-gray-600">
+                          <li>✅ Contact management</li>
+                          <li>✅ Deal stages</li>
+                          <li>✅ Follow-up reminders</li>
+                          <li>✅ Weekly pipeline report</li>
+                        </ul>
+                      </div>
+                    </div>
+                    {/* Mini table preview */}
+                    <div className="ml-5 rounded-lg border border-gray-200 overflow-hidden bg-white">
+                      <div className="bg-gray-50 px-2 py-1 border-b border-gray-100">
+                        <p className="text-[8px] text-gray-500 font-medium">📊 Lead Tracker Preview</p>
+                      </div>
+                      <div className="px-2 py-1.5">
+                        <div className="grid grid-cols-3 gap-1 text-[7px]">
+                          <div className="font-semibold text-gray-700 pb-0.5 border-b border-gray-100">Lead</div>
+                          <div className="font-semibold text-gray-700 pb-0.5 border-b border-gray-100">Stage</div>
+                          <div className="font-semibold text-gray-700 pb-0.5 border-b border-gray-100">Value</div>
+                          <div className="text-gray-600">Sarah K.</div>
+                          <div><span className="bg-indigo-100 text-indigo-700 px-1 rounded text-[6px]">Proposal</span></div>
+                          <div className="text-gray-600">$12k</div>
+                          <div className="text-gray-600">Mike R.</div>
+                          <div><span className="bg-violet-100 text-violet-700 px-1 rounded text-[6px]">Demo</span></div>
+                          <div className="text-gray-600">$8k</div>
+                          <div className="text-gray-600">Lisa W.</div>
+                          <div><span className="bg-emerald-100 text-emerald-700 px-1 rounded text-[6px]">Closed</span></div>
+                          <div className="text-gray-600">$24k</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="px-5 pb-5 text-sm text-gray-500">Build anything with plain English</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Integrations */}
-      <section id="integrations" className="py-20 md:py-28 bg-gray-50">
+      <section id="integrations" className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">INTEGRATIONS</p>
@@ -364,13 +636,66 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { name: 'Web Chat', desc: 'Full-featured chat interface at pulsed.ai/agent. Rich markdown, code blocks, file attachments.', status: 'Live', color: '#6366f1',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#6366f1"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/><path d="M7 9h10v2H7zm0-3h10v2H7z"/></svg> },
+                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#6366f1"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/><path d="M7 9h10v2H7zm0-3h10v2H7z"/></svg>,
+                preview: (
+                  <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-2.5 space-y-1.5">
+                    <div className="flex justify-end">
+                      <div className="px-2 py-1 rounded-lg rounded-br-sm text-white text-[9px]" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>What&apos;s my pipeline this week?</div>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                        <span className="text-white text-[5px]">⚡</span>
+                      </div>
+                      <div className="bg-white px-2 py-1 rounded-lg rounded-bl-sm text-[9px] text-gray-600 border border-gray-100">3 deals closing: $47k total value</div>
+                    </div>
+                  </div>
+                ),
+              },
               { name: 'Telegram', desc: 'Message your agent from Telegram. Get proactive alerts, research updates, and task completions on mobile.', status: 'Live', color: '#229ED9',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#229ED9"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg> },
+                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#229ED9"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>,
+                preview: (
+                  <div className="mt-4 rounded-lg border border-gray-100 p-2.5 space-y-1.5" style={{ background: '#e8ddd3' }}>
+                    <div className="flex justify-start">
+                      <div className="bg-white px-2 py-1 rounded-lg rounded-bl-sm text-[9px] text-gray-700 shadow-sm">🔔 New mention of your brand on HN</div>
+                    </div>
+                    <div className="flex justify-end">
+                      <div className="px-2 py-1 rounded-lg rounded-br-sm text-[9px] text-gray-800 shadow-sm" style={{ background: '#dcf8c6' }}>Show me the thread</div>
+                    </div>
+                  </div>
+                ),
+              },
               { name: 'Discord', desc: 'Add your agent to any Discord server. Works in DMs and channels. Perfect for team workflows.', status: 'Live', color: '#5865F2',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg> },
+                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>,
+                preview: (
+                  <div className="mt-4 rounded-lg border border-gray-100 p-2.5 space-y-1.5" style={{ background: '#36393f' }}>
+                    <div className="flex items-start gap-1.5">
+                      <div className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                        <span className="text-white text-[5px]">⚡</span>
+                      </div>
+                      <div>
+                        <p className="text-[8px]"><span className="text-indigo-400 font-semibold">Pulsed AI</span> <span className="text-gray-500">Today at 2:34 PM</span></p>
+                        <p className="text-[9px] text-gray-300">Weekly report ready 📊 Revenue up 12%</p>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
               { name: 'Slack', desc: 'Install your agent in your Slack workspace. Mention it in any channel or DM for instant help.', status: 'Coming soon', color: '#4A154B',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#4A154B"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg> },
+                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#4A154B"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>,
+                preview: (
+                  <div className="mt-4 rounded-lg border border-gray-100 p-2.5 space-y-1.5 bg-white">
+                    <div className="flex items-start gap-1.5">
+                      <div className="w-4 h-4 rounded-sm bg-purple-900 flex items-center justify-center shrink-0">
+                        <span className="text-white text-[5px]">⚡</span>
+                      </div>
+                      <div>
+                        <p className="text-[8px]"><span className="text-gray-900 font-bold">Pulsed AI</span> <span className="text-gray-400">2:34 PM</span></p>
+                        <p className="text-[9px] text-gray-600">Heads up: 3 tasks due today 📋</p>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
             ].map((integration) => (
               <div key={integration.name} className="rounded-2xl border border-gray-200 p-6 bg-white hover:border-gray-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
                 <div className="flex items-center justify-between mb-4">
@@ -387,6 +712,7 @@ export default function Home() {
                   }`}>{integration.status}</span>
                 </div>
                 <p className="text-sm text-gray-500 leading-relaxed">{integration.desc}</p>
+                {integration.preview}
               </div>
             ))}
           </div>
@@ -394,7 +720,7 @@ export default function Home() {
       </section>
 
       {/* Research Engine */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-20 md:py-28 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">BUILT-IN RESEARCH ENGINE</p>
@@ -470,7 +796,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-20 md:py-28 bg-gray-50">
+      <section className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">PRICING</p>

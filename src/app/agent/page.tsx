@@ -27,6 +27,14 @@ function relativeTime(date: Date): string {
   return date.toLocaleDateString();
 }
 
+/* ── Greeting helper ── */
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 /* ── Tool‑use pattern detector ── */
 const TOOL_PATTERNS = [
   { pattern: /Searching\.\.\./i, label: 'Searching…', icon: '🔍' },
@@ -46,13 +54,66 @@ function detectToolUse(content: string): { label: string; icon: string } | null 
   return null;
 }
 
-/* ── Suggestion chips ── */
-const SUGGESTIONS = [
-  { emoji: '🔎', text: 'Research my competitors' },
-  { emoji: '🏗️', text: 'Build me a CRM' },
-  { emoji: '📈', text: 'Analyze market trends' },
-  { emoji: '📝', text: 'Draft a sales strategy' },
+/* ── Welcome suggestion cards ── */
+const WELCOME_CARDS = [
+  { emoji: '🔍', title: 'Deep Research', desc: 'Analyze any topic with real-time data', prompt: 'Help me do deep research on ' },
+  { emoji: '🏗️', title: 'Build Something', desc: 'Create tools, trackers, and workflows', prompt: 'Help me build a ' },
+  { emoji: '📊', title: 'Analyze Data', desc: 'Get insights from any dataset', prompt: 'Analyze this data for me: ' },
+  { emoji: '✍️', title: 'Write Content', desc: 'Draft emails, posts, and documents', prompt: 'Help me write a ' },
 ];
+
+/* ── Placeholder sidebar conversations ── */
+const SIDEBAR_CONVERSATIONS = [
+  { id: 'default', title: 'Current conversation', time: 'Now', group: 'Today' },
+  { id: 'conv-2', title: 'Competitor analysis for Q1 launch', time: '2h ago', group: 'Today' },
+  { id: 'conv-3', title: 'Draft investor update email', time: '5h ago', group: 'Today' },
+  { id: 'conv-4', title: 'Market sizing for Southeast Asia', time: 'Yesterday', group: 'Yesterday' },
+  { id: 'conv-5', title: 'Product roadmap brainstorm', time: 'Yesterday', group: 'Yesterday' },
+  { id: 'conv-6', title: 'Sales pipeline review', time: 'Mon', group: 'This Week' },
+  { id: 'conv-7', title: 'Content calendar planning', time: 'Mon', group: 'This Week' },
+];
+
+/* ── Copy to clipboard helper ── */
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+/* ── Code block with copy button ── */
+function CodeBlockWithCopy({ children, className, ...props }: any) {
+  const [copied, setCopied] = useState(false);
+  const codeText = typeof children === 'string' ? children : String(children).replace(/\n$/, '');
+
+  const handleCopy = () => {
+    copyToClipboard(codeText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Check if it's an inline code block (no className with language-)
+  if (!className) {
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  }
+
+  return (
+    <div className="relative group">
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="absolute top-2 right-2 z-10 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-[11px] font-medium transition-all opacity-0 group-hover:opacity-100"
+      >
+        {copied ? '✓ Copied' : 'Copy'}
+      </button>
+      <code className={className} {...props}>
+        {children}
+      </code>
+    </div>
+  );
+}
+
 
 export default function AgentPage() {
   const router = useRouter();
@@ -64,9 +125,21 @@ export default function AgentPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<string>('free');
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [userName, setUserName] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  /* ── Sidebar state ── */
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  /* ── Input toolbar state ── */
+  const [searchToggled, setSearchToggled] = useState(false);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('Auto');
+
+  /* ── Message action state ── */
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   /* ── Onboarding state ── */
   const [onboardingComplete, setOnboardingComplete] = useState(false);
@@ -99,6 +172,7 @@ export default function AgentPage() {
           });
           const profileData = await profileRes.json();
           setUserPlan(profileData?.plan || 'free');
+          if (profileData?.name) setUserName(profileData.name);
         } catch {
           setUserPlan('free');
         }
@@ -162,6 +236,14 @@ export default function AgentPage() {
     const interval = setInterval(() => setTick((t) => t + 1), 30_000);
     return () => clearInterval(interval);
   }, []);
+
+  /* ── Close model dropdown on outside click ── */
+  useEffect(() => {
+    if (!modelDropdownOpen) return;
+    const handler = () => setModelDropdownOpen(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [modelDropdownOpen]);
 
   /* ── Submit handler ── */
   const handleSubmit = async (e: FormEvent) => {
@@ -296,7 +378,6 @@ export default function AgentPage() {
   const finishOnboarding = async () => {
     setOnboardingTransition(true);
 
-    // Save profile (best-effort — might 400 if fields don't exist yet)
     if (accessToken) {
       try {
         await fetch('/api/profile', {
@@ -314,26 +395,20 @@ export default function AgentPage() {
             ...(onboardingDiscord.trim() ? { discord_username: onboardingDiscord.trim() } : {}),
           }),
         });
-      } catch {
-        // swallow — profile API may not support these fields yet
-      }
+      } catch {}
     }
 
-    // Build the first message
     const firstMessage = `My name is ${onboardingName}. I'm a ${onboardingRole} in ${onboardingIndustry}. I'm currently working on: ${onboardingFocus}. Say hello and tell me how you can help.`;
 
-    // Exit animation
     setOnboardingExiting(true);
     setTimeout(() => {
       setOnboardingComplete(true);
       setOnboardingExiting(false);
       setOnboardingTransition(false);
+      setUserName(onboardingName);
 
-      // Auto-send the first message by injecting into input and submitting
       setInput(firstMessage);
-      // Use a micro-delay so state settles before we submit
       setTimeout(() => {
-        // Directly trigger the send logic (can't use handleSubmit since input state won't be settled)
         const text = firstMessage;
         const userMsg: Message = {
           id: crypto.randomUUID(),
@@ -440,6 +515,11 @@ export default function AgentPage() {
     }, 400);
   };
 
+  /* ── Clear chat ── */
+  const handleClearChat = () => {
+    setMessages([]);
+  };
+
   /* ── Loading spinner ── */
   if (!authChecked) {
     return (
@@ -449,9 +529,20 @@ export default function AgentPage() {
     );
   }
 
+  /* ── Group sidebar conversations ── */
+  const sidebarGroups: { label: string; items: typeof SIDEBAR_CONVERSATIONS }[] = [];
+  const groupOrder = ['Today', 'Yesterday', 'This Week'];
+  for (const g of groupOrder) {
+    const items = SIDEBAR_CONVERSATIONS.filter((c) => c.group === g);
+    if (items.length > 0) sidebarGroups.push({ label: g, items });
+  }
+
+  const isAgentPlan = userPlan === 'agent' || userPlan === 'ultra';
+  const showChat = isAgentPlan && !showOnboarding;
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Keyframes injected via style tag — no deps needed */}
+      {/* Keyframes */}
       <style>{`
         @keyframes shimmer {
           0% { background-position: -200% 0; }
@@ -476,6 +567,11 @@ export default function AgentPage() {
           -webkit-text-fill-color: transparent;
           animation: shimmer 2s ease-in-out infinite;
         }
+        .shimmer-bg {
+          background: linear-gradient(90deg, transparent 25%, rgba(99,102,241,0.08) 50%, transparent 75%);
+          background-size: 200% 100%;
+          animation: shimmer 2s ease-in-out infinite;
+        }
         @keyframes onboard-in {
           0% { opacity: 0; transform: translateY(16px) scale(0.97); }
           100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -493,18 +589,44 @@ export default function AgentPage() {
         .onboard-card-exit {
           animation: onboard-out 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
+        @keyframes msg-fade-in {
+          0% { opacity: 0; transform: translateY(8px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .msg-enter {
+          animation: msg-fade-in 0.2s ease-out forwards;
+        }
+        @keyframes dot-pulse {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
+        }
       `}</style>
 
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5">
-            <span className="text-xl font-bold text-gray-900">Pulsed</span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-          </Link>
+        <div className="max-w-full mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Sidebar toggle (hamburger) */}
+            {isAgentPlan && !showOnboarding && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+                title="Toggle sidebar"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+              </button>
+            )}
+            <Link href="/" className="flex items-center gap-1.5">
+              <span className="text-lg font-bold text-gray-900">Pulsed</span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+            </Link>
+          </div>
           <div className="flex items-center gap-6">
             <Link href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</Link>
             <span className="text-sm font-semibold text-indigo-600">Agent</span>
@@ -514,7 +636,7 @@ export default function AgentPage() {
       </nav>
 
       {/* Plan Gate */}
-      {userPlan !== 'agent' && userPlan !== 'ultra' && (
+      {!isAgentPlan && (
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center max-w-md">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mb-6 mx-auto shadow-lg">
@@ -541,7 +663,7 @@ export default function AgentPage() {
       )}
 
       {/* API Key Banner */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && !hasApiKey && (
+      {isAgentPlan && !hasApiKey && (
         <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-3">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -565,7 +687,7 @@ export default function AgentPage() {
       )}
 
       {/* ════════════════════════ Onboarding Wizard ════════════════════════ */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && showOnboarding && (
+      {isAgentPlan && showOnboarding && (
         <div className={`flex-1 flex items-center justify-center px-4 ${onboardingExiting ? 'onboard-card-exit' : ''}`}>
           <div className="w-full max-w-md">
             <div
@@ -667,7 +789,6 @@ export default function AgentPage() {
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Connect your AI 🔑</h1>
                   <p className="text-gray-500 mb-6">Your agent needs an API key to think. Here&apos;s how to get one in 60 seconds.</p>
 
-                  {/* Accordion provider cards */}
                   <div className="space-y-3 mb-6">
                     {/* Anthropic */}
                     <div
@@ -778,7 +899,6 @@ export default function AgentPage() {
                     </div>
                   </div>
 
-                  {/* Provider selector pills */}
                   <label className="block text-sm font-medium text-gray-700 mb-2">Paste your API key</label>
                   <div className="flex gap-2 mb-3">
                     {[
@@ -801,7 +921,6 @@ export default function AgentPage() {
                     ))}
                   </div>
 
-                  {/* API key input */}
                   <input
                     type="password"
                     value={onboardingApiKey}
@@ -811,7 +930,6 @@ export default function AgentPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all font-mono"
                   />
 
-                  {/* Buttons */}
                   <button
                     type="button"
                     disabled={!onboardingApiKey.trim()}
@@ -831,9 +949,7 @@ export default function AgentPage() {
                             }),
                           });
                           setHasApiKey(true);
-                        } catch {
-                          // best-effort — key can be added later in settings
-                        }
+                        } catch {}
                       }
                       advanceStep();
                     }}
@@ -946,211 +1062,496 @@ export default function AgentPage() {
         </div>
       )}
 
-      {/* ════════════════════════ Chat Area ════════════════════════ */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && !showOnboarding && (
-        <div ref={chatContainerRef} className="flex-1 overflow-y-auto relative">
-          {/* Streaming progress bar at top */}
-          {isStreaming && (
-            <div className="sticky top-0 z-40 h-0.5 w-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full w-1/2 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-full"
-                style={{ animation: 'progress-slide 1.5s ease-in-out infinite' }}
-              />
-            </div>
+      {/* ════════════════════════ Main Chat Layout ════════════════════════ */}
+      {showChat && (
+        <div className="flex-1 flex overflow-hidden relative">
+
+          {/* ── Sidebar Overlay (mobile) ── */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/20 z-40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
           )}
 
-          <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-            {/* ── Empty state ── */}
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center pt-20 text-center">
-                {/* Large pulsing icon */}
-                <div
-                  className="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mb-8 shadow-xl"
-                  style={{ animation: 'pulse-glow 3s ease-in-out infinite' }}
-                >
-                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                    <path d="M19 10a7 7 0 0 1-14 0" />
-                    <path d="M12 17v5" />
-                    <path d="M8 22h8" />
-                  </svg>
-                </div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Ultron Agent</h2>
-                <p className="text-gray-500 max-w-md mb-10">
-                  Your personal AI agent. Ask anything — research, analysis, tasks, and more.
-                </p>
+          {/* ── Sidebar ── */}
+          <aside
+            className={`
+              fixed lg:relative z-50 lg:z-auto top-0 left-0 h-full
+              w-[280px] bg-white border-r border-gray-100
+              flex flex-col
+              transition-transform duration-200 ease-in-out
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:hidden'}
+            `}
+            style={{ paddingTop: sidebarOpen ? '0' : undefined }}
+          >
+            {/* Sidebar header */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-900">Conversations</span>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-                {/* Suggestion chips */}
-                <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
-                  {SUGGESTIONS.map((s) => (
+            {/* New chat button */}
+            <div className="p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  handleClearChat();
+                  setSidebarOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                New chat
+              </button>
+            </div>
+
+            {/* Conversation list */}
+            <div className="flex-1 overflow-y-auto px-2 pb-4">
+              {sidebarGroups.map((group) => (
+                <div key={group.label} className="mb-3">
+                  <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider px-3 py-1.5">{group.label}</p>
+                  {group.items.map((conv) => (
                     <button
-                      key={s.text}
+                      key={conv.id}
                       type="button"
-                      onClick={() => {
-                        setInput(s.text);
-                        inputRef.current?.focus();
-                      }}
-                      className="flex items-center gap-2.5 text-left px-4 py-3 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-sm text-gray-700 hover:text-indigo-700 shadow-sm hover:shadow"
+                      onClick={() => setSidebarOpen(false)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all text-sm truncate ${
+                        conv.id === 'default'
+                          ? 'bg-indigo-50 text-indigo-700 font-medium'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
                     >
-                      <span className="text-base shrink-0">{s.emoji}</span>
-                      <span>{s.text}</span>
+                      <div className="truncate text-[13px]">{conv.title}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{conv.time}</div>
                     </button>
                   ))}
                 </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* ── Chat Column ── */}
+          <div className="flex-1 flex flex-col min-w-0">
+
+            {/* Agent Identity Header */}
+            {messages.length > 0 && (
+              <div className="border-b border-gray-100 bg-white px-4 sm:px-6 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-sm ${isStreaming ? 'shimmer-bg' : ''}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900">Pulsed Agent</span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      <span className="text-[11px] text-gray-400">Online</span>
+                    </span>
+                    <span className="text-[11px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 ml-1">AI Agent</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearChat}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                  title="Clear chat"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  </svg>
+                </button>
               </div>
             )}
 
-            {/* ── Messages ── */}
-            {messages.map((msg) => {
-              const isUser = msg.role === 'user';
-              const isAgent = msg.role === 'agent';
-              const toolUse = isAgent && isStreaming && msg.content ? detectToolUse(msg.content) : null;
+            {/* Chat messages area */}
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto relative">
+              {/* Streaming progress bar */}
+              {isStreaming && (
+                <div className="sticky top-0 z-40 h-0.5 w-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full w-1/2 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-full"
+                    style={{ animation: 'progress-slide 1.5s ease-in-out infinite' }}
+                  />
+                </div>
+              )}
 
-              return (
-                <div key={msg.id}>
-                  <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} gap-2.5`}>
-                    {/* Agent avatar */}
-                    {isAgent && (
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0 mt-1 shadow-sm">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                        </svg>
-                      </div>
-                    )}
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-1">
+                {/* ── Welcome State (no messages) ── */}
+                {messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center pt-16 sm:pt-24 text-center px-2">
+                    {/* Greeting */}
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+                      {getGreeting()}, {userName || 'there'} ✨
+                    </h1>
+                    <p className="text-gray-500 text-base sm:text-lg mb-10">
+                      What would you like to work on?
+                    </p>
 
-                    <div className="flex flex-col">
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                          isUser
-                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
-                            : 'bg-gray-50 text-gray-900'
-                        }`}
-                      >
-                        {isAgent && msg.content ? (
-                          <>
-                            {/* Tool use indicator */}
-                            {toolUse && (
-                              <div className="flex items-center gap-2 mb-2">
-                                <span
-                                  className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-full px-2.5 py-1"
-                                >
-                                  <svg
-                                    width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                                    style={{ animation: 'spin-slow 1s linear infinite' }}
+                    {/* 2x2 Suggestion card grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl w-full">
+                      {WELCOME_CARDS.map((card) => (
+                        <button
+                          key={card.title}
+                          type="button"
+                          onClick={() => {
+                            setInput(card.prompt);
+                            inputRef.current?.focus();
+                          }}
+                          className="flex flex-col items-start gap-1.5 text-left p-4 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 transition-all shadow-sm hover:shadow group"
+                        >
+                          <span className="text-2xl">{card.emoji}</span>
+                          <span className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">{card.title}</span>
+                          <span className="text-xs text-gray-500 leading-relaxed">{card.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="text-xs text-gray-400 mt-8">or just start typing...</p>
+                  </div>
+                )}
+
+                {/* ── Messages ── */}
+                {messages.map((msg, idx) => {
+                  const isUser = msg.role === 'user';
+                  const isAgent = msg.role === 'agent';
+                  const toolUse = isAgent && isStreaming && msg.content ? detectToolUse(msg.content) : null;
+                  const isLastAgent = isAgent && idx === messages.length - 1;
+                  const isComplete = isAgent && msg.content && !isStreaming;
+                  const isStreamingThis = isAgent && isStreaming && isLastAgent;
+
+                  return (
+                    <div key={msg.id} className="msg-enter">
+                      {/* User Message */}
+                      {isUser && (
+                        <div className="flex justify-end mb-4">
+                          <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]">
+                            <div
+                              className="rounded-2xl px-5 py-3 bg-indigo-600 text-white"
+                              style={{ fontSize: '15px', lineHeight: '1.6' }}
+                            >
+                              <span>{msg.content}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 mt-1.5 mr-1">
+                              {relativeTime(msg.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Agent Message */}
+                      {isAgent && (
+                        <div className="flex gap-3 mb-4">
+                          {/* Avatar */}
+                          <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0 mt-1 shadow-sm ${isStreamingThis ? 'shimmer-bg' : ''}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                            </svg>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            {/* Agent label */}
+                            <span className={`text-[12px] text-gray-400 font-medium mb-1 block ${isStreamingThis ? 'shimmer-text' : ''}`}>
+                              Pulsed Agent
+                            </span>
+
+                            {msg.content ? (
+                              <div
+                                className="bg-white rounded-2xl rounded-tl-md px-5 py-4 border-l-2 border-indigo-500 shadow-sm"
+                                style={{ fontSize: '15px', lineHeight: '1.7' }}
+                              >
+                                {/* Tool use indicator */}
+                                {toolUse && (
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full px-2.5 py-1">
+                                      <svg
+                                        width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                        style={{ animation: 'spin-slow 1s linear infinite' }}
+                                      >
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                      </svg>
+                                      <span>{toolUse.icon} {toolUse.label}</span>
+                                    </span>
+                                  </div>
+                                )}
+
+                                <div className="prose prose-sm max-w-none text-gray-900
+                                  [&_pre]:bg-[#1e1e2e] [&_pre]:text-gray-100 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:relative
+                                  [&_code]:bg-violet-100 [&_code]:text-violet-800 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
+                                  [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_pre_code]:rounded-none
+                                  [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
+                                  [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
+                                  [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
+                                  [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
+                                  [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
+                                  [&_li]:my-0.5
+                                  [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800
+                                  [&_table]:border-collapse [&_table]:w-full [&_table]:my-3
+                                  [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold
+                                  [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm
+                                  [&_tr:nth-child(even)]:bg-gray-50
+                                  [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
+                                  [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-2
+                                  [&_hr]:my-4 [&_hr]:border-gray-200
+                                ">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      code: CodeBlockWithCopy as any,
+                                    }}
                                   >
-                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                                  </svg>
-                                  <span>{toolUse.icon} {toolUse.label}</span>
-                                </span>
+                                    {msg.content}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            ) : (
+                              /* Streaming placeholder — "Thinking..." */
+                              <div className="bg-white rounded-2xl rounded-tl-md px-5 py-4 border-l-2 border-indigo-500 shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium shimmer-text">Thinking</span>
+                                  <span className="flex gap-1">
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
+                                  </span>
+                                </div>
                               </div>
                             )}
-                            <div className="prose prose-sm max-w-none
-                              [&_pre]:bg-[#1e1e2e] [&_pre]:text-gray-100 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm
-                              [&_code]:bg-violet-100 [&_code]:text-violet-800 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
-                              [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_pre_code]:rounded-none
-                              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
-                              [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
-                              [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
-                              [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
-                              [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
-                              [&_li]:my-0.5
-                              [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800
-                              [&_table]:border-collapse [&_table]:w-full [&_table]:my-3
-                              [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold
-                              [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm
-                              [&_tr:nth-child(even)]:bg-gray-50
-                              [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
-                              [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-2
-                              [&_hr]:my-4 [&_hr]:border-gray-200
-                            ">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+
+                            {/* Timestamp + Action buttons for completed agent messages */}
+                            <div className="flex items-center gap-1 mt-1.5 ml-1">
+                              <span className="text-[10px] text-gray-400">
+                                {relativeTime(msg.timestamp)}
+                              </span>
+
+                              {isComplete && (
+                                <div className="flex items-center gap-0.5 ml-2">
+                                  {/* Copy */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      copyToClipboard(msg.content);
+                                      setCopiedMessageId(msg.id);
+                                      setTimeout(() => setCopiedMessageId(null), 2000);
+                                    }}
+                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    title="Copy response"
+                                  >
+                                    {copiedMessageId === msg.id ? (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 6 9 17l-5-5" />
+                                      </svg>
+                                    ) : (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                  {/* Regenerate */}
+                                  <button
+                                    type="button"
+                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    title="Regenerate"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M1 4v6h6M23 20v-6h-6" />
+                                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
+                                    </svg>
+                                  </button>
+                                  {/* Thumbs up */}
+                                  <button
+                                    type="button"
+                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    title="Good response"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+                                    </svg>
+                                  </button>
+                                  {/* Thumbs down */}
+                                  <button
+                                    type="button"
+                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    title="Poor response"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          </>
-                        ) : msg.content ? (
-                          <span>{msg.content}</span>
-                        ) : (
-                          /* Streaming placeholder with "Thinking..." shimmer */
-                          <div className="flex flex-col items-start gap-2">
-                            <span className="text-xs font-medium shimmer-text">Thinking...</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce [animation-delay:0ms]" />
-                              <span className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce [animation-delay:150ms]" />
-                              <span className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce [animation-delay:300ms]" />
-                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* ── Scroll to bottom FAB ── */}
+              {showScrollBtn && (
+                <button
+                  type="button"
+                  onClick={scrollToBottom}
+                  className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-50 transition-all hover:shadow-xl"
+                >
+                  <span>↓</span>
+                  <span>New messages</span>
+                </button>
+              )}
+            </div>
+
+            {/* ════════════════════════ Input Bar ════════════════════════ */}
+            <div className="bg-gray-50/80 backdrop-blur-sm border-t border-gray-100 px-4 py-3 sm:py-4">
+              <form
+                onSubmit={handleSubmit}
+                className="max-w-3xl mx-auto"
+              >
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all overflow-hidden">
+                  {/* Textarea */}
+                  <div className="px-4 pt-3">
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Message Pulsed Agent..."
+                      rows={1}
+                      className="w-full resize-none bg-transparent text-gray-900 placeholder-gray-400 outline-none"
+                      style={{ maxHeight: '120px', fontSize: '15px', lineHeight: '1.6' }}
+                      onInput={(e) => {
+                        const el = e.target as HTMLTextAreaElement;
+                        el.style.height = 'auto';
+                        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                      }}
+                    />
+                  </div>
+
+                  {/* Toolbar row */}
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-1">
+                      {/* Attach file (disabled) */}
+                      <button
+                        type="button"
+                        disabled
+                        className="p-2 rounded-lg text-gray-300 cursor-not-allowed"
+                        title="Attach file — Coming soon"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                        </svg>
+                      </button>
+
+                      {/* Web search toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setSearchToggled(!searchToggled)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          searchToggled
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                        }`}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="8" />
+                          <path d="m21 21-4.3-4.3" />
+                        </svg>
+                        Search
+                      </button>
+
+                      {/* Model selector */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModelDropdownOpen(!modelDropdownOpen);
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 text-xs font-medium transition-all"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                            <path d="M19 10a7 7 0 0 1-14 0" />
+                            <path d="M12 17v5" />
+                            <path d="M8 22h8" />
+                          </svg>
+                          {selectedModel}
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
+                        </button>
+
+                        {modelDropdownOpen && (
+                          <div className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
+                            {['Auto', 'Claude', 'GPT-4', 'Gemini'].map((model) => (
+                              <button
+                                key={model}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedModel(model);
+                                  setModelDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                                  selectedModel === model
+                                    ? 'text-indigo-600 bg-indigo-50 font-medium'
+                                    : 'text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                {model}
+                              </button>
+                            ))}
                           </div>
                         )}
                       </div>
+                    </div>
 
-                      {/* Timestamp */}
-                      <span className={`text-[10px] text-gray-400 mt-1 ${isUser ? 'text-right' : 'text-left ml-1'}`}>
-                        {relativeTime(msg.timestamp)}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      {/* Character count */}
+                      {input.length > 100 && (
+                        <span className="text-[11px] text-gray-400">{input.length}</span>
+                      )}
+
+                      {/* Send button */}
+                      <button
+                        type="submit"
+                        disabled={!input.trim() || isStreaming}
+                        className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:scale-105 active:scale-95 shadow-sm"
+                      >
+                        {isStreaming ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m22 2-7 20-4-9-9-4z" />
+                            <path d="M22 2 11 13" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* ── Scroll to bottom FAB ── */}
-          {showScrollBtn && (
-            <button
-              type="button"
-              onClick={scrollToBottom}
-              className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-50 transition-all hover:shadow-xl"
-            >
-              <span>↓</span>
-              <span>New messages</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ════════════════════════ Input Bar ════════════════════════ */}
-      {(userPlan === 'agent' || userPlan === 'ultra') && !showOnboarding && (
-        <div className="sticky bottom-0 bg-gray-50/80 backdrop-blur-sm border-t border-gray-100 px-4 py-4">
-          <form
-            onSubmit={handleSubmit}
-            className="max-w-3xl mx-auto"
-          >
-            <div className="flex items-end gap-3 bg-white rounded-2xl shadow-lg border border-gray-200 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all px-4 py-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Message Ultron..."
-                rows={1}
-                className="flex-1 resize-none bg-transparent py-2 text-gray-900 placeholder-gray-400 text-sm outline-none"
-                style={{ maxHeight: '120px' }}
-                onInput={(e) => {
-                  const el = e.target as HTMLTextAreaElement;
-                  el.style.height = 'auto';
-                  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-                }}
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || isStreaming}
-                className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:scale-110 active:scale-95"
-              >
-                {isStreaming ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m22 2-7 20-4-9-9-4z" />
-                    <path d="M22 2 11 13" />
-                  </svg>
-                )}
-              </button>
+                <p className="text-[11px] text-gray-400 text-center mt-2">
+                  Shift + Enter for new line
+                </p>
+              </form>
             </div>
-            <p className="text-[11px] text-gray-400 text-center mt-2">
-              Shift + Enter for new line
-            </p>
-          </form>
+          </div>
         </div>
       )}
     </div>
