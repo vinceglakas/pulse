@@ -78,6 +78,11 @@ export default function AgentPage() {
   const [onboardingFocus, setOnboardingFocus] = useState('');
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [onboardingExiting, setOnboardingExiting] = useState(false);
+  const [onboardingProvider, setOnboardingProvider] = useState('anthropic');
+  const [onboardingApiKey, setOnboardingApiKey] = useState('');
+  const [expandedProvider, setExpandedProvider] = useState<number | null>(0);
+  const [onboardingTelegram, setOnboardingTelegram] = useState('');
+  const [onboardingDiscord, setOnboardingDiscord] = useState('');
 
   /* ── Auth + load history ── */
   useEffect(() => {
@@ -305,6 +310,8 @@ export default function AgentPage() {
             role: onboardingRole,
             industry: onboardingIndustry,
             current_focus: onboardingFocus,
+            ...(onboardingTelegram.trim() ? { telegram_username: onboardingTelegram.trim() } : {}),
+            ...(onboardingDiscord.trim() ? { discord_username: onboardingDiscord.trim() } : {}),
           }),
         });
       } catch {
@@ -646,10 +653,275 @@ export default function AgentPage() {
                   <button
                     type="button"
                     disabled={!onboardingFocus.trim()}
-                    onClick={finishOnboarding}
-                    className="mt-6 w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
+                    onClick={advanceStep}
+                    className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Start chatting
+                    Continue
+                  </button>
+                </div>
+              )}
+
+              {/* Step 4: API Key Walkthrough */}
+              {onboardingStep === 3 && (
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Connect your AI 🔑</h1>
+                  <p className="text-gray-500 mb-6">Your agent needs an API key to think. Here&apos;s how to get one in 60 seconds.</p>
+
+                  {/* Accordion provider cards */}
+                  <div className="space-y-3 mb-6">
+                    {/* Anthropic */}
+                    <div
+                      className="rounded-xl border border-gray-200 overflow-hidden transition-all"
+                      style={{ borderLeftWidth: '4px', borderLeftColor: '#D97757' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedProvider(expandedProvider === 0 ? null : 0)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-sm font-semibold text-gray-900">Anthropic (Claude)</span>
+                        <svg
+                          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          className={`text-gray-400 transition-transform duration-200 ${expandedProvider === 0 ? 'rotate-180' : ''}`}
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                      <div
+                        className="transition-all duration-300 ease-in-out overflow-hidden"
+                        style={{ maxHeight: expandedProvider === 0 ? '200px' : '0px', opacity: expandedProvider === 0 ? 1 : 0 }}
+                      >
+                        <div className="px-4 pb-3">
+                          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                            <li>Go to console.anthropic.com</li>
+                            <li>Sign up or log in</li>
+                            <li>Click &apos;API Keys&apos; in the sidebar</li>
+                            <li>Click &apos;Create Key&apos; and copy it</li>
+                          </ol>
+                          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2">
+                            Open Anthropic Console <span>→</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* OpenAI */}
+                    <div
+                      className="rounded-xl border border-gray-200 overflow-hidden transition-all"
+                      style={{ borderLeftWidth: '4px', borderLeftColor: '#10A37F' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedProvider(expandedProvider === 1 ? null : 1)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-sm font-semibold text-gray-900">OpenAI (GPT)</span>
+                        <svg
+                          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          className={`text-gray-400 transition-transform duration-200 ${expandedProvider === 1 ? 'rotate-180' : ''}`}
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                      <div
+                        className="transition-all duration-300 ease-in-out overflow-hidden"
+                        style={{ maxHeight: expandedProvider === 1 ? '200px' : '0px', opacity: expandedProvider === 1 ? 1 : 0 }}
+                      >
+                        <div className="px-4 pb-3">
+                          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                            <li>Go to platform.openai.com</li>
+                            <li>Sign up or log in</li>
+                            <li>Go to API Keys in settings</li>
+                            <li>Click &apos;Create new secret key&apos; and copy it</li>
+                          </ol>
+                          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2">
+                            Open OpenAI Dashboard <span>→</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Google */}
+                    <div
+                      className="rounded-xl border border-gray-200 overflow-hidden transition-all"
+                      style={{ borderLeftWidth: '4px', borderLeftColor: '#4285F4' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedProvider(expandedProvider === 2 ? null : 2)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-sm font-semibold text-gray-900">Google (Gemini)</span>
+                        <svg
+                          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          className={`text-gray-400 transition-transform duration-200 ${expandedProvider === 2 ? 'rotate-180' : ''}`}
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                      <div
+                        className="transition-all duration-300 ease-in-out overflow-hidden"
+                        style={{ maxHeight: expandedProvider === 2 ? '200px' : '0px', opacity: expandedProvider === 2 ? 1 : 0 }}
+                      >
+                        <div className="px-4 pb-3">
+                          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                            <li>Go to aistudio.google.com</li>
+                            <li>Sign in with Google</li>
+                            <li>Click &apos;Get API Key&apos;</li>
+                            <li>Create key and copy it</li>
+                          </ol>
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2">
+                            Open Google AI Studio <span>→</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Provider selector pills */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Paste your API key</label>
+                  <div className="flex gap-2 mb-3">
+                    {[
+                      { value: 'anthropic', label: 'Anthropic' },
+                      { value: 'openai', label: 'OpenAI' },
+                      { value: 'google', label: 'Google' },
+                    ].map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => setOnboardingProvider(p.value)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          onboardingProvider === p.value
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* API key input */}
+                  <input
+                    type="password"
+                    value={onboardingApiKey}
+                    onChange={(e) => setOnboardingApiKey(e.target.value)}
+                    placeholder="sk-..."
+                    autoFocus
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all font-mono"
+                  />
+
+                  {/* Buttons */}
+                  <button
+                    type="button"
+                    disabled={!onboardingApiKey.trim()}
+                    onClick={async () => {
+                      if (accessToken && onboardingApiKey.trim()) {
+                        try {
+                          await fetch('/api/keys', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${accessToken}`,
+                            },
+                            body: JSON.stringify({
+                              provider: onboardingProvider,
+                              key: onboardingApiKey.trim(),
+                              name: 'Default',
+                            }),
+                          });
+                          setHasApiKey(true);
+                        } catch {
+                          // best-effort — key can be added later in settings
+                        }
+                      }
+                      advanceStep();
+                    }}
+                    className="mt-5 w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
+                  >
+                    Save key &amp; continue
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => advanceStep()}
+                    className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors font-medium"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+              )}
+
+              {/* Step 5: Connect your channels */}
+              {onboardingStep === 4 && (
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Stay connected 📱</h1>
+                  <p className="text-gray-500 mb-6">Chat with your agent from anywhere. Set up takes 2 minutes.</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    {/* Telegram Card */}
+                    <div
+                      className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3"
+                      style={{ borderLeftWidth: '4px', borderLeftColor: '#229ED9' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="#229ED9">
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                          </svg>
+                          <span className="text-sm font-semibold text-gray-900">Telegram</span>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">Coming Soon</span>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed">Message your agent from Telegram. Get alerts, research updates, and task completions on mobile.</p>
+                      <p className="text-[10px] text-gray-400">We&apos;ll notify you when Telegram integration is ready.</p>
+                      <input
+                        type="text"
+                        value={onboardingTelegram}
+                        onChange={(e) => setOnboardingTelegram(e.target.value)}
+                        placeholder="@username"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                      />
+                    </div>
+
+                    {/* Discord Card */}
+                    <div
+                      className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3"
+                      style={{ borderLeftWidth: '4px', borderLeftColor: '#5865F2' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="#5865F2">
+                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                          </svg>
+                          <span className="text-sm font-semibold text-gray-900">Discord</span>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">Coming Soon</span>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed">Add your agent to any Discord server. Works in DMs and channels.</p>
+                      <p className="text-[10px] text-gray-400">We&apos;ll notify you when Discord integration is ready.</p>
+                      <input
+                        type="text"
+                        value={onboardingDiscord}
+                        onChange={(e) => setOnboardingDiscord(e.target.value)}
+                        placeholder="username#1234"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => finishOnboarding()}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-indigo-200"
+                  >
+                    Finish setup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => finishOnboarding()}
+                    className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors font-medium"
+                  >
+                    Skip
                   </button>
                 </div>
               )}
@@ -657,7 +929,7 @@ export default function AgentPage() {
 
             {/* Progress dots */}
             <div className="flex items-center justify-center gap-2 mt-6">
-              {[0, 1, 2].map((dot) => (
+              {[0, 1, 2, 3, 4].map((dot) => (
                 <div
                   key={dot}
                   className={`h-2 rounded-full transition-all duration-300 ${
