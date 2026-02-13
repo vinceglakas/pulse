@@ -260,7 +260,11 @@ export async function executeTool(
 
 async function execResearch(args: Record<string, any>, ctx: ToolContext): Promise<string> {
   const { deepResearch } = await import('@/lib/deep-research');
-  const result = await deepResearch(args.topic, undefined, args.persona || 'analyst');
+  // Race against 60s timeout to avoid killing the whole function
+  const result = await Promise.race([
+    deepResearch(args.topic, undefined, args.persona || 'analyst'),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Research timed out after 60s — try web_search for faster results')), 60000)),
+  ]);
   
   if (result.sources.length === 0) {
     return JSON.stringify({ error: 'No results found for this topic' });
