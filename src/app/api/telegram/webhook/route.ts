@@ -2,8 +2,8 @@ import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { decrypt } from '@/lib/encryption';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || '';
+const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+const TELEGRAM_WEBHOOK_SECRET = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 const ULTRON_URL = process.env.ULTRON_URL || 'https://ultron-engine.fly.dev';
