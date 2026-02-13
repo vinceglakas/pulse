@@ -564,11 +564,7 @@ export async function POST(req: NextRequest) {
           enqueue(sseEvent({ status: `Error: ${err.message}` }));
         }
 
-        // Send done
-        enqueue(encoder.encode('data: [DONE]\n\n'));
-        controller.close();
-
-        // Save assistant response (non-blocking)
+        // Save assistant response BEFORE closing stream (Vercel kills the function after close)
         if (fullText.trim()) {
           try {
             await (supabase.from('agent_messages' as any).insert({
@@ -577,8 +573,15 @@ export async function POST(req: NextRequest) {
           } catch {}
         }
 
-        // Trigger self-improvement (non-blocking)
-        triggerSelfImprovement(userId, message, fullText, supabase).catch(() => {});
+        // Fire self-improvement (don't await — but start it before close so the fetch is in-flight)
+        const selfImprovementPromise = triggerSelfImprovement(userId, message, fullText, supabase).catch(() => {});
+
+        // Send done and close
+        enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+
+        // Best-effort: wait for self-improvement if runtime is still alive
+        await selfImprovementPromise;
       },
     });
 

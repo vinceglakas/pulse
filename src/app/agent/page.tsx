@@ -148,6 +148,9 @@ export default function AgentPage() {
   /* ── Agent name state ── */
   const [agentName, setAgentName] = useState('Pulsed Agent');
 
+  /* ── Tool status from SSE ── */
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
+
   /* ── Onboarding state ── */
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -332,7 +335,15 @@ export default function AgentPage() {
             if (data === '[DONE]') break;
             try {
               const parsed = JSON.parse(data);
+              if (parsed.tool_start) {
+                setToolStatus(parsed.status || `Running ${parsed.tool_start}…`);
+              } else if (parsed.tool_done) {
+                setToolStatus(null);
+              } else if (parsed.status && !parsed.tool_start) {
+                setToolStatus(parsed.status);
+              }
               if (parsed.text) {
+                setToolStatus(null);
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === agentMsgId
@@ -363,6 +374,7 @@ export default function AgentPage() {
       );
     } finally {
       setIsStreaming(false);
+      setToolStatus(null);
       // NOTE: Do NOT save assistant message here — the chat API route saves it to avoid duplicates
     }
   };
@@ -486,7 +498,15 @@ export default function AgentPage() {
                   if (data === '[DONE]') break;
                   try {
                     const parsed = JSON.parse(data);
+                    if (parsed.tool_start) {
+                      setToolStatus(parsed.status || `Running ${parsed.tool_start}…`);
+                    } else if (parsed.tool_done) {
+                      setToolStatus(null);
+                    } else if (parsed.status && !parsed.tool_start) {
+                      setToolStatus(parsed.status);
+                    }
                     if (parsed.text) {
+                      setToolStatus(null);
                       setMessages((prev) =>
                         prev.map((m) =>
                           m.id === agentMsgId
@@ -518,6 +538,7 @@ export default function AgentPage() {
             );
           } finally {
             setIsStreaming(false);
+            setToolStatus(null);
             // NOTE: Do NOT save assistant message here — the chat API route saves it to avoid duplicates
           }
         })();
@@ -1361,8 +1382,24 @@ export default function AgentPage() {
                                 className="bg-white rounded-2xl rounded-tl-md px-5 py-4 border-l-2 border-indigo-500 shadow-sm"
                                 style={{ fontSize: '15px', lineHeight: '1.7' }}
                               >
-                                {/* Tool use indicator */}
-                                {toolUse && (
+                                {/* Tool status from SSE events */}
+                                {isStreamingThis && toolStatus && (
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full px-2.5 py-1">
+                                      <svg
+                                        width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                        style={{ animation: 'spin-slow 1s linear infinite' }}
+                                      >
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                      </svg>
+                                      <span>{toolStatus}</span>
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Tool use indicator (legacy pattern detection) */}
+                                {toolUse && !toolStatus && (
                                   <div className="flex items-center gap-2 mb-3">
                                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full px-2.5 py-1">
                                       <svg
@@ -1407,16 +1444,30 @@ export default function AgentPage() {
                                 </div>
                               </div>
                             ) : (
-                              /* Streaming placeholder — "Thinking..." */
+                              /* Streaming placeholder — "Thinking..." or tool status */
                               <div className="bg-white rounded-2xl rounded-tl-md px-5 py-4 border-l-2 border-indigo-500 shadow-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium shimmer-text">Thinking</span>
-                                  <span className="flex gap-1">
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
-                                  </span>
-                                </div>
+                                {toolStatus ? (
+                                  <div className="flex items-center gap-2">
+                                    <svg
+                                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                      className="text-indigo-500"
+                                      style={{ animation: 'spin-slow 1s linear infinite' }}
+                                    >
+                                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-500 italic">{toolStatus}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium shimmer-text">Thinking</span>
+                                    <span className="flex gap-1">
+                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
+                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
+                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
 
