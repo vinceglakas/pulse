@@ -170,6 +170,17 @@ export default function Home() {
           color: #818cf8;
           margin-left: 1px;
         }
+        @keyframes scroll-left {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes scroll-right {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+        .marquee-row:hover {
+          animation-play-state: paused;
+        }
       ` }} />
 
       {/* Navigation */}
@@ -634,21 +645,60 @@ export default function Home() {
             <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">From messaging to productivity to CRM — your agent fits into your workflow.</p>
           </div>
 
-          {/* Tool pills */}
-          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto mb-6">
-            {[
-              'Telegram', 'Discord', 'Slack', 'WhatsApp',
-              'Google Sheets', 'Notion', 'Salesforce', 'HubSpot',
-              'Gmail', 'Google Calendar', 'Jira', 'Linear',
-              'GitHub', 'Stripe', 'Zapier', 'Make',
-            ].map((tool) => (
-              <span
-                key={tool}
-                className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-all cursor-default"
-              >
-                {tool}
-              </span>
-            ))}
+          {/* Tool pills — rolling marquee */}
+          <div className="overflow-hidden mb-6">
+            {/* Row 1 — scrolls left */}
+            <div className="flex marquee-row" style={{ animation: 'scroll-left 30s linear infinite', width: 'max-content' }}>
+              {[
+                { name: 'Telegram', color: '#229ED9' },
+                { name: 'Discord', color: '#5865F2' },
+                { name: 'Slack', color: '#4A154B' },
+                { name: 'WhatsApp', color: '#25D366' },
+                { name: 'Google Sheets', color: '#0F9D58' },
+                { name: 'Notion', color: '#000000' },
+                { name: 'Salesforce', color: '#00A1E0' },
+                { name: 'HubSpot', color: '#FF7A59' },
+                { name: 'Telegram', color: '#229ED9' },
+                { name: 'Discord', color: '#5865F2' },
+                { name: 'Slack', color: '#4A154B' },
+                { name: 'WhatsApp', color: '#25D366' },
+                { name: 'Google Sheets', color: '#0F9D58' },
+                { name: 'Notion', color: '#000000' },
+                { name: 'Salesforce', color: '#00A1E0' },
+                { name: 'HubSpot', color: '#FF7A59' },
+              ].map((t, i) => (
+                <span key={i} className="flex items-center gap-2 px-4 py-2 mx-1.5 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full" style={{ background: t.color }}></span>
+                  {t.name}
+                </span>
+              ))}
+            </div>
+            {/* Row 2 — scrolls right */}
+            <div className="flex mt-3 marquee-row" style={{ animation: 'scroll-right 25s linear infinite', width: 'max-content' }}>
+              {[
+                { name: 'Gmail', color: '#EA4335' },
+                { name: 'Google Calendar', color: '#4285F4' },
+                { name: 'Jira', color: '#0052CC' },
+                { name: 'Linear', color: '#5E6AD2' },
+                { name: 'GitHub', color: '#333333' },
+                { name: 'Stripe', color: '#635BFF' },
+                { name: 'Zapier', color: '#FF4F00' },
+                { name: 'Make', color: '#6D00CC' },
+                { name: 'Gmail', color: '#EA4335' },
+                { name: 'Google Calendar', color: '#4285F4' },
+                { name: 'Jira', color: '#0052CC' },
+                { name: 'Linear', color: '#5E6AD2' },
+                { name: 'GitHub', color: '#333333' },
+                { name: 'Stripe', color: '#635BFF' },
+                { name: 'Zapier', color: '#FF4F00' },
+                { name: 'Make', color: '#6D00CC' },
+              ].map((t, i) => (
+                <span key={i} className="flex items-center gap-2 px-4 py-2 mx-1.5 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full" style={{ background: t.color }}></span>
+                  {t.name}
+                </span>
+              ))}
+            </div>
           </div>
           <p className="text-center text-sm text-gray-400 mb-14">And thousands more via API</p>
 
@@ -680,7 +730,12 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#4A154B12' }}>
-                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#4A154B"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/></svg>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4">
+                        <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                        <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                        <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.27 0a2.528 2.528 0 0 1-2.522 2.521 2.527 2.527 0 0 1-2.521-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.522 2.522v6.312z" fill="#2EB67D"/>
+                        <path d="M15.165 18.956a2.528 2.528 0 0 1 2.522 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.521-2.522v-2.522h2.521zm0-1.27a2.527 2.527 0 0 1-2.521-2.522 2.528 2.528 0 0 1 2.521-2.522h6.313A2.528 2.528 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.521h-6.313z" fill="#ECB22E"/>
+                      </svg>
                     </div>
                     <span className="text-sm font-medium text-gray-700">Slack</span>
                   </div>
@@ -694,22 +749,42 @@ export default function Home() {
               <h3 className="text-lg font-bold text-gray-900 mb-2">Productivity</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-5">Your agent reads your docs, updates your sheets, and manages your tasks.</p>
               <div className="space-y-3">
-                {[
-                  { name: 'Google Sheets', color: '#0F9D58' },
-                  { name: 'Notion', color: '#000000' },
-                  { name: 'Google Calendar', color: '#4285F4' },
-                  { name: 'Jira', color: '#0052CC' },
-                ].map((tool) => (
-                  <div key={tool.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${tool.color}12` }}>
-                        <div className="w-4 h-4 rounded-sm" style={{ background: tool.color, opacity: 0.8 }}></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{tool.name}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#0F9D5812' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#0F9D58"><path d="M14.727 6.727H14V0H4.91c-.905 0-1.637.732-1.637 1.636v20.728c0 .904.732 1.636 1.636 1.636h14.182c.904 0 1.636-.732 1.636-1.636V6.727h-6.001zm-3.909 13.636H7.09v-1.636h3.727v1.636zm0-2.727H7.09v-1.636h3.727v1.636zm0-2.727H7.09v-1.636h3.727v1.636zm5.455 5.454h-3.728v-1.636h3.728v1.636zm0-2.727h-3.728v-1.636h3.728v1.636zm0-2.727h-3.728v-1.636h3.728v1.636zM14.727 6.727V0l6.546 6.727h-6.546z"/></svg>
                     </div>
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Via API</span>
+                    <span className="text-sm font-medium text-gray-700">Google Sheets</span>
                   </div>
-                ))}
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Via API</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#00000012' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#000000"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.183 2.15c-.42-.326-.98-.7-2.055-.607L3.01 2.521c-.466.046-.56.28-.374.466l1.823 1.221zm.793 3.358v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.587c0-.606-.233-.933-.748-.886l-15.177.887c-.56.046-.747.326-.747.978zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952l1.449.327s0 .84-1.168.84l-3.217.187c-.093-.187 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.027.748-1.073l3.45-.233 4.762 7.28v-6.44l-1.215-.14c-.093-.514.28-.886.747-.933l3.275-.187z"/></svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Notion</span>
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Via API</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#4285F412' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#4285F4"><path d="M18.316 5.684H5.684v12.632h12.632V5.684zm-1.579 1.579v2.105H7.263V7.263h9.474zm-9.474 3.684h3.158v3.158H7.263v-3.158zm4.737 0h4.737v3.158h-4.737v-3.158zm-4.737 4.737h3.158v1.579H7.263v-1.579zm4.737 0h4.737v1.579h-4.737v-1.579z"/><path d="M19.895 3.316h-2.369V1.737h-1.579v1.579H8.053V1.737H6.474v1.579H4.105A1.59 1.59 0 0 0 2.526 4.895v14.21A1.59 1.59 0 0 0 4.105 20.684h15.79a1.59 1.59 0 0 0 1.579-1.579V4.895a1.59 1.59 0 0 0-1.579-1.579zm0 15.789H4.105V8.053h15.79v11.052z"/></svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Google Calendar</span>
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Via API</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#0052CC12' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#0052CC"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23 .262H11.443a5.215 5.215 0 0 0 5.214 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.749V1.263A1.001 1.001 0 0 0 23 .262z"/></svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Jira</span>
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Via API</span>
+                </div>
               </div>
             </div>
           </div>
