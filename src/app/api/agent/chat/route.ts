@@ -23,6 +23,12 @@ const SSE_HEADERS = {
   'X-Accel-Buffering': 'no',
 };
 
+const encoder = new TextEncoder();
+
+function sseEvent(data: any): Uint8Array {
+  return encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
+}
+
 // ─── System Prompt Builder ───
 
 function buildSystemPrompt(profile: any, memories: any[], skills: any[]): string {
@@ -87,12 +93,10 @@ Make it count:
 - When building artifacts, design them thoughtfully — smart schemas, useful defaults
 - You represent Pulsed — be the best AI experience they've ever had`;
 
-  // Inject user's custom soul prompt if they have one
   if (soulPrompt) {
     prompt += `\n\n## Custom Personality\n${soulPrompt}`;
   }
 
-  // Inject memories
   if (memories.length > 0) {
     prompt += '\n\n## What You Remember About This User';
     for (const m of memories) {
@@ -100,7 +104,6 @@ Make it count:
     }
   }
 
-  // Inject skills
   if (skills.length > 0) {
     prompt += '\n\n## Learned Patterns';
     for (const s of skills) {
@@ -111,14 +114,29 @@ Make it count:
   return prompt;
 }
 
-// ─── LLM Providers ───
+// ─── Friendly tool name mapping ───
 
-async function callAnthropic(
+function toolDisplayName(name: string): string {
+  const map: Record<string, string> = {
+    pulsed_research: 'Researching…',
+    web_search: 'Searching the web…',
+    create_artifact: 'Building artifact…',
+    memory_save: 'Saving to memory…',
+    memory_recall: 'Recalling memories…',
+    schedule_task: 'Scheduling task…',
+  };
+  return map[name] || `Running ${name}…`;
+}
+
+// ─── Streaming Anthropic ───
+
+async function streamAnthropicRound(
   apiKey: string,
   systemPrompt: string,
   messages: Array<{ role: string; content: any }>,
   tools: any[],
-): Promise<{ content: any[]; stop_reason: string }> {
+  enqueue: (data: Uint8Array) => void,
+): Promise<{ content: any[]; stop_reason: string; fullText: string }> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -129,6 +147,7 @@ async function callAnthropic(
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
+      stream: true,
       system: systemPrompt,
       messages,
       tools,
@@ -140,16 +159,116 @@ async function callAnthropic(
     throw new Error(`Anthropic API error (${res.status}): ${err.slice(0, 300)}`);
   }
 
-  const data = await res.json();
-  return { content: data.content, stop_reason: data.stop_reason };
+  const content: any[] = [];
+  let stopReason = 'end_turn';
+  let fullText = '';
+
+  // Current block tracking
+  let currentBlockIndex = -1;
+  let currentBlockType = '';
+  let currentText = '';
+  let currentToolId = '';
+  let currentToolName = '';
+  let currentToolInputJson = '';
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+
+      let event: any;
+      try {
+        event = JSON.parse(jsonStr);
+      } catch {
+        continue;
+      }
+
+      switch (event.type) {
+        case 'content_block_start': {
+          currentBlockIndex = event.index;
+          const block = event.content_block;
+          if (block.type === 'text') {
+            currentBlockType = 'text';
+            currentText = block.text || '';
+            if (currentText) {
+              enqueue(sseEvent({ text: currentText }));
+              fullText += currentText;
+            }
+          } else if (block.type === 'tool_use') {
+            currentBlockType = 'tool_use';
+            currentToolId = block.id;
+            currentToolName = block.name;
+            currentToolInputJson = '';
+            enqueue(sseEvent({ tool_start: block.name, status: toolDisplayName(block.name) }));
+          }
+          break;
+        }
+
+        case 'content_block_delta': {
+          if (event.delta?.type === 'text_delta') {
+            const chunk = event.delta.text;
+            enqueue(sseEvent({ text: chunk }));
+            currentText += chunk;
+            fullText += chunk;
+          } else if (event.delta?.type === 'input_json_delta') {
+            currentToolInputJson += event.delta.partial_json;
+          }
+          break;
+        }
+
+        case 'content_block_stop': {
+          if (currentBlockType === 'text') {
+            content.push({ type: 'text', text: currentText });
+          } else if (currentBlockType === 'tool_use') {
+            let input = {};
+            try {
+              input = JSON.parse(currentToolInputJson);
+            } catch {}
+            content.push({
+              type: 'tool_use',
+              id: currentToolId,
+              name: currentToolName,
+              input,
+            });
+          }
+          currentBlockType = '';
+          break;
+        }
+
+        case 'message_delta': {
+          if (event.delta?.stop_reason) {
+            stopReason = event.delta.stop_reason;
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  return { content, stop_reason: stopReason, fullText };
 }
 
-async function callOpenAI(
+// ─── Streaming OpenAI ───
+
+async function streamOpenAIRound(
   apiKey: string,
   systemPrompt: string,
   messages: Array<{ role: string; content: any }>,
   tools: any[],
-): Promise<{ content: any[]; stop_reason: string }> {
+  enqueue: (data: Uint8Array) => void,
+): Promise<{ content: any[]; stop_reason: string; fullText: string }> {
   const oaiMessages = [
     { role: 'system', content: systemPrompt },
     ...messages,
@@ -159,13 +278,14 @@ async function callOpenAI(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: 'gpt-4.1',
       messages: oaiMessages,
       tools,
       max_tokens: 8192,
+      stream: true,
     }),
   });
 
@@ -174,29 +294,85 @@ async function callOpenAI(
     throw new Error(`OpenAI API error (${res.status}): ${err.slice(0, 300)}`);
   }
 
-  const data = await res.json();
-  const choice = data.choices?.[0];
+  let fullText = '';
+  let finishReason = '';
+  // Track tool calls by index
+  const toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+  // Track which tool names we've already announced
+  const announcedTools = new Set<number>();
 
-  if (!choice) throw new Error('No response from OpenAI');
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
 
-  // Convert OpenAI format to unified format
-  const content: any[] = [];
-  if (choice.message.content) {
-    content.push({ type: 'text', text: choice.message.content });
-  }
-  if (choice.message.tool_calls) {
-    for (const tc of choice.message.tool_calls) {
-      content.push({
-        type: 'tool_use',
-        id: tc.id,
-        name: tc.function.name,
-        input: JSON.parse(tc.function.arguments || '{}'),
-      });
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+
+      let chunk: any;
+      try {
+        chunk = JSON.parse(jsonStr);
+      } catch {
+        continue;
+      }
+
+      const delta = chunk.choices?.[0]?.delta;
+      const fr = chunk.choices?.[0]?.finish_reason;
+      if (fr) finishReason = fr;
+
+      if (delta?.content) {
+        enqueue(sseEvent({ text: delta.content }));
+        fullText += delta.content;
+      }
+
+      if (delta?.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const idx = tc.index;
+          if (!toolCallsMap[idx]) {
+            toolCallsMap[idx] = { id: tc.id || '', name: tc.function?.name || '', arguments: '' };
+          }
+          if (tc.id) toolCallsMap[idx].id = tc.id;
+          if (tc.function?.name) {
+            toolCallsMap[idx].name = tc.function.name;
+          }
+          if (tc.function?.arguments) {
+            toolCallsMap[idx].arguments += tc.function.arguments;
+          }
+          // Announce tool once we know its name
+          if (toolCallsMap[idx].name && !announcedTools.has(idx)) {
+            announcedTools.add(idx);
+            enqueue(sseEvent({ tool_start: toolCallsMap[idx].name, status: toolDisplayName(toolCallsMap[idx].name) }));
+          }
+        }
+      }
     }
   }
 
-  const stopReason = choice.finish_reason === 'tool_calls' ? 'tool_use' : 'end_turn';
-  return { content, stop_reason: stopReason };
+  // Build unified content
+  const content: any[] = [];
+  if (fullText) {
+    content.push({ type: 'text', text: fullText });
+  }
+  for (const idx of Object.keys(toolCallsMap).map(Number).sort()) {
+    const tc = toolCallsMap[idx];
+    let input = {};
+    try {
+      input = JSON.parse(tc.arguments || '{}');
+    } catch {}
+    content.push({ type: 'tool_use', id: tc.id, name: tc.name, input });
+  }
+
+  const stopReason = finishReason === 'tool_calls' ? 'tool_use' : 'end_turn';
+  return { content, stop_reason: stopReason, fullText };
 }
 
 // ─── Main Route ───
@@ -292,116 +468,115 @@ export async function POST(req: NextRequest) {
     // Tool context
     const toolCtx: ToolContext = { userId, userOpenAIKey: provider === 'openai' ? apiKey : undefined };
 
-    // ─── Agent Loop (tool calling) ───
     const isAnthropic = provider === 'anthropic';
     const tools = isAnthropic ? ANTHROPIC_TOOLS : TOOL_SCHEMAS;
-    let finalText = '';
-    let toolLog: string[] = [];
     const MAX_TOOL_ROUNDS = 8;
 
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      let response;
-      try {
-        response = isAnthropic
-          ? await callAnthropic(apiKey, systemPrompt, llmMessages, tools as any)
-          : await callOpenAI(apiKey, systemPrompt, llmMessages, tools as any);
-      } catch (err: any) {
-        finalText = `I encountered an error: ${err.message}. Please try again.`;
-        break;
-      }
-
-      // Extract text and tool calls from response
-      let textParts: string[] = [];
-      let toolCalls: Array<{ id: string; name: string; input: any }> = [];
-
-      for (const block of response.content) {
-        if (block.type === 'text' && block.text) {
-          textParts.push(block.text);
-        } else if (block.type === 'tool_use') {
-          toolCalls.push({ id: block.id, name: block.name, input: block.input });
-        }
-      }
-
-      if (textParts.length > 0) {
-        finalText += textParts.join('');
-      }
-
-      // If no tool calls, we're done
-      if (toolCalls.length === 0 || response.stop_reason !== 'tool_use') {
-        break;
-      }
-
-      // Execute tool calls
-      if (isAnthropic) {
-        // For Anthropic: add assistant message with content, then tool results
-        llmMessages.push({ role: 'assistant', content: response.content });
-
-        const toolResults: any[] = [];
-        for (const tc of toolCalls) {
-          toolLog.push(`Used tool: ${tc.name}`);
-          const result = await executeTool(tc.name, tc.input, toolCtx);
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: tc.id,
-            content: result,
-          });
-        }
-        llmMessages.push({ role: 'user', content: toolResults });
-      } else {
-        // For OpenAI: add assistant message with tool_calls, then tool results
-        const oaiToolCalls = toolCalls.map(tc => ({
-          id: tc.id,
-          type: 'function' as const,
-          function: { name: tc.name, arguments: JSON.stringify(tc.input) },
-        }));
-        llmMessages.push({
-          role: 'assistant',
-          content: textParts.join('') || null,
-          // @ts-ignore - OpenAI-specific field
-          tool_calls: oaiToolCalls,
-        });
-
-        for (const tc of toolCalls) {
-          toolLog.push(`Used tool: ${tc.name}`);
-          const result = await executeTool(tc.name, tc.input, toolCtx);
-          llmMessages.push({
-            role: 'tool',
-            content: result,
-            // @ts-ignore - OpenAI-specific field
-            tool_call_id: tc.id,
-          });
-        }
-      }
-    }
-
-    // Save assistant response to history
-    if (finalText.trim()) {
-      try {
-        await (supabase.from('agent_messages' as any).insert({
-          user_id: userId, session_key: sessionKey, role: 'assistant', content: finalText.trim(),
-        } as any) as any);
-      } catch {}
-    }
-
-    // Trigger async self-improvement (non-blocking)
-    triggerSelfImprovement(userId, message, finalText, supabase).catch(() => {});
-
-    // Stream response as SSE (for frontend compatibility)
-    const encoder = new TextEncoder();
+    // ─── TRUE Streaming Agent Loop ───
     const stream = new ReadableStream({
-      start(controller) {
-        // Send tool log as status events
-        for (const log of toolLog) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: log })}\n\n`));
+      async start(controller) {
+        const enqueue = (data: Uint8Array) => {
+          try { controller.enqueue(data); } catch {}
+        };
+
+        let fullText = '';
+
+        try {
+          for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+            let response;
+            try {
+              response = isAnthropic
+                ? await streamAnthropicRound(apiKey, systemPrompt, llmMessages, tools as any, enqueue)
+                : await streamOpenAIRound(apiKey, systemPrompt, llmMessages, tools as any, enqueue);
+            } catch (err: any) {
+              const errMsg = `I encountered an error: ${err.message}. Please try again.`;
+              enqueue(sseEvent({ text: errMsg }));
+              fullText += errMsg;
+              break;
+            }
+
+            fullText += response.fullText;
+
+            // Extract tool calls
+            const toolCalls = response.content.filter((b: any) => b.type === 'tool_use');
+
+            // If no tool calls, we're done
+            if (toolCalls.length === 0 || response.stop_reason !== 'tool_use') {
+              break;
+            }
+
+            // Execute tool calls and build messages for next round
+            if (isAnthropic) {
+              llmMessages.push({ role: 'assistant', content: response.content });
+              const toolResults: any[] = [];
+              for (const tc of toolCalls) {
+                let result: string;
+                try {
+                  result = await executeTool(tc.name, tc.input, toolCtx);
+                } catch (err: any) {
+                  result = `Error: ${err.message}`;
+                  enqueue(sseEvent({ status: `Error running ${tc.name}: ${err.message}` }));
+                }
+                enqueue(sseEvent({ tool_done: tc.name }));
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: tc.id,
+                  content: result,
+                });
+              }
+              llmMessages.push({ role: 'user', content: toolResults });
+            } else {
+              // OpenAI format
+              const textContent = response.content.find((b: any) => b.type === 'text');
+              const oaiToolCalls = toolCalls.map((tc: any) => ({
+                id: tc.id,
+                type: 'function' as const,
+                function: { name: tc.name, arguments: JSON.stringify(tc.input) },
+              }));
+              llmMessages.push({
+                role: 'assistant',
+                content: textContent?.text || null,
+                // @ts-ignore
+                tool_calls: oaiToolCalls,
+              });
+
+              for (const tc of toolCalls) {
+                let result: string;
+                try {
+                  result = await executeTool(tc.name, tc.input, toolCtx);
+                } catch (err: any) {
+                  result = `Error: ${err.message}`;
+                  enqueue(sseEvent({ status: `Error running ${tc.name}: ${err.message}` }));
+                }
+                enqueue(sseEvent({ tool_done: tc.name }));
+                llmMessages.push({
+                  role: 'tool',
+                  content: result,
+                  // @ts-ignore
+                  tool_call_id: tc.id,
+                });
+              }
+            }
+          }
+        } catch (err: any) {
+          enqueue(sseEvent({ status: `Error: ${err.message}` }));
         }
-        // Send text in chunks for streaming feel
-        const chunkSize = 20;
-        for (let i = 0; i < finalText.length; i += chunkSize) {
-          const chunk = finalText.slice(i, i + chunkSize);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
-        }
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+
+        // Send done
+        enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
+
+        // Save assistant response (non-blocking)
+        if (fullText.trim()) {
+          try {
+            await (supabase.from('agent_messages' as any).insert({
+              user_id: userId, session_key: sessionKey, role: 'assistant', content: fullText.trim(),
+            } as any) as any);
+          } catch {}
+        }
+
+        // Trigger self-improvement (non-blocking)
+        triggerSelfImprovement(userId, message, fullText, supabase).catch(() => {});
       },
     });
 
@@ -423,7 +598,6 @@ async function triggerSelfImprovement(
   agentResponse: string,
   supabase: ReturnType<typeof createClient>,
 ) {
-  // Use platform OpenAI key for cheap extraction
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !agentResponse) return;
 
@@ -476,7 +650,6 @@ Return ONLY valid JSON array, no markdown.`,
 
     if (!Array.isArray(learnings) || learnings.length === 0) return;
 
-    // Generate embeddings and save
     for (const learning of learnings.slice(0, 5)) {
       if (!learning.content) continue;
 
@@ -507,7 +680,5 @@ Return ONLY valid JSON array, no markdown.`,
         await (supabase.from('user_memory' as any).insert(insertData as any) as any);
       } catch {}
     }
-  } catch {
-    // Self-improvement is best-effort
-  }
+  } catch {}
 }
