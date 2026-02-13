@@ -187,7 +187,8 @@ export default function AgentPage() {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
           const data = await res.json();
-          setHasApiKey(Array.isArray(data) && data.length > 0);
+          const keys = data?.keys || data;
+          setHasApiKey(Array.isArray(keys) && keys.length > 0);
         } catch {
           setHasApiKey(false);
         }
@@ -374,11 +375,13 @@ export default function AgentPage() {
   };
 
   /* ── Onboarding helpers ── */
+  // Only show onboarding if user hasn't completed it before (no name on profile)
   const showOnboarding =
     historyLoaded &&
     messages.length === 0 &&
     !onboardingComplete &&
-    !isStreaming;
+    !isStreaming &&
+    !userName; // If they have a name, they already onboarded
 
   const advanceStep = () => {
     setOnboardingTransition(true);
