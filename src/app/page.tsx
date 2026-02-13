@@ -44,7 +44,7 @@ export default function Home() {
       ),
     },
     {
-      command: 'Monitor my competitors and alert me when they launch something new',
+      command: 'Set up a workflow that monitors competitors and alerts me when they launch something new',
       agentHtml: (
         <div className="space-y-1.5">
           <p className="text-gray-800 font-medium">🔔 Monitoring set up! I&apos;m now watching:</p>
@@ -58,7 +58,7 @@ export default function Home() {
       ),
     },
     {
-      command: 'Create a Clay-style enrichment workflow for this list of 500 leads',
+      command: 'Automate lead enrichment for this list of 500 contacts — emails, company data, tech stack, everything',
       agentHtml: (
         <div className="space-y-1.5">
           <p className="text-gray-800 font-medium">Enrichment complete! Processed <strong>500 leads</strong>:</p>
@@ -276,7 +276,7 @@ export default function Home() {
           {/* Use case selector */}
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {['Build a CRM', 'Research leads', 'Monitor competitors', 'Enrich data', 'Analyze sentiment'].map((label, i) => (
+              {['CRM', 'Research', 'Workflows', 'Automation', 'Analytics'].map((label, i) => (
                 <button
                   key={label}
                   onClick={() => handleUseCaseClick(i)}
@@ -625,170 +625,91 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Integrations */}
-      <section id="integrations" className="py-20 md:py-28 bg-white">
+      {/* Connects to Everything */}
+      <section id="connects" className="py-20 md:py-28 bg-white border-t border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">INTEGRATIONS</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Your agent works where you work</h2>
-            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">Chat with your agent from any platform. Get alerts, updates, and reports delivered wherever you are.</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">CONNECTS TO YOUR WORLD</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Your agent works with the tools you already use</h2>
+            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">From messaging to productivity to CRM — your agent fits into your workflow.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          {/* Tool pills */}
+          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto mb-6">
             {[
-              { name: 'Web Chat', desc: 'Full-featured chat interface at pulsed.ai/agent. Rich markdown, code blocks, file attachments.', status: 'Live', color: '#6366f1',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#6366f1"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/><path d="M7 9h10v2H7zm0-3h10v2H7z"/></svg>,
-                preview: (
-                  <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-2.5 space-y-1.5">
-                    <div className="flex justify-end">
-                      <div className="px-2 py-1 rounded-lg rounded-br-sm text-white text-[9px]" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>What&apos;s my pipeline this week?</div>
-                    </div>
-                    <div className="flex items-start gap-1.5">
-                      <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
-                        <span className="text-white text-[5px]">⚡</span>
-                      </div>
-                      <div className="bg-white px-2 py-1 rounded-lg rounded-bl-sm text-[9px] text-gray-600 border border-gray-100">3 deals closing: $47k total value</div>
-                    </div>
-                  </div>
-                ),
-              },
-              { name: 'Telegram', desc: 'Message your agent from Telegram. Get proactive alerts, research updates, and task completions on mobile.', status: 'Live', color: '#229ED9',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#229ED9"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>,
-                preview: (
-                  <div className="mt-4 rounded-lg border border-gray-100 p-2.5 space-y-1.5" style={{ background: '#e8ddd3' }}>
-                    <div className="flex justify-start">
-                      <div className="bg-white px-2 py-1 rounded-lg rounded-bl-sm text-[9px] text-gray-700 shadow-sm">🔔 New mention of your brand on HN</div>
-                    </div>
-                    <div className="flex justify-end">
-                      <div className="px-2 py-1 rounded-lg rounded-br-sm text-[9px] text-gray-800 shadow-sm" style={{ background: '#dcf8c6' }}>Show me the thread</div>
-                    </div>
-                  </div>
-                ),
-              },
-              { name: 'Discord', desc: 'Add your agent to any Discord server. Works in DMs and channels. Perfect for team workflows.', status: 'Live', color: '#5865F2',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>,
-                preview: (
-                  <div className="mt-4 rounded-lg border border-gray-100 p-2.5 space-y-1.5" style={{ background: '#36393f' }}>
-                    <div className="flex items-start gap-1.5">
-                      <div className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
-                        <span className="text-white text-[5px]">⚡</span>
-                      </div>
-                      <div>
-                        <p className="text-[8px]"><span className="text-indigo-400 font-semibold">Pulsed AI</span> <span className="text-gray-500">Today at 2:34 PM</span></p>
-                        <p className="text-[9px] text-gray-300">Weekly report ready 📊 Revenue up 12%</p>
-                      </div>
-                    </div>
-                  </div>
-                ),
-              },
-              { name: 'Slack', desc: 'Install your agent in your Slack workspace. Mention it in any channel or DM for instant help.', status: 'Coming soon', color: '#4A154B',
-                svg: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#4A154B"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>,
-                preview: (
-                  <div className="mt-4 rounded-lg border border-gray-100 p-2.5 space-y-1.5 bg-white">
-                    <div className="flex items-start gap-1.5">
-                      <div className="w-4 h-4 rounded-sm bg-purple-900 flex items-center justify-center shrink-0">
-                        <span className="text-white text-[5px]">⚡</span>
-                      </div>
-                      <div>
-                        <p className="text-[8px]"><span className="text-gray-900 font-bold">Pulsed AI</span> <span className="text-gray-400">2:34 PM</span></p>
-                        <p className="text-[9px] text-gray-600">Heads up: 3 tasks due today 📋</p>
-                      </div>
-                    </div>
-                  </div>
-                ),
-              },
-            ].map((integration) => (
-              <div key={integration.name} className="rounded-2xl border border-gray-200 p-6 bg-white hover:border-gray-300 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${integration.color}12` }}>
-                      {integration.svg}
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900">{integration.name}</h3>
-                  </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    integration.status === 'Live'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>{integration.status}</span>
-                </div>
-                <p className="text-sm text-gray-500 leading-relaxed">{integration.desc}</p>
-                {integration.preview}
-              </div>
+              'Telegram', 'Discord', 'Slack', 'WhatsApp',
+              'Google Sheets', 'Notion', 'Salesforce', 'HubSpot',
+              'Gmail', 'Google Calendar', 'Jira', 'Linear',
+              'GitHub', 'Stripe', 'Zapier', 'Make',
+            ].map((tool) => (
+              <span
+                key={tool}
+                className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-indigo-300 hover:text-indigo-600 transition-all cursor-default"
+              >
+                {tool}
+              </span>
             ))}
           </div>
-        </div>
-      </section>
+          <p className="text-center text-sm text-gray-400 mb-14">And thousands more via API</p>
 
-      {/* Research Engine */}
-      <section className="py-20 md:py-28 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.2em] text-gray-400 font-medium mb-4">BUILT-IN RESEARCH ENGINE</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">Every agent comes with a superpower</h2>
-            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto">The Pulsed research engine scans thousands of sources across the internet in real time. Your agent uses it to answer any question with current, verified data.</p>
-          </div>
-          <div className="max-w-3xl mx-auto rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 flex items-center gap-2 border-b border-gray-100">
-              <div className="w-3 h-3 rounded-full bg-red-400"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-              <div className="w-3 h-3 rounded-full bg-green-400"></div>
-              <div className="flex-1 mx-8">
-                <div className="bg-white rounded-md border border-gray-200 px-3 py-1 text-xs text-gray-400 text-center max-w-xs mx-auto">pulsed.ai/brief/ai-agents-enterprise</div>
+          {/* Two-column cards */}
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Messaging card */}
+            <div className="rounded-2xl border border-gray-200 p-6 bg-white hover:shadow-md transition-all duration-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Messaging</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-5">Your agent lives where you chat. Get alerts, ask questions, and run tasks from any messaging platform.</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#229ED912' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#229ED9"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Telegram</span>
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">Live</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#5865F212' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.12-.094.246-.194.373-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Discord</span>
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">Live</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#4A154B12' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="#4A154B"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/></svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Slack</span>
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Coming soon</span>
+                </div>
               </div>
             </div>
-            <div className="bg-white p-6 md:p-10">
-              <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-                <h3 className="text-xl font-bold text-gray-900">Brief: AI Agents in Enterprise SaaS</h3>
-                <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full whitespace-nowrap">247 sources analyzed</span>
-              </div>
-              <p className="text-sm text-gray-400 mb-5">Generated in 28 seconds</p>
-              <hr className="border-gray-100 mb-6" />
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-2">EXECUTIVE SUMMARY</h4>
-                <p className="text-sm text-gray-500 leading-relaxed">AI agents are rapidly moving from experimental to production-ready in enterprise SaaS. Adoption is accelerating across customer support, sales development, and internal operations, with a projected 340% increase in enterprise spending by 2027.</p>
-              </div>
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">KEY THEMES</h4>
-                <ul className="space-y-2">
-                  {[
-                    'Autonomous agents replacing traditional SaaS workflows in support and SDR roles',
-                    'Enterprise buyers demanding SOC 2 compliance and audit trails for AI agents',
-                    'Multi-agent orchestration emerging as the next platform paradigm',
-                    'Open-source agent frameworks gaining enterprise traction',
-                  ].map((t, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {/* Blurred teaser */}
-              <div className="relative">
-                <div className="filter blur-[6px] select-none pointer-events-none">
-                  <div className="mb-6">
-                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">SENTIMENT</h4>
-                    <div className="flex rounded-full overflow-hidden h-2.5">
-                      <div className="bg-indigo-600" style={{ width: '62%' }}></div>
-                      <div className="bg-violet-400" style={{ width: '25%' }}></div>
-                      <div className="bg-gray-300" style={{ width: '13%' }}></div>
+
+            {/* Productivity card */}
+            <div className="rounded-2xl border border-gray-200 p-6 bg-white hover:shadow-md transition-all duration-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Productivity</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-5">Your agent reads your docs, updates your sheets, and manages your tasks.</p>
+              <div className="space-y-3">
+                {[
+                  { name: 'Google Sheets', color: '#0F9D58' },
+                  { name: 'Notion', color: '#000000' },
+                  { name: 'Google Calendar', color: '#4285F4' },
+                  { name: 'Jira', color: '#0052CC' },
+                ].map((tool) => (
+                  <div key={tool.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${tool.color}12` }}>
+                        <div className="w-4 h-4 rounded-sm" style={{ background: tool.color, opacity: 0.8 }}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">{tool.name}</span>
                     </div>
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Via API</span>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">RECOMMENDED ACTIONS</h4>
-                    <ul className="space-y-2">
-                      <li className="text-sm text-gray-600">Evaluate agent frameworks for internal automation</li>
-                      <li className="text-sm text-gray-600">Monitor certification progress among top vendors</li>
-                      <li className="text-sm text-gray-600">Brief leadership on orchestration trend by Q2</li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-                  <a href="/signup" className="inline-flex items-center gap-2 bg-gray-900 text-white font-semibold rounded-lg px-6 py-3 text-sm hover:bg-gray-800 transition-colors shadow-lg">
-                    Sign up to see full brief
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                  </a>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -893,6 +814,31 @@ export default function Home() {
             ))}
           </div>
           <p className="text-center mt-8 text-sm text-gray-400">All plans include a free tier with 3 research briefs per month. No credit card required to start.</p>
+
+          {/* Research Engine mention */}
+          <div className="mt-12 max-w-xl mx-auto">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                  <span className="text-white text-[8px]">⚡</span>
+                </div>
+                <p className="text-sm font-semibold text-gray-900">Every plan includes the Pulsed Research Engine</p>
+              </div>
+              <p className="text-xs text-gray-400">Scans thousands of sources in real time. Delivers executive briefs, competitive intel, and verified data in seconds.</p>
+              {/* Mini brief preview */}
+              <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3 max-w-xs mx-auto">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[9px] font-bold text-gray-700">Brief: AI Agents in Enterprise</span>
+                  <span className="text-[7px] font-semibold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full">247 sources</span>
+                </div>
+                <div className="filter blur-[3px] select-none pointer-events-none space-y-1">
+                  <div className="h-1.5 bg-gray-200 rounded-full w-full"></div>
+                  <div className="h-1.5 bg-gray-200 rounded-full w-4/5"></div>
+                  <div className="h-1.5 bg-gray-200 rounded-full w-3/5"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
