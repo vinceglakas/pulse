@@ -2,12 +2,11 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { decrypt } from '@/lib/encryption';
 
-export const maxDuration = 60;
+export const maxDuration = 120; // Increased — research tool can take time
 
 const ULTRON_URL = process.env.ULTRON_URL || 'https://ultron-engine.fly.dev';
 const ULTRON_API_SECRET = process.env.ULTRON_API_SECRET || '';
 
-// Service-role Supabase client (lazy init)
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
   if (!_supabase) {
@@ -26,7 +25,7 @@ const SSE_HEADERS = {
   'X-Accel-Buffering': 'no',
 };
 
-async function ultronFetch(path: string, body: object, stream = false): Promise<Response> {
+async function ultronFetch(path: string, body: object): Promise<Response> {
   return fetch(`${ULTRON_URL}${path}`, {
     method: 'POST',
     headers: {
@@ -37,8 +36,8 @@ async function ultronFetch(path: string, body: object, stream = false): Promise<
   });
 }
 
-async function spawnAgent(userId: string, apiKey: string, provider: string) {
-  const res = await ultronFetch('/api/agent/spawn', { userId, apiKey, provider });
+async function spawnAgent(userId: string, apiKey: string, provider: string, userContext?: object) {
+  const res = await ultronFetch('/api/agent/spawn', { userId, apiKey, provider, userContext });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Spawn failed (${res.status}): ${text.slice(0, 300)}`);
@@ -52,12 +51,12 @@ async function chatWithRetry(
   sessionKey: string,
   apiKey: string,
   provider: string,
+  userContext?: object,
 ): Promise<Response> {
   let res = await ultronFetch('/api/agent/chat', { userId, message, sessionKey });
 
-  // If agent not running, respawn and retry once
   if (res.status === 404) {
-    await spawnAgent(userId, apiKey, provider);
+    await spawnAgent(userId, apiKey, provider, userContext);
     await new Promise((r) => setTimeout(r, 2000));
     res = await ultronFetch('/api/agent/chat', { userId, message, sessionKey });
   }
@@ -100,6 +99,21 @@ export async function POST(req: NextRequest) {
     const userId = user.id;
     const supabase = getSupabase();
 
+    // Get user profile for context
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, role, industry, current_focus, plan, brain_model, worker_model')
+      .eq('id', userId)
+      .single();
+
+    const userContext = {
+      name: profile?.full_name || user.user_metadata?.full_name || 'there',
+      role: profile?.role || '',
+      industry: profile?.industry || '',
+      currentFocus: profile?.current_focus || '',
+      plan: profile?.plan || 'free',
+    };
+
     // Get API key(s)
     const { data: allKeysRaw } = await supabase
       .from('api_keys' as any)
@@ -113,7 +127,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Pick key
     let keyRow = allKeys[0];
     if (preferredProvider) {
       const match = allKeys.find((k: any) => k.provider === preferredProvider);
@@ -131,11 +144,19 @@ export async function POST(req: NextRequest) {
 
     const provider = keyRow.provider;
 
-    // Ensure agent is spawned (idempotent)
-    await spawnAgent(userId, apiKey, provider);
+    // Save user message to history
+    await supabase.from('agent_messages').insert({
+      user_id: userId,
+      session_key: sessionKey,
+      role: 'user',
+      content: message,
+    }).then(() => {}).catch(() => {});
+
+    // Ensure agent is spawned
+    await spawnAgent(userId, apiKey, provider, userContext);
 
     // Chat with retry
-    const ultronRes = await chatWithRetry(userId, message, sessionKey, apiKey, provider);
+    const ultronRes = await chatWithRetry(userId, message, sessionKey, apiKey, provider, userContext);
 
     if (!ultronRes.ok) {
       const errText = await ultronRes.text();
@@ -144,7 +165,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Stream SSE from Ultron back to frontend (already in our format after Ultron transform)
     const reader = ultronRes.body?.getReader();
     if (!reader) {
       return new Response(JSON.stringify({ error: 'No response stream' }), {
@@ -152,20 +172,55 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const encoder = new TextEncoder();
     const decoder = new TextDecoder();
+    let fullResponse = '';
 
     const stream = new ReadableStream({
       async start(controller) {
+        const encoder = new TextEncoder();
         try {
+          let buffer = '';
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            controller.enqueue(value);
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const data = line.slice(6).trim();
+              if (!data || data === '[DONE]') {
+                if (data === '[DONE]') controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                continue;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                const text = parsed.choices?.[0]?.delta?.content || parsed.text;
+                if (text) {
+                  fullResponse += text;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+                }
+              } catch {
+                // Forward raw if can't parse
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              }
+            }
           }
         } catch (e: any) {
-          console.error('Ultron stream error:', e.message);
+          console.error('Stream error:', e.message);
         }
+
+        // Save assistant response to history
+        if (fullResponse.trim()) {
+          getSupabase().from('agent_messages').insert({
+            user_id: userId,
+            session_key: sessionKey,
+            role: 'assistant',
+            content: fullResponse.trim(),
+          }).then(() => {}).catch(() => {});
+        }
+
         controller.close();
       },
     });
