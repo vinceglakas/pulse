@@ -64,6 +64,13 @@ const REDDIT_TIMEOUT_MS = 8000;
 const HN_TIMEOUT_MS = 5000;     // Algolia is fast
 const YOUTUBE_TIMEOUT_MS = 8000;
 
+// Helper: create an AbortSignal with timeout (compatible with all runtimes)
+function timeoutSignal(ms: number): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 // ─── 1. OpenAI web_search (Primary) ───
 
 async function searchOpenAI(
@@ -85,7 +92,7 @@ async function searchOpenAI(
         tools: [{ type: 'web_search_preview' }],
         input: `Search the web thoroughly for: ${query}. Include Reddit discussions, news articles, forum posts, and expert opinions. Provide a comprehensive summary with specific facts and data points.`,
       }),
-      signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
+      signal: timeoutSignal(OPENAI_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -141,7 +148,7 @@ async function searchBrave(query: string): Promise<WebResult[]> {
     const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=8`;
     const res = await fetch(url, {
       headers: { 'X-Subscription-Token': apiKey, Accept: 'application/json' },
-      signal: AbortSignal.timeout(BRAVE_TIMEOUT_MS),
+      signal: timeoutSignal(BRAVE_TIMEOUT_MS),
     });
     if (!res.ok) return [];
 
@@ -165,7 +172,7 @@ async function searchReddit(query: string): Promise<RedditResult[]> {
     const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=relevance&t=month&limit=10`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Pulse/1.0 (agent research)' },
-      signal: AbortSignal.timeout(REDDIT_TIMEOUT_MS),
+      signal: timeoutSignal(REDDIT_TIMEOUT_MS),
     });
     if (!res.ok) return [];
 
@@ -191,7 +198,7 @@ async function searchReddit(query: string): Promise<RedditResult[]> {
         const jsonUrl = post.url.replace(/\/$/, '') + '.json';
         const commentRes = await fetch(jsonUrl, {
           headers: { 'User-Agent': 'Pulse/1.0 (agent research)' },
-          signal: AbortSignal.timeout(5000),
+          signal: timeoutSignal(5000),
         });
         if (!commentRes.ok) return;
 
@@ -224,7 +231,7 @@ async function searchReddit(query: string): Promise<RedditResult[]> {
 async function searchHN(query: string): Promise<HNResult[]> {
   try {
     const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=6`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(HN_TIMEOUT_MS) });
+    const res = await fetch(url, { signal: timeoutSignal(HN_TIMEOUT_MS) });
     if (!res.ok) return [];
 
     const data = await res.json();
@@ -247,7 +254,7 @@ async function searchYouTube(query: string): Promise<YouTubeResult[]> {
 
   try {
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&maxResults=3&type=video&key=${apiKey}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(YOUTUBE_TIMEOUT_MS) });
+    const res = await fetch(url, { signal: timeoutSignal(YOUTUBE_TIMEOUT_MS) });
     if (!res.ok) return [];
 
     const data = await res.json();
