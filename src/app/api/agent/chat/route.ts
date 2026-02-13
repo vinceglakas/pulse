@@ -263,13 +263,16 @@ export async function POST(req: NextRequest) {
     let systemPrompt = SYSTEM_PROMPT;
 
     if (shouldResearch(message)) {
-      const query = extractSearchQuery(message);
-      // Pass the user's OpenAI key for web_search when their provider is OpenAI
-      // Falls back to platform OPENAI_API_KEY env var inside the research engine
-      const userOpenAIKey = provider === 'openai' ? apiKey : undefined;
-      const researchContext = await superchargedResearch(query, userOpenAIKey);
-      if (researchContext) {
-        systemPrompt = `${SYSTEM_PROMPT}\n\n${researchContext}`;
+      try {
+        const query = extractSearchQuery(message);
+        const userOpenAIKey = provider === 'openai' ? apiKey : undefined;
+        const researchContext = await superchargedResearch(query, userOpenAIKey);
+        if (researchContext) {
+          systemPrompt = `${SYSTEM_PROMPT}\n\n${researchContext}`;
+        }
+      } catch (researchErr: any) {
+        console.error('Research failed, continuing without:', researchErr.message);
+        // Continue with base prompt — don't fail the whole request
       }
     }
 
@@ -290,7 +293,7 @@ export async function POST(req: NextRequest) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-20250514',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 4096,
           system: systemPrompt,
           messages: msgs,
@@ -441,7 +444,7 @@ export async function POST(req: NextRequest) {
 
     } else if (provider === 'google') {
       const llmRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-06-05:streamGenerateContent?alt=sse&key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
