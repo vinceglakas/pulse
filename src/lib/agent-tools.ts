@@ -259,35 +259,78 @@ export async function executeTool(
 // ─── Individual Tool Implementations ───
 
 async function execResearch(args: Record<string, any>, ctx: ToolContext): Promise<string> {
-  const { deepResearch } = await import('@/lib/deep-research');
-  // Race against 60s timeout to avoid killing the whole function
-  const result = await Promise.race([
-    deepResearch(args.topic, undefined, args.persona || 'analyst'),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Research timed out after 60s — try web_search for faster results')), 60000)),
-  ]);
+  // Fast path: use multiple Brave searches to gather info quickly (5-10s vs 60-120s for deepResearch)
+  const topic = args.topic;
+  const braveKey = process.env.BRAVE_API_KEY?.trim();
   
-  if (result.sources.length === 0) {
+  if (!braveKey) {
+    return JSON.stringify({ error: 'Research service not configured' });
+  }
+
+  // Run 3 parallel searches for comprehensive coverage
+  const queries = [
+    topic,
+    `${topic} latest news 2026`,
+    `${topic} comparison review`,
+  ];
+
+  const results = await Promise.all(
+    queries.map(async (q) => {
+      try {
+        const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&count=5`;
+        const res = await fetch(url, {
+          headers: { 'X-Subscription-Token': braveKey, Accept: 'application/json' },
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data.web?.results || []).map((r: any) => ({
+          title: r.title,
+          url: r.url,
+          snippet: r.description,
+        }));
+      } catch { return []; }
+    })
+  );
+
+  // Dedupe by URL
+  const seen = new Set<string>();
+  const allResults: Array<{ title: string; url: string; snippet: string }> = [];
+  for (const batch of results) {
+    for (const r of batch) {
+      if (!seen.has(r.url)) {
+        seen.add(r.url);
+        allResults.push(r);
+      }
+    }
+  }
+
+  if (allResults.length === 0) {
     return JSON.stringify({ error: 'No results found for this topic' });
   }
-  
-  // Save brief to DB
+
+  // Build a structured research brief for the LLM to synthesize
+  const brief = allResults.slice(0, 12).map((r, i) => 
+    `[${i + 1}] ${r.title}\n${r.snippet}\nSource: ${r.url}`
+  ).join('\n\n');
+
+  // Save to briefs table
   const { data: saved } = await supabaseAdmin
     .from('briefs')
     .insert({
-      topic: args.topic,
-      brief_text: result.brief,
-      sources: result.sources,
-      raw_data: { stats: result.stats, agent_triggered: true },
+      topic,
+      brief_text: brief,
+      sources: allResults.slice(0, 12),
+      raw_data: { agent_triggered: true, fast_path: true },
       user_id: ctx.userId,
     })
     .select('id')
     .single();
-  
+
   return JSON.stringify({
-    brief: result.brief,
-    sourceCount: result.sources.length,
+    brief,
+    sourceCount: allResults.length,
     briefId: saved?.id,
-    message: `Research complete: ${result.sources.length} sources analyzed.`,
+    message: `Research complete: ${allResults.length} sources found across 3 searches.`,
   });
 }
 
