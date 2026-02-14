@@ -26,9 +26,9 @@ const ALL_MODELS: ModelOption[] = [
 ];
 
 const NAV_ITEMS = [
-  { href: '/settings/keys', label: 'API Keys', icon: '🔑' },
-  { href: '/settings/models', label: 'Models', icon: '🧠' },
-  { href: '/settings/integrations', label: 'Integrations', icon: '🔗' },
+  { href: '/settings/keys', label: 'API Keys' },
+  { href: '/settings/models', label: 'Models' },
+  { href: '/settings/integrations', label: 'Integrations' },
 ];
 
 export default function ModelsPage() {
@@ -52,7 +52,6 @@ export default function ModelsPage() {
       const token = await getAccessToken();
       setAccessToken(token);
 
-      // Fetch profile for current model selections
       try {
         const res = await fetch('/api/profile', {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -62,7 +61,6 @@ export default function ModelsPage() {
         if (data.worker_model) setWorkerModel(data.worker_model);
       } catch {}
 
-      // Fetch available keys to determine providers
       try {
         const res = await fetch('/api/keys', {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -105,27 +103,27 @@ export default function ModelsPage() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] text-[#f0f0f5]">
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 transition-colors mb-4 inline-block">
-            ← Back
+          <Link href="/" className="text-sm text-[#6b6b80] hover:text-[#8b8b9e] transition-colors mb-4 inline-block">
+            &larr; Back
           </Link>
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold">Model Configuration</h1>
+            <h1 className="text-2xl font-bold text-[#f0f0f5]">Model Configuration</h1>
             <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-medium">
               Multi-Model
             </span>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[#8b8b9e]">
             Set up your brain and worker models for different tasks
           </p>
         </div>
@@ -138,39 +136,56 @@ export default function ModelsPage() {
               href={item.href}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 item.href === '/settings/models'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
+                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white'
+                  : 'bg-[rgba(255,255,255,0.04)] text-[#8b8b9e] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(99,102,241,0.2)] hover:text-[#f0f0f5]'
               }`}
             >
-              <span>{item.icon}</span>
               {item.label}
             </Link>
           ))}
         </div>
 
         {loading ? (
-          <div className="text-sm text-gray-500">Loading...</div>
+          <div className="text-sm text-[#6b6b80]">Loading...</div>
         ) : availableProviders.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
-            <p className="text-gray-400 mb-4">No API keys configured yet. Add at least one API key to configure models.</p>
+          <div
+            className="rounded-2xl p-8 text-center"
+            style={{
+              background: 'rgba(17,17,24,0.8)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <p className="text-[#8b8b9e] mb-4">No API keys configured yet. Add at least one API key to configure models.</p>
             <Link
               href="/settings/keys"
-              className="inline-block bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+              className="inline-block text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
             >
-              Add API Key →
+              Add API Key
             </Link>
           </div>
         ) : (
           <>
             {/* Brain Model Section */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+            <div
+              className="rounded-2xl p-6 mb-6"
+              style={{
+                background: 'rgba(17,17,24,0.8)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
               <div className="flex items-start gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-lg shrink-0">
-                  🧠
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a8 8 0 0 0-8 8c0 3.4 2.1 6.3 5 7.5V20a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-2.5c2.9-1.2 5-4.1 5-7.5a8 8 0 0 0-8-8z"/>
+                    <path d="M10 22h4"/>
+                  </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Brain Model</h2>
-                  <p className="text-sm text-gray-500">Used for complex reasoning, strategy, and creative work</p>
+                  <h2 className="text-lg font-semibold text-[#f0f0f5]">Brain Model</h2>
+                  <p className="text-sm text-[#8b8b9e]">Used for complex reasoning, strategy, and creative work</p>
                 </div>
               </div>
 
@@ -183,7 +198,7 @@ export default function ModelsPage() {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
                       brainModel === model.id
                         ? 'border-indigo-500 bg-indigo-500/10'
-                        : 'border-white/10 bg-white/[0.02] hover:bg-white/5 hover:border-white/20'
+                        : 'border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.04)] hover:border-[rgba(99,102,241,0.2)]'
                     }`}
                   >
                     <div
@@ -191,8 +206,8 @@ export default function ModelsPage() {
                       style={{ backgroundColor: model.color }}
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium">{model.name}</span>
-                      <span className="text-xs text-gray-500 ml-2">{model.providerLabel}</span>
+                      <span className="text-sm font-medium text-[#f0f0f5]">{model.name}</span>
+                      <span className="text-xs text-[#6b6b80] ml-2">{model.providerLabel}</span>
                     </div>
                     {brainModel === model.id && (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -202,20 +217,29 @@ export default function ModelsPage() {
                   </button>
                 ))}
                 {brainModels.length === 0 && (
-                  <p className="text-sm text-gray-500 py-2">No brain-tier models available for your API keys.</p>
+                  <p className="text-sm text-[#6b6b80] py-2">No brain-tier models available for your API keys.</p>
                 )}
               </div>
             </div>
 
             {/* Worker Model Section */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+            <div
+              className="rounded-2xl p-6 mb-6"
+              style={{
+                background: 'rgba(17,17,24,0.8)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
               <div className="flex items-start gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-lg shrink-0">
-                  ⚡
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Worker Model</h2>
-                  <p className="text-sm text-gray-500">Used for fast tasks, data processing, and simple queries</p>
+                  <h2 className="text-lg font-semibold text-[#f0f0f5]">Worker Model</h2>
+                  <p className="text-sm text-[#8b8b9e]">Used for fast tasks, data processing, and simple queries</p>
                 </div>
               </div>
 
@@ -228,7 +252,7 @@ export default function ModelsPage() {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
                       workerModel === model.id
                         ? 'border-indigo-500 bg-indigo-500/10'
-                        : 'border-white/10 bg-white/[0.02] hover:bg-white/5 hover:border-white/20'
+                        : 'border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.04)] hover:border-[rgba(99,102,241,0.2)]'
                     }`}
                   >
                     <div
@@ -236,8 +260,8 @@ export default function ModelsPage() {
                       style={{ backgroundColor: model.color }}
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium">{model.name}</span>
-                      <span className="text-xs text-gray-500 ml-2">{model.providerLabel}</span>
+                      <span className="text-sm font-medium text-[#f0f0f5]">{model.name}</span>
+                      <span className="text-xs text-[#6b6b80] ml-2">{model.providerLabel}</span>
                     </div>
                     {workerModel === model.id && (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -247,18 +271,30 @@ export default function ModelsPage() {
                   </button>
                 ))}
                 {workerModels.length === 0 && (
-                  <p className="text-sm text-gray-500 py-2">No worker-tier models available for your API keys.</p>
+                  <p className="text-sm text-[#6b6b80] py-2">No worker-tier models available for your API keys.</p>
                 )}
               </div>
             </div>
 
             {/* Auto Mode Info Card */}
-            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-5 mb-6">
+            <div
+              className="rounded-2xl p-5 mb-6"
+              style={{
+                background: 'rgba(99,102,241,0.06)',
+                border: '1px solid rgba(99,102,241,0.15)',
+              }}
+            >
               <div className="flex items-start gap-3">
-                <span className="text-lg">💡</span>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                </div>
                 <div>
                   <h3 className="text-sm font-semibold text-indigo-300 mb-1">Auto Mode</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">
+                  <p className="text-sm text-[#8b8b9e] leading-relaxed">
                     When set to Auto, your agent picks the best model for each task. Brain model for research and complex questions, worker model for quick tasks and data processing.
                   </p>
                 </div>
@@ -270,9 +306,10 @@ export default function ModelsPage() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="w-full h-[44px] bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full h-[44px] text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
             >
-              {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Configuration'}
+              {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Configuration'}
             </button>
           </>
         )}

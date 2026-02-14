@@ -32,28 +32,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 pt-16">
-      <div className="w-full max-w-sm">
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-16" style={{ background: '#0a0a0f' }}>
+      {/* Subtle glow */}
+      <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 60%)' }} />
+
+      <div className="w-full max-w-sm relative z-10">
+        <div
+          className="rounded-2xl p-8"
+          style={{
+            background: 'rgba(17,17,24,0.8)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-1.5 mb-4">
-              <span className="text-xl font-bold text-gray-900">Pulsed</span>
+              <span className="text-xl font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold mb-2" style={{ color: '#f0f0f5' }}>
               Welcome back
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{ color: '#8b8b9e' }}>
               Log in to access your trend briefs
             </p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
               {error}
             </div>
           )}
@@ -62,7 +72,14 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 h-[48px] bg-white border border-gray-200 rounded-xl text-sm text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 mb-6 cursor-pointer shadow-sm"
+            className="w-full flex items-center justify-center gap-3 h-[48px] rounded-xl text-sm font-medium transition-all duration-200 mb-6 cursor-pointer"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#f0f0f5',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -76,17 +93,17 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-3 text-gray-400">or</span>
+              <span className="px-3" style={{ background: 'rgba(17,17,24,1)', color: '#6b6b80' }}>or</span>
             </div>
           </div>
 
           {/* Email/password form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm text-gray-600 mb-1.5">
+              <label htmlFor="email" className="block text-sm mb-1.5" style={{ color: '#8b8b9e' }}>
                 Email
               </label>
               <input
@@ -95,12 +112,17 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full h-[44px] bg-white border border-gray-200 rounded-xl px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-200"
+                className="w-full h-[44px] rounded-xl px-4 text-sm outline-none transition-all duration-200 focus:border-indigo-500"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#f0f0f5',
+                }}
                 required
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-600 mb-1.5">
+              <label htmlFor="password" className="block text-sm mb-1.5" style={{ color: '#8b8b9e' }}>
                 Password
               </label>
               <input
@@ -109,14 +131,20 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full h-[44px] bg-white border border-gray-200 rounded-xl px-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-200"
+                className="w-full h-[44px] rounded-xl px-4 text-sm outline-none transition-all duration-200 focus:border-indigo-500"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#f0f0f5',
+                }}
                 required
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[48px] bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+              className="w-full h-[48px] text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
             >
               {loading ? "Logging in..." : "Log in"}
             </button>
@@ -124,14 +152,14 @@ export default function LoginPage() {
 
           {/* Links */}
           <div className="mt-6 text-center space-y-2">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{ color: '#8b8b9e' }}>
               Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
+              <Link href="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                 Sign up
               </Link>
             </p>
             <p className="text-sm">
-              <Link href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+              <Link href="#" className="hover:text-indigo-400 transition-colors" style={{ color: '#6b6b80' }}>
                 Forgot password?
               </Link>
             </p>

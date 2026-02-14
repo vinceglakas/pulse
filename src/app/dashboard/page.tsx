@@ -83,95 +83,107 @@ export default function DashboardPage() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0f' }}>
+        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   const planLabel = userPlan === 'ultra' ? 'Ultra' : userPlan === 'agent' ? 'Agent' : userPlan === 'pro' ? 'Pro' : 'Free';
 
+  const glassCard = {
+    background: 'rgba(17,17,24,0.8)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.06)',
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#0a0a0f' }}>
+      {/* Background glow */}
+      <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 50%)' }} />
+
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <nav className="sticky top-0 z-50" style={{ background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5">
-            <span className="text-xl font-bold text-gray-900">Pulsed</span>
+            <span className="text-xl font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
           </Link>
           <div className="flex items-center gap-6">
-            <Link href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</Link>
-            <Link href="/agent" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Agent</Link>
-            <Link href="/workspace" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Workspace</Link>
-            <Link href="/history" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">History</Link>
-            <span className="text-sm font-semibold text-gray-900">Dashboard</span>
+            <Link href="/search" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Research</Link>
+            <Link href="/agent" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Agent</Link>
+            <Link href="/workspace" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Workspace</Link>
+            <Link href="/history" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>History</Link>
+            <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Dashboard</span>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 mt-1">{userEmail}</p>
+            <h1 className="text-3xl font-bold" style={{ color: '#f0f0f5' }}>Dashboard</h1>
+            <p className="mt-1" style={{ color: '#8b8b9e' }}>{userEmail}</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-              userPlan === 'ultra' ? 'bg-gray-900 text-white' :
-              userPlan === 'agent' ? 'bg-indigo-100 text-indigo-700' :
-              userPlan === 'pro' ? 'bg-purple-100 text-purple-700' :
-              'bg-gray-100 text-gray-600'
-            }`}>{planLabel}</span>
-            <Link href="/settings/keys" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Settings</Link>
+            <span
+              className="text-xs font-semibold px-3 py-1.5 rounded-full"
+              style={
+                userPlan === 'ultra' ? { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff' } :
+                userPlan === 'agent' ? { background: 'rgba(99,102,241,0.15)', color: '#818cf8' } :
+                userPlan === 'pro' ? { background: 'rgba(139,92,246,0.15)', color: '#a78bfa' } :
+                { background: 'rgba(255,255,255,0.06)', color: '#8b8b9e' }
+              }
+            >{planLabel}</span>
+            <Link href="/settings/keys" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Settings</Link>
           </div>
         </div>
 
         {/* Setup checklist for new users */}
         {(userPlan === 'free' || !hasApiKey) && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Get started</h2>
+          <div className="rounded-2xl p-8 mb-8" style={glassCard}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: '#f0f0f5' }}>Get started</h2>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${authChecked ? 'bg-emerald-100' : 'bg-gray-100'}`}>
-                  <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(16,185,129,0.15)' }}>
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Create your account</p>
-                  <p className="text-xs text-gray-400">Done</p>
+                  <p className="text-sm font-medium" style={{ color: '#f0f0f5' }}>Create your account</p>
+                  <p className="text-xs" style={{ color: '#6b6b80' }}>Done</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${hasApiKey ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: hasApiKey ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)' }}>
                   {hasApiKey ? (
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   ) : (
-                    <span className="text-xs font-bold text-gray-400">2</span>
+                    <span className="text-xs font-bold" style={{ color: '#6b6b80' }}>2</span>
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Add your API key</p>
-                  <p className="text-xs text-gray-400">{hasApiKey ? 'Done' : 'Required for your AI agent'}</p>
+                  <p className="text-sm font-medium" style={{ color: '#f0f0f5' }}>Add your API key</p>
+                  <p className="text-xs" style={{ color: '#6b6b80' }}>{hasApiKey ? 'Done' : 'Required for your AI agent'}</p>
                 </div>
-                {!hasApiKey && <Link href="/settings/keys" className="text-sm font-semibold text-gray-900 underline underline-offset-4">Add key</Link>}
+                {!hasApiKey && <Link href="/settings/keys" className="text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">Add key</Link>}
               </div>
               <div className="flex items-center gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${userPlan !== 'free' ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: userPlan !== 'free' ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)' }}>
                   {userPlan !== 'free' ? (
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   ) : (
-                    <span className="text-xs font-bold text-gray-400">3</span>
+                    <span className="text-xs font-bold" style={{ color: '#6b6b80' }}>3</span>
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Choose a plan</p>
-                  <p className="text-xs text-gray-400">{userPlan !== 'free' ? planLabel : 'Unlock your full AI agent'}</p>
+                  <p className="text-sm font-medium" style={{ color: '#f0f0f5' }}>Choose a plan</p>
+                  <p className="text-xs" style={{ color: '#6b6b80' }}>{userPlan !== 'free' ? planLabel : 'Unlock your full AI agent'}</p>
                 </div>
-                {userPlan === 'free' && <Link href="/pricing" className="text-sm font-semibold text-gray-900 underline underline-offset-4">View plans</Link>}
+                {userPlan === 'free' && <Link href="/pricing" className="text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">View plans</Link>}
               </div>
             </div>
           </div>
@@ -179,45 +191,70 @@ export default function DashboardPage() {
 
         {/* Quick actions */}
         <div className="grid md:grid-cols-3 gap-4 mb-10">
-          <Link href="/search" className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-4 group-hover:bg-gray-900 transition-colors">
-              <svg className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <Link
+            href="/search"
+            className="rounded-xl p-6 transition-all duration-300 group"
+            style={glassCard}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">New Research</h3>
-            <p className="text-sm text-gray-500">Search any topic and get an AI-powered intelligence brief.</p>
+            <h3 className="font-semibold mb-1" style={{ color: '#f0f0f5' }}>New Research</h3>
+            <p className="text-sm" style={{ color: '#8b8b9e' }}>Search any topic and get an AI-powered intelligence brief.</p>
           </Link>
-          <Link href="/agent" className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-4 group-hover:bg-gray-900 transition-colors">
-              <svg className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+          <Link
+            href="/agent"
+            className="rounded-xl p-6 transition-all duration-300 group"
+            style={glassCard}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Chat with Agent</h3>
-            <p className="text-sm text-gray-500">Ask your AI agent to research, build, or automate anything.</p>
+            <h3 className="font-semibold mb-1" style={{ color: '#f0f0f5' }}>Chat with Agent</h3>
+            <p className="text-sm" style={{ color: '#8b8b9e' }}>Ask your AI agent to research, build, or automate anything.</p>
           </Link>
-          <Link href="/settings/keys" className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all group">
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-4 group-hover:bg-gray-900 transition-colors">
-              <svg className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <Link
+            href="/settings/keys"
+            className="rounded-xl p-6 transition-all duration-300 group"
+            style={glassCard}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-all duration-300" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Settings</h3>
-            <p className="text-sm text-gray-500">Manage API keys, integrations, and account preferences.</p>
+            <h3 className="font-semibold mb-1" style={{ color: '#f0f0f5' }}>Settings</h3>
+            <p className="text-sm" style={{ color: '#8b8b9e' }}>Manage API keys, integrations, and account preferences.</p>
           </Link>
         </div>
 
         {/* Recent activity */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Recent briefs */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="rounded-xl p-6" style={glassCard}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">Recent Briefs</h2>
-              <Link href="/history" className="text-xs text-gray-400 hover:text-gray-900 transition-colors">View all</Link>
+              <h2 className="font-semibold" style={{ color: '#f0f0f5' }}>Recent Briefs</h2>
+              <Link href="/history" className="text-xs transition-colors hover:text-indigo-400" style={{ color: '#6b6b80' }}>View all</Link>
             </div>
             {recentBriefs.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4">No briefs yet. <Link href="/search" className="text-gray-900 underline underline-offset-2">Start researching</Link></p>
+              <p className="text-sm py-4" style={{ color: '#6b6b80' }}>No briefs yet. <Link href="/search" className="text-indigo-400 hover:text-indigo-300 transition-colors">Start researching</Link></p>
             ) : (
               <div className="space-y-3">
                 {recentBriefs.map((brief) => (
-                  <Link key={brief.id} href={`/brief/${brief.id}`} className="block p-3 rounded-lg hover:bg-gray-50 transition-colors -mx-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{brief.topic}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{new Date(brief.created_at).toLocaleDateString()}</p>
+                  <Link
+                    key={brief.id}
+                    href={`/brief/${brief.id}`}
+                    className="block p-3 rounded-lg transition-colors -mx-1"
+                    style={{ background: 'transparent' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <p className="text-sm font-medium truncate" style={{ color: '#f0f0f5' }}>{brief.topic}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#6b6b80' }}>{new Date(brief.created_at).toLocaleDateString()}</p>
                   </Link>
                 ))}
               </div>
@@ -225,24 +262,24 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent agent activity */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="rounded-xl p-6" style={glassCard}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">Agent Activity</h2>
-              <Link href="/agent" className="text-xs text-gray-400 hover:text-gray-900 transition-colors">Open chat</Link>
+              <h2 className="font-semibold" style={{ color: '#f0f0f5' }}>Agent Activity</h2>
+              <Link href="/agent" className="text-xs transition-colors hover:text-indigo-400" style={{ color: '#6b6b80' }}>Open chat</Link>
             </div>
             {recentMessages.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4">No conversations yet. <Link href="/agent" className="text-gray-900 underline underline-offset-2">Chat with your agent</Link></p>
+              <p className="text-sm py-4" style={{ color: '#6b6b80' }}>No conversations yet. <Link href="/agent" className="text-indigo-400 hover:text-indigo-300 transition-colors">Chat with your agent</Link></p>
             ) : (
               <div className="space-y-3">
                 {recentMessages.slice(-5).map((msg) => (
-                  <div key={msg.id} className="p-3 rounded-lg bg-gray-50 -mx-1">
+                  <div key={msg.id} className="p-3 rounded-lg -mx-1" style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-medium ${msg.role === 'user' ? 'text-gray-500' : 'text-indigo-600'}`}>
+                      <span className={`text-xs font-medium ${msg.role === 'user' ? '' : 'text-indigo-400'}`} style={msg.role === 'user' ? { color: '#8b8b9e' } : {}}>
                         {msg.role === 'user' ? 'You' : 'Agent'}
                       </span>
-                      <span className="text-xs text-gray-300">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                      <span className="text-xs" style={{ color: '#6b6b80' }}>{new Date(msg.created_at).toLocaleTimeString()}</span>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">{msg.content}</p>
+                    <p className="text-sm line-clamp-2" style={{ color: '#8b8b9e' }}>{msg.content}</p>
                   </div>
                 ))}
               </div>

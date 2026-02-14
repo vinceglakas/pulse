@@ -124,23 +124,23 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] text-[#f0f0f5]">
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/"
-            className="text-sm text-gray-500 hover:text-gray-300 transition-colors mb-4 inline-block"
+            className="text-sm text-[#6b6b80] hover:text-[#8b8b9e] transition-colors mb-4 inline-block"
           >
-            ← Back
+            &larr; Back
           </Link>
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold">API Keys</h1>
+            <h1 className="text-2xl font-bold text-[#f0f0f5]">API Keys</h1>
             <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-medium">
               Ultron
             </span>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[#8b8b9e]">
             Add your LLM API keys to power your AI agent. Keys are encrypted and
             never exposed.
           </p>
@@ -149,20 +149,19 @@ export default function ApiKeysPage() {
         {/* Settings Nav */}
         <div className="flex gap-2 mb-8">
           {[
-            { href: '/settings/keys', label: 'API Keys', icon: '🔑' },
-            { href: '/settings/models', label: 'Models', icon: '🧠' },
-            { href: '/settings/integrations', label: 'Integrations', icon: '🔗' },
+            { href: '/settings/keys', label: 'API Keys' },
+            { href: '/settings/models', label: 'Models' },
+            { href: '/settings/integrations', label: 'Integrations' },
           ].map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 item.href === '/settings/keys'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
+                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white'
+                  : 'bg-[rgba(255,255,255,0.04)] text-[#8b8b9e] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(99,102,241,0.2)] hover:text-[#f0f0f5]'
               }`}
             >
-              <span>{item.icon}</span>
               {item.label}
             </Link>
           ))}
@@ -175,7 +174,7 @@ export default function ApiKeysPage() {
           </div>
         )}
         {success && (
-          <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-sm text-green-400">
+          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-400">
             {success}
           </div>
         )}
@@ -183,28 +182,33 @@ export default function ApiKeysPage() {
         {/* Add Key Form */}
         <form
           onSubmit={handleSave}
-          className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8"
+          className="rounded-2xl p-6 mb-8"
+          style={{
+            background: 'rgba(17,17,24,0.8)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
         >
-          <h2 className="text-lg font-semibold mb-4">Add New Key</h2>
+          <h2 className="text-lg font-semibold mb-4 text-[#f0f0f5]">Add New Key</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">
+              <label className="block text-sm text-[#8b8b9e] mb-1.5">
                 Provider
               </label>
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
-                className="w-full h-[44px] bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all appearance-none cursor-pointer"
+                className="w-full h-[44px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 text-sm text-[#f0f0f5] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all appearance-none cursor-pointer"
               >
                 {PROVIDERS.map((p) => (
-                  <option key={p.value} value={p.value} className="bg-[#1a1a1a]">
+                  <option key={p.value} value={p.value} className="bg-[#111118]">
                     {p.label}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">
+              <label className="block text-sm text-[#8b8b9e] mb-1.5">
                 API Key
               </label>
               <input
@@ -212,14 +216,15 @@ export default function ApiKeysPage() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-..."
-                className="w-full h-[44px] bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white placeholder:text-gray-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                className="w-full h-[44px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 text-sm text-[#f0f0f5] placeholder:text-[#6b6b80] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={saving || !apiKey}
-              className="w-full h-[44px] bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full h-[44px] text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
             >
               {saving ? "Testing & Saving..." : "Test & Save"}
             </button>
@@ -228,11 +233,18 @@ export default function ApiKeysPage() {
 
         {/* Keys List */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Saved Keys</h2>
+          <h2 className="text-lg font-semibold mb-4 text-[#f0f0f5]">Saved Keys</h2>
           {loading ? (
-            <div className="text-sm text-gray-500">Loading...</div>
+            <div className="text-sm text-[#6b6b80]">Loading...</div>
           ) : keys.length === 0 ? (
-            <div className="text-sm text-gray-500 bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+            <div
+              className="text-sm text-[#8b8b9e] rounded-2xl p-6 text-center"
+              style={{
+                background: 'rgba(17,17,24,0.8)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
               No API keys added yet. Add one above to get started.
             </div>
           ) : (
@@ -240,18 +252,23 @@ export default function ApiKeysPage() {
               {keys.map((k) => (
                 <div
                   key={k.id}
-                  className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-5 py-4"
+                  className="flex items-center justify-between rounded-xl px-5 py-4 transition-all hover:border-[rgba(99,102,241,0.2)]"
+                  style={{
+                    background: 'rgba(17,17,24,0.8)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium text-[#f0f0f5]">
                         {PROVIDER_LABELS[k.provider] || k.provider}
                       </span>
-                      <span className="text-xs text-gray-500 font-mono">
+                      <span className="text-xs text-[#6b6b80] font-mono">
                         {k.key_hint}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-600 mt-0.5">
+                    <div className="text-xs text-[#6b6b80] mt-0.5">
                       Added{" "}
                       {new Date(k.created_at).toLocaleDateString("en-US", {
                         month: "short",

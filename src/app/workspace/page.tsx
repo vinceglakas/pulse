@@ -9,18 +9,18 @@ import ArtifactRenderer from '@/components/artifacts/ArtifactRenderer';
 
 type SidebarSection = 'tables' | 'boards' | 'lists' | 'docs';
 
-const SECTION_CONFIG: Record<SidebarSection, { label: string; icon: string; types: string[] }> = {
-  tables: { label: 'Tables', icon: '📊', types: ['table'] },
-  boards: { label: 'Boards', icon: '📋', types: ['kanban'] },
-  lists: { label: 'Lists', icon: '✅', types: ['list'] },
-  docs: { label: 'Documents', icon: '📄', types: ['document'] },
+const SECTION_CONFIG: Record<SidebarSection, { label: string; types: string[]; icon: string }> = {
+  tables: { label: 'Tables', types: ['table'], icon: 'M3 3h7v7H3V3zm11 0h7v7h-7V3zm-11 11h7v7H3v-7zm11 0h7v7h-7v-7z' },
+  boards: { label: 'Boards', types: ['kanban'], icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
+  lists: { label: 'Lists', types: ['list'], icon: 'M9 5l7 7-7 7' },
+  docs: { label: 'Documents', types: ['document'], icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z' },
 };
 
-const NEW_TEMPLATES: { type: string; label: string; icon: string }[] = [
-  { type: 'table', label: 'Table', icon: '📊' },
-  { type: 'kanban', label: 'Board', icon: '📋' },
-  { type: 'list', label: 'List', icon: '✅' },
-  { type: 'document', label: 'Document', icon: '📄' },
+const NEW_TEMPLATES: { type: string; label: string; iconPath: string }[] = [
+  { type: 'table', label: 'Table', iconPath: 'M3 3h7v7H3V3zm11 0h7v7h-7V3zm-11 11h7v7H3v-7zm11 0h7v7h-7v-7z' },
+  { type: 'kanban', label: 'Board', iconPath: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
+  { type: 'list', label: 'List', iconPath: 'M9 5l7 7-7 7' },
+  { type: 'document', label: 'Document', iconPath: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z' },
 ];
 
 export default function WorkspacePage() {
@@ -74,7 +74,7 @@ export default function WorkspacePage() {
     setShowNewMenu(false);
     const defaults: any = { type, name: `New ${type.charAt(0).toUpperCase() + type.slice(1)}` };
     if (type === 'table') {
-      defaults.icon = '📊';
+      defaults.icon = 'table';
       defaults.columns = [
         { key: 'name', label: 'Name', type: 'text' },
         { key: 'status', label: 'Status', type: 'badge', options: ['Active', 'Inactive'] },
@@ -82,7 +82,7 @@ export default function WorkspacePage() {
       ];
       defaults.rows = [];
     } else if (type === 'kanban') {
-      defaults.icon = '📋';
+      defaults.icon = 'board';
       defaults.groupBy = 'status';
       defaults.columns = [
         { key: 'title', label: 'Title', type: 'text' },
@@ -90,10 +90,10 @@ export default function WorkspacePage() {
       ];
       defaults.rows = [];
     } else if (type === 'list') {
-      defaults.icon = '✅';
+      defaults.icon = 'list';
       defaults.rows = [];
     } else if (type === 'document') {
-      defaults.icon = '📄';
+      defaults.icon = 'doc';
       defaults.content = '';
     }
     const result = await apiCall('POST', defaults);
@@ -127,29 +127,30 @@ export default function WorkspacePage() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0f' }}>
         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <nav className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'rgba(10,10,15,0.85)', borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="max-w-full mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700 lg:hidden"
+              className="p-1.5 rounded-lg transition-colors lg:hidden"
+              style={{ color: '#8b8b9e' }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12h18M3 6h18M3 18h18" />
               </svg>
             </button>
             <Link href="/" className="flex items-center gap-1.5">
-              <span className="text-lg font-bold text-gray-900">Pulsed</span>
+              <span className="text-lg font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -157,10 +158,10 @@ export default function WorkspacePage() {
             </Link>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</Link>
-            <Link href="/agent" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Agent</Link>
-            <span className="text-sm font-semibold text-indigo-600">Workspace</span>
-            <Link href="/history" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">History</Link>
+            <Link href="/search" className="text-sm transition-colors hover:text-[#f0f0f5]" style={{ color: '#8b8b9e' }}>Research</Link>
+            <Link href="/agent" className="text-sm transition-colors hover:text-[#f0f0f5]" style={{ color: '#8b8b9e' }}>Agent</Link>
+            <span className="text-sm font-semibold text-indigo-400">Workspace</span>
+            <Link href="/history" className="text-sm transition-colors hover:text-[#f0f0f5]" style={{ color: '#8b8b9e' }}>History</Link>
           </div>
         </div>
       </nav>
@@ -168,24 +169,24 @@ export default function WorkspacePage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Mobile overlay */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Sidebar */}
         <aside className={`
           fixed lg:relative z-50 lg:z-auto top-0 left-0 h-full
-          w-[260px] bg-white border-r border-gray-100
-          flex flex-col shrink-0
+          w-[260px] border-r flex flex-col shrink-0
           transition-transform duration-200 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `} style={{ paddingTop: sidebarOpen ? '56px' : undefined }}>
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900">Workspace</span>
+        `} style={{ background: 'rgba(17,17,24,0.95)', borderColor: 'rgba(255,255,255,0.06)', paddingTop: sidebarOpen ? '56px' : undefined }}>
+          <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Workspace</span>
             <div className="flex items-center gap-1">
               <div className="relative">
                 <button
                   onClick={() => setShowNewMenu(!showNewMenu)}
-                  className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors"
+                  className="p-1.5 rounded-lg transition-colors text-indigo-400 hover:text-indigo-300"
+                  style={{ background: 'rgba(99,102,241,0.1)' }}
                   title="New artifact"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,14 +196,17 @@ export default function WorkspacePage() {
                 {showNewMenu && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setShowNewMenu(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-44">
+                    <div className="absolute right-0 top-full mt-1 z-20 rounded-xl shadow-2xl py-1 w-44" style={{ background: 'rgba(17,17,24,0.95)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
                       {NEW_TEMPLATES.map(t => (
                         <button
                           key={t.type}
                           onClick={() => createArtifact(t.type)}
-                          className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                          className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-[rgba(99,102,241,0.1)]"
+                          style={{ color: '#8b8b9e' }}
                         >
-                          <span>{t.icon}</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d={t.iconPath} />
+                          </svg>
                           <span>{t.label}</span>
                         </button>
                       ))}
@@ -212,7 +216,8 @@ export default function WorkspacePage() {
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400"
+                className="lg:hidden p-1 rounded-lg transition-colors"
+                style={{ color: '#6b6b80' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18M6 6l12 12" />
@@ -230,13 +235,17 @@ export default function WorkspacePage() {
                 <div key={key} className="mb-3">
                   <button
                     onClick={() => toggleSection(key)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-[11px] uppercase tracking-wider text-gray-400 font-medium hover:text-gray-600 transition-colors"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-[11px] uppercase tracking-wider font-medium transition-colors"
+                    style={{ color: '#6b6b80' }}
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${isCollapsed ? '' : 'rotate-90'}`}>
                       <path d="m9 18 6-6-6-6" />
                     </svg>
-                    {cfg.icon} {cfg.label}
-                    <span className="text-[10px] bg-gray-100 text-gray-500 rounded-full px-1.5">{items.length}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d={cfg.icon} />
+                    </svg>
+                    {cfg.label}
+                    <span className="text-[10px] rounded-full px-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: '#6b6b80' }}>{items.length}</span>
                   </button>
                   {!isCollapsed && (
                     <div className="space-y-0.5 mt-1">
@@ -246,11 +255,17 @@ export default function WorkspacePage() {
                           onClick={() => { setSelectedId(a.id); setSidebarOpen(false); }}
                           className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
                             selectedId === a.id
-                              ? 'bg-indigo-50 text-indigo-700 font-medium'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'font-medium'
+                              : ''
                           }`}
+                          style={selectedId === a.id
+                            ? { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc' }
+                            : { color: '#8b8b9e' }
+                          }
                         >
-                          <span className="text-base shrink-0">{a.icon || cfg.icon}</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                            <path d={cfg.icon} />
+                          </svg>
                           <span className="truncate">{a.name}</span>
                         </button>
                       ))}
@@ -261,13 +276,19 @@ export default function WorkspacePage() {
             })}
 
             {/* Quick actions */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium px-2 mb-2">Quick Actions</p>
-              <Link href="/workspace/automations" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
-                <span className="text-base">⚡</span><span>Automations</span>
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-[11px] uppercase tracking-wider font-medium px-2 mb-2" style={{ color: '#6b6b80' }}>Quick Actions</p>
+              <Link href="/workspace/automations" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-[rgba(255,255,255,0.04)]" style={{ color: '#8b8b9e' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                <span>Automations</span>
               </Link>
-              <Link href="/agent" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
-                <span className="text-base">💬</span><span>Ask Your Agent</span>
+              <Link href="/agent" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-[rgba(255,255,255,0.04)]" style={{ color: '#8b8b9e' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+                <span>Ask Your Agent</span>
               </Link>
             </div>
           </div>
@@ -279,9 +300,9 @@ export default function WorkspacePage() {
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map(n => (
-                  <div key={n} className="bg-white border border-gray-200 rounded-xl p-6 animate-pulse">
-                    <div className="h-5 w-2/3 bg-gray-100 rounded mb-3"></div>
-                    <div className="h-4 w-1/3 bg-gray-100 rounded"></div>
+                  <div key={n} className="rounded-xl p-6 animate-pulse" style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="h-5 w-2/3 rounded mb-3" style={{ background: 'rgba(255,255,255,0.06)' }}></div>
+                    <div className="h-4 w-1/3 rounded" style={{ background: 'rgba(255,255,255,0.04)' }}></div>
                   </div>
                 ))}
               </div>
@@ -295,26 +316,31 @@ export default function WorkspacePage() {
             ) : artifacts.length === 0 ? (
               /* Empty state */
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
                   <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                     <path d="M3 9h18M9 21V9" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Your workspace is empty</h2>
-                <p className="text-sm text-gray-500 mb-8 max-w-md">
+                <h2 className="text-xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Your workspace is empty</h2>
+                <p className="text-sm mb-8 max-w-md" style={{ color: '#8b8b9e' }}>
                   Your agent hasn&apos;t built anything yet. Ask it to create a CRM, tracker, or task board.
                 </p>
                 <div className="flex gap-3">
                   <Link
                     href="/agent"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-90 transition-opacity shadow-sm"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity shadow-sm"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                   >
-                    💬 Ask Your Agent
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                    </svg>
+                    Ask Your Agent
                   </Link>
                   <button
                     onClick={() => setShowNewMenu(true)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-colors"
+                    style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
                   >
                     + Create Manually
                   </button>
@@ -323,13 +349,13 @@ export default function WorkspacePage() {
             ) : (
               /* No artifact selected */
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-50 flex items-center justify-center">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6b6b80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m9 18 6-6-6-6" />
                   </svg>
                 </div>
-                <h3 className="text-base font-semibold text-gray-700 mb-1">Select an artifact</h3>
-                <p className="text-sm text-gray-400">Choose from the sidebar or create something new</p>
+                <h3 className="text-base font-semibold mb-1" style={{ color: '#f0f0f5' }}>Select an artifact</h3>
+                <p className="text-sm" style={{ color: '#6b6b80' }}>Choose from the sidebar or create something new</p>
               </div>
             )}
           </div>

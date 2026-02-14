@@ -24,25 +24,28 @@ const PERSONA_OPTIONS = [
 
 function PersonaPicker({ onSelect }: { onSelect: (p: string) => void }) {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
       <div className="max-w-2xl w-full text-center">
-        <p className="text-sm text-gray-400 uppercase tracking-wider mb-2">Almost there</p>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">How will you use this research?</h2>
-        <p className="text-sm text-gray-500 mb-8">Pick your role and we&apos;ll tailor the brief to your needs.</p>
+        <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#6b6b80' }}>Almost there</p>
+        <h2 className="text-2xl font-bold mb-2" style={{ color: '#f0f0f5' }}>How will you use this research?</h2>
+        <p className="text-sm mb-8" style={{ color: '#8b8b9e' }}>Pick your role and we&apos;ll tailor the brief to your needs.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {PERSONA_OPTIONS.map(p => (
             <button
               key={p.id}
               onClick={() => onSelect(p.id)}
-              className="flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all cursor-pointer group"
+              className="flex flex-col items-center gap-2 p-5 rounded-xl transition-all cursor-pointer group"
+              style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(17,17,24,0.8)'; }}
             >
-              <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d={p.icon} />
                 </svg>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{p.label}</span>
-              <span className="text-xs text-gray-500">{p.desc}</span>
+              <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>{p.label}</span>
+              <span className="text-xs" style={{ color: '#6b6b80' }}>{p.desc}</span>
             </button>
           ))}
         </div>
@@ -55,7 +58,6 @@ async function tryAutoRedeem(fingerprint: string): Promise<boolean> {
   if (typeof window === 'undefined') return false
   const refCode = localStorage.getItem('pulsed_ref_code')
   if (!refCode) return false
-  // Only try once
   const redeemed = localStorage.getItem('pulsed_ref_redeemed')
   if (redeemed) return false
 
@@ -71,7 +73,6 @@ async function tryAutoRedeem(fingerprint: string): Promise<boolean> {
       return true
     }
   } catch { /* ignore */ }
-  // Mark as attempted even on failure to avoid infinite retries
   localStorage.setItem('pulsed_ref_redeemed', 'attempted')
   return false
 }
@@ -99,18 +100,12 @@ function SearchContent() {
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const runResearch = useCallback(async (selectedPersona: string) => {
-    if (!query.trim()) {
-      router.replace("/");
-      return;
-    }
-
+    if (!query.trim()) { router.replace("/"); return; }
     setError(null);
     setIsResearching(true);
 
     try {
-      // Auto-redeem referral code on first search
       await tryAutoRedeem(getFingerprint());
-
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,18 +114,14 @@ function SearchContent() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Request failed" }));
-        if (data.quota_exceeded) {
-          setQuotaExceeded(true);
-        }
+        if (data.quota_exceeded) setQuotaExceeded(true);
         throw new Error(data.error || `Request failed (${res.status})`);
       }
 
       const data = await res.json();
-
       if (data.id) {
         router.replace(`/brief/${data.id}`);
       } else {
-        // If no ID (Supabase save failed), store in sessionStorage and use a temp route
         sessionStorage.setItem("pulse_temp_brief", JSON.stringify(data));
         router.replace("/brief/temp");
       }
@@ -140,7 +131,6 @@ function SearchContent() {
     }
   }, [query, router]);
 
-  // Check URL for persona param on mount, then localStorage
   useEffect(() => {
     const p = searchParams.get("persona");
     if (p) {
@@ -148,24 +138,16 @@ function SearchContent() {
     } else {
       try {
         const saved = localStorage.getItem('pulsed_persona');
-        if (saved) {
-          setPersona(saved);
-          runResearch(saved);
-        }
+        if (saved) { setPersona(saved); runResearch(saved); }
       } catch {}
     }
   }, [searchParams]);
 
-  // Auto-run research if persona came from URL param
   useEffect(() => {
-    if (persona && !isResearching && !error) {
-      runResearch(persona);
-    }
-    // Only run when persona is first set from URL
+    if (persona && !isResearching && !error) runResearch(persona);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persona]);
 
-  // Cycle through status messages
   useEffect(() => {
     if (error || !isResearching) return;
     const interval = setInterval(() => {
@@ -184,42 +166,29 @@ function SearchContent() {
     setIsRetrying(true);
     setError(null);
     setStatusIndex(0);
-    if (persona) {
-      runResearch(persona).finally(() => setIsRetrying(false));
-    }
+    if (persona) runResearch(persona).finally(() => setIsRetrying(false));
   }
 
-  // No persona selected yet — show the picker
   if (!persona && !isResearching && !error) {
     return <PersonaPicker onSelect={handlePersonaSelect} />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
         <div className="max-w-md w-full text-center">
-          {/* Error icon */}
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[#EF4444]/10 flex items-center justify-center">
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#EF4444"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <line x1="15" y1="9" x2="9" y2="15" />
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
           </div>
 
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+          <h2 className="text-xl font-bold mb-2" style={{ color: '#f0f0f5' }}>
             {quotaExceeded ? "Monthly searches used up" : "Research failed"}
           </h2>
-          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+          <p className="text-sm mb-6 leading-relaxed" style={{ color: '#8b8b9e' }}>
             {error}
           </p>
 
@@ -233,7 +202,8 @@ function SearchContent() {
             {quotaExceeded ? (
               <button
                 onClick={() => router.push("/pricing")}
-                className="px-6 py-3 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity duration-200 cursor-pointer"
+                className="px-6 py-3 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
               >
                 Upgrade to Pro
               </button>
@@ -241,14 +211,16 @@ function SearchContent() {
               <button
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="px-6 py-3 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+                className="px-6 py-3 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
               >
                 {isRetrying ? "Retrying..." : "Try again"}
               </button>
             )}
             <button
               onClick={() => router.replace("/")}
-              className="px-6 py-3 text-sm font-medium text-gray-500 rounded-xl border border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-all duration-200 cursor-pointer"
+              className="px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer"
+              style={{ color: '#8b8b9e', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}
             >
               New search
             </button>
@@ -259,43 +231,37 @@ function SearchContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
       <div className="text-center">
         {/* Pulsing gradient orb */}
         <div className="relative w-32 h-32 mx-auto mb-10">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 opacity-20 animate-orb-pulse" />
-          <div className="absolute inset-3 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 opacity-30 animate-orb-pulse-delayed" />
-          <div className="absolute inset-6 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 opacity-50 animate-orb-pulse" />
-          <div className="absolute inset-10 rounded-full bg-gradient-to-br from-indigo-600 via-blue-600 to-green-500 opacity-80 animate-orb-spin" />
-          {/* Center dot */}
-          <div className="absolute inset-[52px] rounded-full bg-white/90" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 opacity-20 animate-orb-pulse" />
+          <div className="absolute inset-3 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 opacity-30 animate-orb-pulse-delayed" />
+          <div className="absolute inset-6 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 opacity-50 animate-orb-pulse" />
+          <div className="absolute inset-10 rounded-full bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-500 opacity-80 animate-orb-spin" />
+          <div className="absolute inset-[52px] rounded-full" style={{ background: '#0a0a0f' }} />
         </div>
 
-        {/* Topic */}
-        <p className="text-sm text-gray-400 uppercase tracking-wider mb-2">
+        <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#6b6b80' }}>
           Researching
         </p>
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-8 max-w-sm mx-auto">
+        <h2 className="text-xl sm:text-2xl font-bold mb-8 max-w-sm mx-auto" style={{ color: '#f0f0f5' }}>
           &ldquo;{query}&rdquo;
         </h2>
 
-        {/* Cycling status */}
         <div className="h-6 flex items-center justify-center">
-          <p
-            key={statusIndex}
-            className="text-sm text-gray-500 animate-status-fade"
-          >
+          <p key={statusIndex} className="text-sm animate-status-fade" style={{ color: '#8b8b9e' }}>
             {STATUS_MESSAGES[statusIndex]}
           </p>
         </div>
 
         {/* Shimmer bar */}
-        <div className="mt-8 w-64 h-1 mx-auto rounded-full bg-gray-100 overflow-hidden">
-          <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 animate-shimmer-slide" />
+        <div className="mt-8 w-64 h-1 mx-auto rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div className="h-full w-1/3 rounded-full animate-shimmer-slide" style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6)' }} />
         </div>
 
-        <p className="mt-6 text-xs text-gray-400">
-          This usually takes 15–30 seconds
+        <p className="mt-6 text-xs" style={{ color: '#6b6b80' }}>
+          This usually takes 15-30 seconds
         </p>
       </div>
     </div>
@@ -306,8 +272,8 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-gray-500">Loading...</div>
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0f' }}>
+          <div style={{ color: '#6b6b80' }}>Loading...</div>
         </div>
       }
     >
