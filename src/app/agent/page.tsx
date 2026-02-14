@@ -35,21 +35,21 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-/* ── Tool‑use pattern detector ── */
+/* ── Tool-use pattern detector ── */
 const TOOL_PATTERNS = [
-  { pattern: /Searching\.\.\./i, label: 'Searching…', icon: '🔍' },
-  { pattern: /Analyzing\.\.\./i, label: 'Analyzing…', icon: '📊' },
-  { pattern: /Generating\.\.\./i, label: 'Generating…', icon: '✨' },
-  { pattern: /Fetching\.\.\./i, label: 'Fetching…', icon: '📡' },
-  { pattern: /Processing\.\.\./i, label: 'Processing…', icon: '⚙️' },
-  { pattern: /Thinking\.\.\./i, label: 'Thinking…', icon: '🧠' },
-  { pattern: /Reading\.\.\./i, label: 'Reading…', icon: '📖' },
-  { pattern: /Writing\.\.\./i, label: 'Writing…', icon: '✍️' },
+  { pattern: /Searching\.\.\./i, label: 'Searching...' },
+  { pattern: /Analyzing\.\.\./i, label: 'Analyzing...' },
+  { pattern: /Generating\.\.\./i, label: 'Generating...' },
+  { pattern: /Fetching\.\.\./i, label: 'Fetching...' },
+  { pattern: /Processing\.\.\./i, label: 'Processing...' },
+  { pattern: /Thinking\.\.\./i, label: 'Thinking...' },
+  { pattern: /Reading\.\.\./i, label: 'Reading...' },
+  { pattern: /Writing\.\.\./i, label: 'Writing...' },
 ];
 
-function detectToolUse(content: string): { label: string; icon: string } | null {
+function detectToolUse(content: string): { label: string } | null {
   for (const t of TOOL_PATTERNS) {
-    if (t.pattern.test(content)) return { label: t.label, icon: t.icon };
+    if (t.pattern.test(content)) return { label: t.label };
   }
   return null;
 }
@@ -62,19 +62,17 @@ function getPreferredProvider(model: string): string | undefined {
     case 'Gemini': return 'google';
     case 'Brain': return 'brain';
     case 'Worker': return 'worker';
-    default: return undefined; // 'Auto' → let backend pick
+    default: return undefined;
   }
 }
 
 /* ── Welcome suggestion cards ── */
 const WELCOME_CARDS = [
-  { emoji: '🔍', title: 'Deep Research', desc: 'Analyze any topic with real-time data', prompt: 'Help me do deep research on ' },
-  { emoji: '🏗️', title: 'Build Something', desc: 'Create tools, trackers, and workflows', prompt: 'Help me build a ' },
-  { emoji: '📊', title: 'Analyze Data', desc: 'Get insights from any dataset', prompt: 'Analyze this data for me: ' },
-  { emoji: '✍️', title: 'Write Content', desc: 'Draft emails, posts, and documents', prompt: 'Help me write a ' },
+  { title: 'Deep Research', desc: 'Analyze any topic with real-time data', prompt: 'Help me do deep research on ' },
+  { title: 'Build Something', desc: 'Create tools, trackers, and workflows', prompt: 'Help me build a ' },
+  { title: 'Analyze Data', desc: 'Get insights from any dataset', prompt: 'Analyze this data for me: ' },
+  { title: 'Write Content', desc: 'Draft emails, posts, and documents', prompt: 'Help me write a ' },
 ];
-
-/* Sidebar conversations removed — using real data now */
 
 /* ── Copy to clipboard helper ── */
 function copyToClipboard(text: string) {
@@ -92,7 +90,6 @@ function CodeBlockWithCopy({ children, className, ...props }: any) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Check if it's an inline code block (no className with language-)
   if (!className) {
     return (
       <code className={className} {...props}>
@@ -106,9 +103,9 @@ function CodeBlockWithCopy({ children, className, ...props }: any) {
       <button
         type="button"
         onClick={handleCopy}
-        className="absolute top-2 right-2 z-10 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-[11px] font-medium transition-all opacity-0 group-hover:opacity-100"
+        className="absolute top-2 right-2 z-10 px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 text-[11px] font-medium transition-all opacity-0 group-hover:opacity-100 border border-white/10"
       >
-        {copied ? '✓ Copied' : 'Copy'}
+        {copied ? 'Copied' : 'Copy'}
       </button>
       <code className={className} {...props}>
         {children}
@@ -201,7 +198,6 @@ export default function AgentPage() {
         } catch {
           setHasApiKey(false);
         }
-        // Fetch saved briefs for sidebar
         try {
           const briefsRes = await fetch('/api/briefs/saved', {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -218,12 +214,11 @@ export default function AgentPage() {
           if (histRes.ok) {
             const histData = await histRes.json();
             if (histData.messages && histData.messages.length > 0) {
-              // Deduplicate: remove consecutive messages with same role+content (from double-save bug)
               const deduped: any[] = [];
               for (const m of histData.messages) {
                 const prev = deduped[deduped.length - 1];
                 if (prev && prev.role === m.role && prev.content === m.content) {
-                  continue; // Skip duplicate
+                  continue;
                 }
                 deduped.push(m);
               }
@@ -241,7 +236,7 @@ export default function AgentPage() {
     });
   }, [router]);
 
-  /* ── Auto‑scroll ── */
+  /* ── Auto-scroll ── */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -296,8 +291,6 @@ export default function AgentPage() {
     setInput('');
     setIsStreaming(true);
 
-    // NOTE: Do NOT save user message here — the chat API route saves it to avoid duplicates
-
     const agentMsgId = crypto.randomUUID();
     setMessages((prev) => [
       ...prev,
@@ -346,7 +339,7 @@ export default function AgentPage() {
               const parsed = JSON.parse(data);
               if (parsed.tool_start) {
                 setAgentBooting(false);
-                setToolStatus(parsed.status || `Running ${parsed.tool_start}…`);
+                setToolStatus(parsed.status || `Running ${parsed.tool_start}...`);
               } else if (parsed.tool_done) {
                 setToolStatus(null);
               } else if (parsed.status && !parsed.tool_start) {
@@ -380,7 +373,7 @@ export default function AgentPage() {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === agentMsgId
-            ? { ...m, content: err?.message?.includes('API key') ? '🔑 Your API key appears to be invalid. Please check it in Settings → API Keys.' : err?.message?.includes('unavailable') ? '⚡ Your AI agent is warming up. Please try again in a moment.' : `Something went wrong: ${err?.message || 'Unknown error'}. Please try again.` }
+            ? { ...m, content: err?.message?.includes('API key') ? 'Your API key appears to be invalid. Please check it in Settings > API Keys.' : err?.message?.includes('unavailable') ? 'Your AI agent is warming up. Please try again in a moment.' : `Something went wrong: ${err?.message || 'Unknown error'}. Please try again.` }
             : m
         )
       );
@@ -399,13 +392,12 @@ export default function AgentPage() {
   };
 
   /* ── Onboarding helpers ── */
-  // Only show onboarding if user hasn't completed it before (no name on profile)
   const showOnboarding =
     historyLoaded &&
     messages.length === 0 &&
     !onboardingComplete &&
     !isStreaming &&
-    !userName; // If they have a name, they already onboarded
+    !userName;
 
   const advanceStep = () => {
     setOnboardingTransition(true);
@@ -462,8 +454,6 @@ export default function AgentPage() {
         setInput('');
         setIsStreaming(true);
 
-        // NOTE: Do NOT save user message here — the chat API route saves it to avoid duplicates
-
         const agentMsgId = crypto.randomUUID();
         setMessages((prev) => [
           ...prev,
@@ -511,7 +501,7 @@ export default function AgentPage() {
                   try {
                     const parsed = JSON.parse(data);
                     if (parsed.tool_start) {
-                      setToolStatus(parsed.status || `Running ${parsed.tool_start}…`);
+                      setToolStatus(parsed.status || `Running ${parsed.tool_start}...`);
                     } else if (parsed.tool_done) {
                       setToolStatus(null);
                     } else if (parsed.status && !parsed.tool_start) {
@@ -551,7 +541,6 @@ export default function AgentPage() {
           } finally {
             setIsStreaming(false);
             setToolStatus(null);
-            // NOTE: Do NOT save assistant message here — the chat API route saves it to avoid duplicates
           }
         })();
       }, 50);
@@ -566,7 +555,7 @@ export default function AgentPage() {
   /* ── Loading spinner ── */
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0f' }}>
         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -576,7 +565,7 @@ export default function AgentPage() {
   const showChat = !showOnboarding;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
       {/* Keyframes */}
       <style>{`
         @keyframes shimmer {
@@ -603,7 +592,7 @@ export default function AgentPage() {
           animation: shimmer 2s ease-in-out infinite;
         }
         .shimmer-bg {
-          background: linear-gradient(90deg, transparent 25%, rgba(99,102,241,0.08) 50%, transparent 75%);
+          background: linear-gradient(90deg, transparent 25%, rgba(99,102,241,0.15) 50%, transparent 75%);
           background-size: 200% 100%;
           animation: shimmer 2s ease-in-out infinite;
         }
@@ -635,18 +624,36 @@ export default function AgentPage() {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1); }
         }
+        .glass-surface {
+          background: rgba(17, 17, 24, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(12px);
+        }
+        .glass-surface-light {
+          background: rgba(24, 24, 35, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(12px);
+        }
+        .accent-gradient {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        }
+        .glow-hover:hover {
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
       `}</style>
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: 'rgba(10, 10, 15, 0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-full mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Sidebar toggle (hamburger) */}
             {isAgentPlan && !showOnboarding && (
               <button
                 type="button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+                className="p-1.5 rounded-lg transition-colors"
+                style={{ color: '#8b8b9e' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#f0f0f5'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'transparent'; }}
                 title="Toggle sidebar"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -655,7 +662,7 @@ export default function AgentPage() {
               </button>
             )}
             <Link href="/" className="flex items-center gap-1.5">
-              <span className="text-lg font-bold text-gray-900">Pulsed</span>
+              <span className="text-lg font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -663,10 +670,10 @@ export default function AgentPage() {
             </Link>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/search" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Research</Link>
-            <span className="text-sm font-semibold text-indigo-600">Agent</span>
-            <Link href="/workspace" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Workspace</Link>
-            <Link href="/history" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">History</Link>
+            <Link href="/search" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Research</Link>
+            <span className="text-sm font-semibold" style={{ color: '#818cf8' }}>Agent</span>
+            <Link href="/workspace" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Workspace</Link>
+            <Link href="/history" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>History</Link>
           </div>
         </div>
       </nav>
@@ -675,7 +682,7 @@ export default function AgentPage() {
       {!isAgentPlan && (
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center max-w-md">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mb-6 mx-auto shadow-lg">
+            <div className="w-20 h-20 rounded-2xl accent-gradient flex items-center justify-center mb-6 mx-auto shadow-lg" style={{ boxShadow: '0 0 40px rgba(99,102,241,0.3)' }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                 <path d="M19 10a7 7 0 0 1-14 0" />
@@ -683,40 +690,42 @@ export default function AgentPage() {
                 <path d="M8 22h8" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Unlock Your AI Agent</h2>
-            <p className="text-gray-500 mb-6">
+            <h2 className="text-2xl font-bold mb-3" style={{ color: '#f0f0f5' }}>Unlock Your AI Agent</h2>
+            <p className="mb-6" style={{ color: '#8b8b9e' }}>
               Get a personal AI research agent powered by your own API key. Ask anything — market research, competitive analysis, trend reports, and more.
             </p>
             <Link
               href="/pricing"
-              className="inline-block bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold py-3 px-8 rounded-xl hover:opacity-90 transition-opacity"
+              className="inline-block accent-gradient text-white font-semibold py-3 px-8 rounded-xl hover:opacity-90 transition-opacity"
+              style={{ boxShadow: '0 0 30px rgba(99,102,241,0.25)' }}
             >
               Upgrade to Agent — $49/mo
             </Link>
-            <p className="mt-3 text-xs text-gray-400">BYOLLM — bring your own API key. You control the model and costs.</p>
+            <p className="mt-3 text-xs" style={{ color: '#5a5a6e' }}>BYOLLM — bring your own API key. You control the model and costs.</p>
           </div>
         </div>
       )}
 
       {/* API Key Banner */}
       {isAgentPlan && !hasApiKey && (
-        <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-3">
+        <div className="px-4 py-3" style={{ background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
                 </svg>
               </div>
-              <p className="text-sm text-indigo-800">
+              <p className="text-sm" style={{ color: '#a5b4fc' }}>
                 Add your API key to activate your AI agent.
               </p>
             </div>
             <Link
               href="/settings/keys"
-              className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors whitespace-nowrap"
+              className="text-sm font-semibold transition-colors whitespace-nowrap"
+              style={{ color: '#818cf8' }}
             >
-              Add Key →
+              Add Key
             </Link>
           </div>
         </div>
@@ -727,34 +736,41 @@ export default function AgentPage() {
         <div className={`flex-1 flex items-center justify-center px-4 ${onboardingExiting ? 'onboard-card-exit' : ''}`}>
           <div className="w-full max-w-md">
             <div
-              className={`bg-white rounded-2xl shadow-xl border border-gray-100 p-8 ${
+              className={`glass-surface rounded-2xl p-8 ${
                 onboardingTransition ? 'onboard-step-exit' : 'onboard-step-enter'
               }`}
+              style={{ boxShadow: '0 0 60px rgba(99,102,241,0.08)' }}
             >
               {/* Step 1: Name */}
               {onboardingStep === 0 && (
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Pulsed 👋</h1>
-                  <p className="text-gray-500 mb-8">Let&apos;s set up your agent. This takes 30 seconds.</p>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">What should I call you?</label>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Welcome to Pulsed</h1>
+                  <p className="mb-8" style={{ color: '#8b8b9e' }}>Let&apos;s set up your agent. This takes 30 seconds.</p>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>What should I call you?</label>
                   <input
                     type="text"
                     value={onboardingName}
                     onChange={(e) => setOnboardingName(e.target.value)}
                     placeholder="Your first name"
                     autoFocus
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
                     }}
                   />
-                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">What should your agent be called?</label>
+                  <label className="block text-sm font-medium mb-2 mt-4" style={{ color: '#a5b4fc' }}>What should your agent be called?</label>
                   <input
                     type="text"
                     value={onboardingAgentName}
                     onChange={(e) => setOnboardingAgentName(e.target.value)}
                     placeholder="Pulsed Agent"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
                     }}
@@ -763,7 +779,10 @@ export default function AgentPage() {
                     type="button"
                     disabled={!onboardingName.trim()}
                     onClick={advanceStep}
-                    className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#f0f0f5', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
                   >
                     Continue
                   </button>
@@ -773,24 +792,30 @@ export default function AgentPage() {
               {/* Step 2: Role + Industry */}
               {onboardingStep === 1 && (
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Nice to meet you, {onboardingName} 🤝</h1>
-                  <p className="text-gray-500 mb-8">Help your agent understand what you do.</p>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your role?</label>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Nice to meet you, {onboardingName}</h1>
+                  <p className="mb-8" style={{ color: '#8b8b9e' }}>Help your agent understand what you do.</p>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>What&apos;s your role?</label>
                   <input
                     type="text"
                     value={onboardingRole}
                     onChange={(e) => setOnboardingRole(e.target.value)}
                     placeholder="e.g. Sales Director, Founder, Product Manager"
                     autoFocus
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-4"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all mb-4"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
-                  <label className="block text-sm font-medium text-gray-700 mb-2">What industry?</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>What industry?</label>
                   <input
                     type="text"
                     value={onboardingIndustry}
                     onChange={(e) => setOnboardingIndustry(e.target.value)}
                     placeholder="e.g. SaaS, Healthcare, Government"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingRole.trim() && onboardingIndustry.trim()) advanceStep();
                     }}
@@ -799,7 +824,10 @@ export default function AgentPage() {
                     type="button"
                     disabled={!onboardingRole.trim() || !onboardingIndustry.trim()}
                     onClick={advanceStep}
-                    className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#f0f0f5', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
                   >
                     Continue
                   </button>
@@ -809,21 +837,27 @@ export default function AgentPage() {
               {/* Step 3: Current focus */}
               {onboardingStep === 2 && (
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">One more thing ✨</h1>
-                  <p className="text-gray-500 mb-8">What are you working on right now? Your agent will remember this.</p>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>One more thing</h1>
+                  <p className="mb-8" style={{ color: '#8b8b9e' }}>What are you working on right now? Your agent will remember this.</p>
                   <textarea
                     value={onboardingFocus}
                     onChange={(e) => setOnboardingFocus(e.target.value)}
                     placeholder="e.g. Building outbound sequences for Q1, researching competitors in the AI space..."
                     autoFocus
                     rows={4}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
                   <button
                     type="button"
                     disabled={!onboardingFocus.trim()}
                     onClick={advanceStep}
-                    className="mt-6 w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#f0f0f5', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
                   >
                     Continue
                   </button>
@@ -833,24 +867,27 @@ export default function AgentPage() {
               {/* Step 4: API Key Walkthrough */}
               {onboardingStep === 3 && (
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Connect your AI 🔑</h1>
-                  <p className="text-gray-500 mb-6">Your agent needs an API key to think. Here&apos;s how to get one in 60 seconds.</p>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Connect your AI</h1>
+                  <p className="mb-6" style={{ color: '#8b8b9e' }}>Your agent needs an API key to think. Here&apos;s how to get one in 60 seconds.</p>
 
                   <div className="space-y-3 mb-6">
                     {/* Anthropic */}
                     <div
-                      className="rounded-xl border border-gray-200 overflow-hidden transition-all"
-                      style={{ borderLeftWidth: '4px', borderLeftColor: '#D97757' }}
+                      className="rounded-xl overflow-hidden transition-all"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: '4px', borderLeftColor: '#D97757' }}
                     >
                       <button
                         type="button"
                         onClick={() => setExpandedProvider(expandedProvider === 0 ? null : 0)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors"
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <span className="text-sm font-semibold text-gray-900">Anthropic (Claude)</span>
+                        <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Anthropic (Claude)</span>
                         <svg
                           width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                          className={`text-gray-400 transition-transform duration-200 ${expandedProvider === 0 ? 'rotate-180' : ''}`}
+                          className={`transition-transform duration-200 ${expandedProvider === 0 ? 'rotate-180' : ''}`}
+                          style={{ color: '#8b8b9e' }}
                         >
                           <path d="m6 9 6 6 6-6" />
                         </svg>
@@ -860,14 +897,14 @@ export default function AgentPage() {
                         style={{ maxHeight: expandedProvider === 0 ? '200px' : '0px', opacity: expandedProvider === 0 ? 1 : 0 }}
                       >
                         <div className="px-4 pb-3">
-                          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                          <ol className="text-sm space-y-1 list-decimal list-inside" style={{ color: '#8b8b9e' }}>
                             <li>Go to console.anthropic.com</li>
                             <li>Sign up or log in</li>
                             <li>Click &apos;API Keys&apos; in the sidebar</li>
                             <li>Click &apos;Create Key&apos; and copy it</li>
                           </ol>
-                          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2">
-                            Open Anthropic Console <span>→</span>
+                          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#818cf8' }}>
+                            Open Anthropic Console
                           </a>
                         </div>
                       </div>
@@ -875,18 +912,21 @@ export default function AgentPage() {
 
                     {/* OpenAI */}
                     <div
-                      className="rounded-xl border border-gray-200 overflow-hidden transition-all"
-                      style={{ borderLeftWidth: '4px', borderLeftColor: '#10A37F' }}
+                      className="rounded-xl overflow-hidden transition-all"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: '4px', borderLeftColor: '#10A37F' }}
                     >
                       <button
                         type="button"
                         onClick={() => setExpandedProvider(expandedProvider === 1 ? null : 1)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors"
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <span className="text-sm font-semibold text-gray-900">OpenAI (GPT)</span>
+                        <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>OpenAI (GPT)</span>
                         <svg
                           width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                          className={`text-gray-400 transition-transform duration-200 ${expandedProvider === 1 ? 'rotate-180' : ''}`}
+                          className={`transition-transform duration-200 ${expandedProvider === 1 ? 'rotate-180' : ''}`}
+                          style={{ color: '#8b8b9e' }}
                         >
                           <path d="m6 9 6 6 6-6" />
                         </svg>
@@ -896,14 +936,14 @@ export default function AgentPage() {
                         style={{ maxHeight: expandedProvider === 1 ? '200px' : '0px', opacity: expandedProvider === 1 ? 1 : 0 }}
                       >
                         <div className="px-4 pb-3">
-                          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                          <ol className="text-sm space-y-1 list-decimal list-inside" style={{ color: '#8b8b9e' }}>
                             <li>Go to platform.openai.com</li>
                             <li>Sign up or log in</li>
                             <li>Go to API Keys in settings</li>
                             <li>Click &apos;Create new secret key&apos; and copy it</li>
                           </ol>
-                          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2">
-                            Open OpenAI Dashboard <span>→</span>
+                          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#818cf8' }}>
+                            Open OpenAI Dashboard
                           </a>
                         </div>
                       </div>
@@ -911,18 +951,21 @@ export default function AgentPage() {
 
                     {/* Google */}
                     <div
-                      className="rounded-xl border border-gray-200 overflow-hidden transition-all"
-                      style={{ borderLeftWidth: '4px', borderLeftColor: '#4285F4' }}
+                      className="rounded-xl overflow-hidden transition-all"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: '4px', borderLeftColor: '#4285F4' }}
                     >
                       <button
                         type="button"
                         onClick={() => setExpandedProvider(expandedProvider === 2 ? null : 2)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors"
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <span className="text-sm font-semibold text-gray-900">Google (Gemini)</span>
+                        <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Google (Gemini)</span>
                         <svg
                           width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                          className={`text-gray-400 transition-transform duration-200 ${expandedProvider === 2 ? 'rotate-180' : ''}`}
+                          className={`transition-transform duration-200 ${expandedProvider === 2 ? 'rotate-180' : ''}`}
+                          style={{ color: '#8b8b9e' }}
                         >
                           <path d="m6 9 6 6 6-6" />
                         </svg>
@@ -932,21 +975,21 @@ export default function AgentPage() {
                         style={{ maxHeight: expandedProvider === 2 ? '200px' : '0px', opacity: expandedProvider === 2 ? 1 : 0 }}
                       >
                         <div className="px-4 pb-3">
-                          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                          <ol className="text-sm space-y-1 list-decimal list-inside" style={{ color: '#8b8b9e' }}>
                             <li>Go to aistudio.google.com</li>
                             <li>Sign in with Google</li>
                             <li>Click &apos;Get API Key&apos;</li>
                             <li>Create key and copy it</li>
                           </ol>
-                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2">
-                            Open Google AI Studio <span>→</span>
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#818cf8' }}>
+                            Open Google AI Studio
                           </a>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Paste your API key</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>Paste your API key</label>
                   <div className="flex gap-2 mb-3">
                     {[
                       { value: 'anthropic', label: 'Anthropic' },
@@ -957,11 +1000,12 @@ export default function AgentPage() {
                         key={p.value}
                         type="button"
                         onClick={() => setOnboardingProvider(p.value)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          onboardingProvider === p.value
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                        style={{
+                          background: onboardingProvider === p.value ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(255,255,255,0.06)',
+                          color: onboardingProvider === p.value ? '#fff' : '#8b8b9e',
+                          border: `1px solid ${onboardingProvider === p.value ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
+                        }}
                       >
                         {p.label}
                       </button>
@@ -974,7 +1018,10 @@ export default function AgentPage() {
                     onChange={(e) => setOnboardingApiKey(e.target.value)}
                     placeholder="sk-..."
                     autoFocus
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all font-mono"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all font-mono"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
 
                   <button
@@ -1007,14 +1054,18 @@ export default function AgentPage() {
                       }
                       advanceStep();
                     }}
-                    className="mt-5 w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
+                    className="mt-5 w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.2)' }}
                   >
                     Save key &amp; continue
                   </button>
                   <button
                     type="button"
                     onClick={() => advanceStep()}
-                    className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors font-medium"
+                    className="mt-3 w-full py-2 text-sm font-medium transition-colors"
+                    style={{ color: '#8b8b9e' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}
                   >
                     Skip for now
                   </button>
@@ -1024,57 +1075,63 @@ export default function AgentPage() {
               {/* Step 5: Connect your channels */}
               {onboardingStep === 4 && (
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Stay connected 📱</h1>
-                  <p className="text-gray-500 mb-6">Chat with your agent from anywhere. Set up takes 2 minutes.</p>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Stay connected</h1>
+                  <p className="mb-6" style={{ color: '#8b8b9e' }}>Chat with your agent from anywhere. Set up takes 2 minutes.</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     {/* Telegram Card */}
                     <div
-                      className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3"
-                      style={{ borderLeftWidth: '4px', borderLeftColor: '#229ED9' }}
+                      className="rounded-xl p-4 flex flex-col gap-3"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: '4px', borderLeftColor: '#229ED9' }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="#229ED9">
                             <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-900">Telegram</span>
+                          <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Telegram</span>
                         </div>
-                        <span className="text-[10px] font-medium text-white bg-emerald-500 rounded-full px-2 py-0.5">Live</span>
+                        <span className="text-[10px] font-medium text-white rounded-full px-2 py-0.5" style={{ background: '#10b981' }}>Live</span>
                       </div>
-                      <p className="text-xs text-gray-600 leading-relaxed">Message your agent from Telegram. Get alerts, research updates, and task completions on mobile.</p>
-                      <p className="text-[10px] text-gray-400">Enter your Telegram username to connect. Then DM <strong>@PulsedAI_bot</strong> to start chatting.</p>
+                      <p className="text-xs leading-relaxed" style={{ color: '#8b8b9e' }}>Message your agent from Telegram. Get alerts, research updates, and task completions on mobile.</p>
+                      <p className="text-[10px]" style={{ color: '#5a5a6e' }}>Enter your Telegram username to connect. Then DM <strong style={{ color: '#8b8b9e' }}>@PulsedAI_bot</strong> to start chatting.</p>
                       <input
                         type="text"
                         value={onboardingTelegram}
                         onChange={(e) => setOnboardingTelegram(e.target.value)}
                         placeholder="@username"
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                        className="w-full px-3 py-2 rounded-lg text-xs outline-none transition-all"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                        onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                        onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                       />
                     </div>
 
                     {/* Discord Card */}
                     <div
-                      className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3"
-                      style={{ borderLeftWidth: '4px', borderLeftColor: '#5865F2' }}
+                      className="rounded-xl p-4 flex flex-col gap-3"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderLeftWidth: '4px', borderLeftColor: '#5865F2' }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="#5865F2">
                             <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                           </svg>
-                          <span className="text-sm font-semibold text-gray-900">Discord</span>
+                          <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Discord</span>
                         </div>
-                        <span className="text-[10px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">Coming Soon</span>
+                        <span className="text-[10px] font-medium rounded-full px-2 py-0.5" style={{ color: '#8b8b9e', background: 'rgba(255,255,255,0.06)' }}>Coming Soon</span>
                       </div>
-                      <p className="text-xs text-gray-600 leading-relaxed">Add your agent to any Discord server. Works in DMs and channels.</p>
-                      <p className="text-[10px] text-gray-400">We&apos;ll notify you when Discord integration is ready.</p>
+                      <p className="text-xs leading-relaxed" style={{ color: '#8b8b9e' }}>Add your agent to any Discord server. Works in DMs and channels.</p>
+                      <p className="text-[10px]" style={{ color: '#5a5a6e' }}>We&apos;ll notify you when Discord integration is ready.</p>
                       <input
                         type="text"
                         value={onboardingDiscord}
                         onChange={(e) => setOnboardingDiscord(e.target.value)}
                         placeholder="username#1234"
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                        className="w-full px-3 py-2 rounded-lg text-xs outline-none transition-all"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                        onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                        onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                       />
                     </div>
                   </div>
@@ -1082,14 +1139,18 @@ export default function AgentPage() {
                   <button
                     type="button"
                     onClick={() => finishOnboarding()}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-indigo-200"
+                    className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.2)' }}
                   >
                     Finish setup
                   </button>
                   <button
                     type="button"
                     onClick={() => finishOnboarding()}
-                    className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors font-medium"
+                    className="mt-3 w-full py-2 text-sm font-medium transition-colors"
+                    style={{ color: '#8b8b9e' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}
                   >
                     Skip
                   </button>
@@ -1102,13 +1163,11 @@ export default function AgentPage() {
               {[0, 1, 2, 3, 4].map((dot) => (
                 <div
                   key={dot}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    dot === onboardingStep
-                      ? 'w-6 bg-indigo-500'
-                      : dot < onboardingStep
-                      ? 'w-2 bg-indigo-400'
-                      : 'w-2 bg-gray-300'
-                  }`}
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: dot === onboardingStep ? '24px' : '8px',
+                    background: dot === onboardingStep ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : dot < onboardingStep ? '#6366f1' : 'rgba(255,255,255,0.1)',
+                  }}
                 />
               ))}
             </div>
@@ -1123,7 +1182,8 @@ export default function AgentPage() {
           {/* ── Sidebar Overlay (mobile) ── */}
           {sidebarOpen && (
             <div
-              className="fixed inset-0 bg-black/20 z-40 lg:hidden"
+              className="fixed inset-0 z-40 lg:hidden"
+              style={{ background: 'rgba(0,0,0,0.6)' }}
               onClick={() => setSidebarOpen(false)}
             />
           )}
@@ -1132,20 +1192,21 @@ export default function AgentPage() {
           <aside
             className={`
               fixed lg:relative z-50 lg:z-auto top-0 left-0 h-full
-              w-[280px] bg-white border-r border-gray-100
+              w-[280px]
               flex flex-col
               transition-transform duration-200 ease-in-out
               ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:hidden'}
             `}
-            style={{ paddingTop: sidebarOpen ? '0' : undefined }}
+            style={{ background: '#0d0d14', borderRight: '1px solid rgba(255,255,255,0.06)', paddingTop: sidebarOpen ? '0' : undefined }}
           >
             {/* Sidebar header */}
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-900">Conversations</span>
+            <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Conversations</span>
               <button
                 type="button"
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400"
+                className="lg:hidden p-1 rounded-lg transition-colors"
+                style={{ color: '#8b8b9e' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18M6 6l12 12" />
@@ -1161,7 +1222,8 @@ export default function AgentPage() {
                   handleClearChat();
                   setSidebarOpen(false);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-white text-sm font-semibold transition-all"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 20px rgba(99,102,241,0.15)' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
@@ -1173,8 +1235,8 @@ export default function AgentPage() {
             {/* Conversation list */}
             <div className="flex-1 overflow-y-auto px-2 pb-4">
               <div className="px-1 mt-1">
-                <div className="px-3 py-2.5 rounded-lg bg-indigo-50 text-sm font-medium text-indigo-900 flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500">
+                <div className="px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2" style={{ background: 'rgba(99,102,241,0.1)', color: '#a5b4fc' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8' }}>
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
                   Current Chat
@@ -1184,7 +1246,7 @@ export default function AgentPage() {
               {/* Research Section */}
               <div className="mt-6 px-1">
                 <div className="flex items-center justify-between px-3 mb-2">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#5a5a6e' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="11" cy="11" r="8" />
                       <path d="m21 21-4.3-4.3" />
@@ -1194,7 +1256,8 @@ export default function AgentPage() {
                 </div>
                 <Link
                   href="/search"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-indigo-600 hover:bg-indigo-50 transition-colors font-medium"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                  style={{ color: '#818cf8' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14M5 12h14" />
@@ -1207,16 +1270,19 @@ export default function AgentPage() {
                       <Link
                         key={brief.id}
                         href={`/brief/${brief.id}`}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group"
+                        style={{ color: '#8b8b9e' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
                         <span className="truncate flex-1 min-w-0">{brief.title || 'Untitled Brief'}</span>
                         <span className="flex items-center gap-1.5 shrink-0 ml-2">
                           {brief.source_count != null && (
-                            <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 rounded-full px-1.5 py-0.5">
+                            <span className="text-[10px] font-medium rounded-full px-1.5 py-0.5" style={{ color: '#818cf8', background: 'rgba(99,102,241,0.1)' }}>
                               {brief.source_count}
                             </span>
                           )}
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px]" style={{ color: '#5a5a6e' }}>
                             {brief.created_at ? new Date(brief.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                           </span>
                         </span>
@@ -1229,7 +1295,7 @@ export default function AgentPage() {
               {/* Workspace Section */}
               <div className="mt-6 px-1">
                 <div className="flex items-center justify-between px-3 mb-2">
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#5a5a6e' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
@@ -1238,7 +1304,10 @@ export default function AgentPage() {
                 </div>
                 <Link
                   href="/workspace"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                  style={{ color: '#8b8b9e' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
@@ -1249,10 +1318,13 @@ export default function AgentPage() {
               </div>
 
               {/* Settings Link */}
-              <div className="mt-6 px-1 border-t border-gray-100 pt-4">
+              <div className="mt-6 px-1 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <Link
                   href="/settings/models"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+                  style={{ color: '#5a5a6e' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#8b8b9e'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5a5a6e'; }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -1269,26 +1341,29 @@ export default function AgentPage() {
 
             {/* Agent Identity Header */}
             {messages.length > 0 && (
-              <div className="border-b border-gray-100 bg-white px-4 sm:px-6 py-2.5 flex items-center justify-between">
+              <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(10,10,15,0.8)' }}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-sm ${isStreaming ? 'shimmer-bg' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full accent-gradient flex items-center justify-center shadow-sm ${isStreaming ? 'shimmer-bg' : ''}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                     </svg>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">{agentName}</span>
+                    <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>{agentName}</span>
                     <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                      <span className="text-[11px] text-gray-400">Online</span>
+                      <span className="w-2 h-2 rounded-full" style={{ background: '#10b981' }}></span>
+                      <span className="text-[11px]" style={{ color: '#5a5a6e' }}>Online</span>
                     </span>
-                    <span className="text-[11px] font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5 ml-1">{selectedModel}</span>
+                    <span className="text-[11px] font-medium rounded-full px-2 py-0.5 ml-1" style={{ color: '#8b8b9e', background: 'rgba(255,255,255,0.06)' }}>{selectedModel}</span>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleClearChat}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: '#5a5a6e' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#5a5a6e'; e.currentTarget.style.background = 'transparent'; }}
                   title="Clear chat"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1302,10 +1377,10 @@ export default function AgentPage() {
             <div ref={chatContainerRef} className="flex-1 overflow-y-auto relative">
               {/* Streaming progress bar */}
               {isStreaming && (
-                <div className="sticky top-0 z-40 h-0.5 w-full bg-gray-100 overflow-hidden">
+                <div className="sticky top-0 z-40 h-0.5 w-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <div
-                    className="h-full w-1/2 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-full"
-                    style={{ animation: 'progress-slide 1.5s ease-in-out infinite' }}
+                    className="h-full w-1/2 rounded-full"
+                    style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1)', animation: 'progress-slide 1.5s ease-in-out infinite' }}
                   />
                 </div>
               )}
@@ -1314,11 +1389,10 @@ export default function AgentPage() {
                 {/* ── Welcome State (no messages) ── */}
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center pt-16 sm:pt-24 text-center px-2">
-                    {/* Greeting */}
-                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                      {getGreeting()}, {userName || 'there'} ✨
+                    <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ color: '#f0f0f5' }}>
+                      {getGreeting()}, {userName || 'there'}
                     </h1>
-                    <p className="text-gray-500 text-base sm:text-lg mb-10">
+                    <p className="text-base sm:text-lg mb-10" style={{ color: '#8b8b9e' }}>
                       What would you like to work on?
                     </p>
 
@@ -1332,16 +1406,18 @@ export default function AgentPage() {
                             setInput(card.prompt);
                             inputRef.current?.focus();
                           }}
-                          className="flex flex-col items-start gap-1.5 text-left p-4 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 transition-all shadow-sm hover:shadow group"
+                          className="flex flex-col items-start gap-1.5 text-left p-4 rounded-xl transition-all group glow-hover"
+                          style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
                         >
-                          <span className="text-2xl">{card.emoji}</span>
-                          <span className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">{card.title}</span>
-                          <span className="text-xs text-gray-500 leading-relaxed">{card.desc}</span>
+                          <span className="text-sm font-semibold transition-colors" style={{ color: '#f0f0f5' }}>{card.title}</span>
+                          <span className="text-xs leading-relaxed" style={{ color: '#8b8b9e' }}>{card.desc}</span>
                         </button>
                       ))}
                     </div>
 
-                    <p className="text-xs text-gray-400 mt-8">or just start typing...</p>
+                    <p className="text-xs mt-8" style={{ color: '#5a5a6e' }}>or just start typing...</p>
                   </div>
                 )}
 
@@ -1361,12 +1437,12 @@ export default function AgentPage() {
                         <div className="flex justify-end mb-4">
                           <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]">
                             <div
-                              className="rounded-2xl px-5 py-3 bg-indigo-600 text-white"
-                              style={{ fontSize: '15px', lineHeight: '1.6' }}
+                              className="rounded-2xl px-5 py-3"
+                              style={{ background: 'rgba(30, 30, 45, 0.8)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5', fontSize: '15px', lineHeight: '1.6' }}
                             >
                               <span>{msg.content}</span>
                             </div>
-                            <span className="text-[10px] text-gray-400 mt-1.5 mr-1">
+                            <span className="text-[10px] mt-1.5 mr-1" style={{ color: '#5a5a6e' }}>
                               {relativeTime(msg.timestamp)}
                             </span>
                           </div>
@@ -1377,7 +1453,7 @@ export default function AgentPage() {
                       {isAgent && (
                         <div className="flex gap-3 mb-4">
                           {/* Avatar */}
-                          <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0 mt-1 shadow-sm ${isStreamingThis ? 'shimmer-bg' : ''}`}>
+                          <div className={`w-7 h-7 rounded-full accent-gradient flex items-center justify-center shrink-0 mt-1 shadow-sm ${isStreamingThis ? 'shimmer-bg' : ''}`}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                             </svg>
@@ -1385,19 +1461,19 @@ export default function AgentPage() {
 
                           <div className="flex-1 min-w-0">
                             {/* Agent label */}
-                            <span className={`text-[12px] text-gray-400 font-medium mb-1 block ${isStreamingThis ? 'shimmer-text' : ''}`}>
+                            <span className={`text-[12px] font-medium mb-1 block ${isStreamingThis ? 'shimmer-text' : ''}`} style={{ color: '#8b8b9e' }}>
                               {agentName}
                             </span>
 
                             {msg.content ? (
                               <div
-                                className="bg-white rounded-2xl rounded-tl-md px-5 py-4 border-l-2 border-indigo-500 shadow-sm"
-                                style={{ fontSize: '15px', lineHeight: '1.7' }}
+                                className="rounded-2xl rounded-tl-md px-5 py-4"
+                                style={{ background: 'rgba(17, 17, 24, 0.8)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid #6366f1', fontSize: '15px', lineHeight: '1.7' }}
                               >
                                 {/* Tool status from SSE events */}
                                 {isStreamingThis && toolStatus && (
                                   <div className="flex items-center gap-2 mb-3">
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full px-2.5 py-1">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1" style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.1)' }}>
                                       <svg
                                         width="12" height="12" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -1413,7 +1489,7 @@ export default function AgentPage() {
                                 {/* Tool use indicator (legacy pattern detection) */}
                                 {toolUse && !toolStatus && (
                                   <div className="flex items-center gap-2 mb-3">
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full px-2.5 py-1">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1" style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.1)' }}>
                                       <svg
                                         width="12" height="12" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -1421,29 +1497,29 @@ export default function AgentPage() {
                                       >
                                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                                       </svg>
-                                      <span>{toolUse.icon} {toolUse.label}</span>
+                                      <span>{toolUse.label}</span>
                                     </span>
                                   </div>
                                 )}
 
-                                <div className="prose prose-sm max-w-none text-gray-900
-                                  [&_pre]:bg-[#1e1e2e] [&_pre]:text-gray-100 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:relative
-                                  [&_code]:bg-violet-100 [&_code]:text-violet-800 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
-                                  [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_pre_code]:rounded-none
-                                  [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
-                                  [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
-                                  [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
+                                <div className="prose prose-sm prose-invert max-w-none
+                                  [&_pre]:bg-[#0c0c14] [&_pre]:text-gray-200 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:relative [&_pre]:border [&_pre]:border-white/5
+                                  [&_code]:bg-indigo-500/10 [&_code]:text-indigo-300 [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono
+                                  [&_pre_code]:bg-transparent [&_pre_code]:text-gray-200 [&_pre_code]:p-0 [&_pre_code]:rounded-none
+                                  [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-[#f0f0f5]
+                                  [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h2]:text-[#f0f0f5]
+                                  [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-[#f0f0f5]
                                   [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2
                                   [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2
-                                  [&_li]:my-0.5
-                                  [&_a]:text-indigo-600 [&_a]:underline [&_a]:hover:text-indigo-800
+                                  [&_li]:my-0.5 [&_li]:text-[#c0c0d0]
+                                  [&_a]:text-indigo-400 [&_a]:underline [&_a]:hover:text-indigo-300
                                   [&_table]:border-collapse [&_table]:w-full [&_table]:my-3
-                                  [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold
-                                  [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm
-                                  [&_tr:nth-child(even)]:bg-gray-50
-                                  [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
-                                  [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-2
-                                  [&_hr]:my-4 [&_hr]:border-gray-200
+                                  [&_th]:border [&_th]:border-white/10 [&_th]:bg-white/5 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th]:text-[#f0f0f5]
+                                  [&_td]:border [&_td]:border-white/5 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-sm [&_td]:text-[#c0c0d0]
+                                  [&_tr:nth-child(even)]:bg-white/[0.02]
+                                  [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_p]:text-[#c0c0d0]
+                                  [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-500/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#8b8b9e] [&_blockquote]:my-2
+                                  [&_hr]:my-4 [&_hr]:border-white/5
                                 ">
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
@@ -1456,27 +1532,29 @@ export default function AgentPage() {
                                 </div>
                               </div>
                             ) : (
-                              /* Streaming placeholder — "Thinking..." or tool status */
-                              <div className="bg-white rounded-2xl rounded-tl-md px-5 py-4 border-l-2 border-indigo-500 shadow-sm">
+                              /* Streaming placeholder */
+                              <div
+                                className="rounded-2xl rounded-tl-md px-5 py-4"
+                                style={{ background: 'rgba(17, 17, 24, 0.8)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid #6366f1' }}
+                              >
                                 {toolStatus ? (
                                   <div className="flex items-center gap-2">
                                     <svg
                                       width="14" height="14" viewBox="0 0 24 24" fill="none"
                                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                                      className="text-indigo-500"
-                                      style={{ animation: 'spin-slow 1s linear infinite' }}
+                                      style={{ color: '#818cf8', animation: 'spin-slow 1s linear infinite' }}
                                     >
                                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                                     </svg>
-                                    <span className="text-sm font-medium text-gray-500 italic">{toolStatus}</span>
+                                    <span className="text-sm font-medium italic" style={{ color: '#8b8b9e' }}>{toolStatus}</span>
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium shimmer-text">{agentBooting ? 'Starting your agent' : 'Thinking'}</span>
                                     <span className="flex gap-1">
-                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
-                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
-                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8', animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8', animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8', animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
                                     </span>
                                   </div>
                                 )}
@@ -1485,7 +1563,7 @@ export default function AgentPage() {
 
                             {/* Timestamp + Action buttons for completed agent messages */}
                             <div className="flex items-center gap-1 mt-1.5 ml-1">
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-[10px]" style={{ color: '#5a5a6e' }}>
                                 {relativeTime(msg.timestamp)}
                               </span>
 
@@ -1499,7 +1577,10 @@ export default function AgentPage() {
                                       setCopiedMessageId(msg.id);
                                       setTimeout(() => setCopiedMessageId(null), 2000);
                                     }}
-                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    className="p-1.5 rounded-md transition-all"
+                                    style={{ color: '#5a5a6e' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color = '#5a5a6e'; e.currentTarget.style.background = 'transparent'; }}
                                     title="Copy response"
                                   >
                                     {copiedMessageId === msg.id ? (
@@ -1516,7 +1597,10 @@ export default function AgentPage() {
                                   {/* Regenerate */}
                                   <button
                                     type="button"
-                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    className="p-1.5 rounded-md transition-all"
+                                    style={{ color: '#5a5a6e' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color = '#5a5a6e'; e.currentTarget.style.background = 'transparent'; }}
                                     title="Regenerate"
                                   >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1527,7 +1611,10 @@ export default function AgentPage() {
                                   {/* Thumbs up */}
                                   <button
                                     type="button"
-                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    className="p-1.5 rounded-md transition-all"
+                                    style={{ color: '#5a5a6e' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color = '#5a5a6e'; e.currentTarget.style.background = 'transparent'; }}
                                     title="Good response"
                                   >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1537,7 +1624,10 @@ export default function AgentPage() {
                                   {/* Thumbs down */}
                                   <button
                                     type="button"
-                                    className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                                    className="p-1.5 rounded-md transition-all"
+                                    style={{ color: '#5a5a6e' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color = '#5a5a6e'; e.currentTarget.style.background = 'transparent'; }}
                                     title="Poor response"
                                   >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1562,21 +1652,27 @@ export default function AgentPage() {
                 <button
                   type="button"
                   onClick={scrollToBottom}
-                  className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-50 transition-all hover:shadow-xl"
+                  className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 rounded-full px-4 py-2 flex items-center gap-2 text-sm transition-all"
+                  style={{ background: 'rgba(17,17,24,0.9)', border: '1px solid rgba(255,255,255,0.1)', color: '#8b8b9e', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}
                 >
-                  <span>↓</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
                   <span>New messages</span>
                 </button>
               )}
             </div>
 
             {/* ════════════════════════ Input Bar ════════════════════════ */}
-            <div className="bg-gray-50/80 backdrop-blur-sm border-t border-gray-100 px-4 py-3 sm:py-4">
+            <div className="backdrop-blur-xl px-4 py-3 sm:py-4" style={{ background: 'rgba(10,10,15,0.8)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <form
                 onSubmit={handleSubmit}
                 className="max-w-3xl mx-auto"
               >
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 transition-all overflow-hidden">
+                <div
+                  className="rounded-2xl overflow-hidden transition-all"
+                  style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 30px rgba(0,0,0,0.3)' }}
+                >
                   {/* Textarea */}
                   <div className="px-4 pt-3">
                     <textarea
@@ -1586,8 +1682,8 @@ export default function AgentPage() {
                       onKeyDown={handleKeyDown}
                       placeholder={`Message ${agentName}...`}
                       rows={1}
-                      className="w-full resize-none bg-transparent text-gray-900 placeholder-gray-400 outline-none"
-                      style={{ maxHeight: '120px', fontSize: '15px', lineHeight: '1.6' }}
+                      className="w-full resize-none bg-transparent outline-none"
+                      style={{ maxHeight: '120px', fontSize: '15px', lineHeight: '1.6', color: '#f0f0f5' }}
                       onInput={(e) => {
                         const el = e.target as HTMLTextAreaElement;
                         el.style.height = 'auto';
@@ -1603,7 +1699,8 @@ export default function AgentPage() {
                       <button
                         type="button"
                         disabled
-                        className="p-2 rounded-lg text-gray-300 cursor-not-allowed"
+                        className="p-2 rounded-lg cursor-not-allowed"
+                        style={{ color: '#3a3a4e' }}
                         title="Attach file — Coming soon"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1615,11 +1712,12 @@ export default function AgentPage() {
                       <button
                         type="button"
                         onClick={() => setSearchToggled(!searchToggled)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          searchToggled
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
-                        }`}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
+                        style={{
+                          background: searchToggled ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(255,255,255,0.06)',
+                          color: searchToggled ? '#fff' : '#8b8b9e',
+                          border: `1px solid ${searchToggled ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
+                        }}
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="11" cy="11" r="8" />
@@ -1636,7 +1734,8 @@ export default function AgentPage() {
                             e.stopPropagation();
                             setModelDropdownOpen(!modelDropdownOpen);
                           }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 text-xs font-medium transition-all"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: '#8b8b9e', border: '1px solid rgba(255,255,255,0.08)' }}
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -1645,18 +1744,20 @@ export default function AgentPage() {
                             <path d="M8 22h8" />
                           </svg>
                           {selectedModel}
-                          {selectedModel === 'Auto' && <span className="text-[10px]">🧠⚡</span>}
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m6 9 6 6 6-6" />
                           </svg>
                         </button>
 
                         {modelDropdownOpen && (
-                          <div className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50">
+                          <div
+                            className="absolute bottom-full left-0 mb-2 w-52 rounded-xl py-1 z-50"
+                            style={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}
+                          >
                             {[
-                              { value: 'Auto', label: 'Auto (Brain + Worker)', badge: '🧠⚡' },
-                              { value: 'Brain', label: 'Brain Only', badge: '🧠' },
-                              { value: 'Worker', label: 'Worker Only', badge: '⚡' },
+                              { value: 'Auto', label: 'Auto (Brain + Worker)' },
+                              { value: 'Brain', label: 'Brain Only' },
+                              { value: 'Worker', label: 'Worker Only' },
                             ].map((opt) => (
                               <button
                                 key={opt.value}
@@ -1666,17 +1767,19 @@ export default function AgentPage() {
                                   setSelectedModel(opt.value);
                                   setModelDropdownOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
-                                  selectedModel === opt.value
-                                    ? 'text-indigo-600 bg-indigo-50 font-medium'
-                                    : 'text-gray-700 hover:bg-gray-50'
-                                }`}
+                                className="w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between"
+                                style={{
+                                  color: selectedModel === opt.value ? '#a5b4fc' : '#8b8b9e',
+                                  background: selectedModel === opt.value ? 'rgba(99,102,241,0.1)' : 'transparent',
+                                  fontWeight: selectedModel === opt.value ? 500 : 400,
+                                }}
+                                onMouseEnter={(e) => { if (selectedModel !== opt.value) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                                onMouseLeave={(e) => { if (selectedModel !== opt.value) e.currentTarget.style.background = 'transparent'; }}
                               >
                                 <span>{opt.label}</span>
-                                {selectedModel === opt.value && <span className="text-xs">{opt.badge}</span>}
                               </button>
                             ))}
-                            <div className="border-t border-gray-100 my-1" />
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '4px 0' }} />
                             {['Claude', 'GPT-4', 'Gemini'].map((model) => (
                               <button
                                 key={model}
@@ -1686,11 +1789,14 @@ export default function AgentPage() {
                                   setSelectedModel(model);
                                   setModelDropdownOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                                  selectedModel === model
-                                    ? 'text-indigo-600 bg-indigo-50 font-medium'
-                                    : 'text-gray-700 hover:bg-gray-50'
-                                }`}
+                                className="w-full text-left px-3 py-2 text-sm transition-colors"
+                                style={{
+                                  color: selectedModel === model ? '#a5b4fc' : '#8b8b9e',
+                                  background: selectedModel === model ? 'rgba(99,102,241,0.1)' : 'transparent',
+                                  fontWeight: selectedModel === model ? 500 : 400,
+                                }}
+                                onMouseEnter={(e) => { if (selectedModel !== model) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                                onMouseLeave={(e) => { if (selectedModel !== model) e.currentTarget.style.background = 'transparent'; }}
                               >
                                 {model}
                               </button>
@@ -1703,14 +1809,15 @@ export default function AgentPage() {
                     <div className="flex items-center gap-2">
                       {/* Character count */}
                       {input.length > 100 && (
-                        <span className="text-[11px] text-gray-400">{input.length}</span>
+                        <span className="text-[11px]" style={{ color: '#5a5a6e' }}>{input.length}</span>
                       )}
 
                       {/* Send button */}
                       <button
                         type="submit"
                         disabled={!input.trim() || isStreaming}
-                        className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:scale-105 active:scale-95 shadow-sm"
+                        className="h-10 w-10 rounded-xl text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:scale-105 active:scale-95"
+                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 20px rgba(99,102,241,0.2)' }}
                       >
                         {isStreaming ? (
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1724,7 +1831,7 @@ export default function AgentPage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-400 text-center mt-2">
+                <p className="text-[11px] text-center mt-2" style={{ color: '#5a5a6e' }}>
                   Shift + Enter for new line
                 </p>
               </form>
