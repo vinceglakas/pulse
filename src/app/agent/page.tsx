@@ -151,6 +151,9 @@ export default function AgentPage() {
   /* ── Tool status from SSE ── */
   const [toolStatus, setToolStatus] = useState<string | null>(null);
 
+  /* ── Agent boot status ── */
+  const [agentBooting, setAgentBooting] = useState(false);
+
   /* ── Onboarding state ── */
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -301,6 +304,8 @@ export default function AgentPage() {
       { id: agentMsgId, role: 'agent', content: '', timestamp: new Date() },
     ]);
 
+    setAgentBooting(true);
+
     try {
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
@@ -315,7 +320,11 @@ export default function AgentPage() {
         }),
       });
 
-      if (!res.ok || !res.body) throw new Error('Failed to connect');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+      if (!res.body) throw new Error('No response body');
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -336,6 +345,7 @@ export default function AgentPage() {
             try {
               const parsed = JSON.parse(data);
               if (parsed.tool_start) {
+                setAgentBooting(false);
                 setToolStatus(parsed.status || `Running ${parsed.tool_start}…`);
               } else if (parsed.tool_done) {
                 setToolStatus(null);
@@ -343,6 +353,7 @@ export default function AgentPage() {
                 setToolStatus(parsed.status);
               }
               if (parsed.text) {
+                setAgentBooting(false);
                 setToolStatus(null);
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -353,6 +364,7 @@ export default function AgentPage() {
                 );
               }
             } catch {
+              setAgentBooting(false);
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === agentMsgId
@@ -364,18 +376,18 @@ export default function AgentPage() {
           }
         }
       }
-    } catch {
+    } catch (err: any) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === agentMsgId
-            ? { ...m, content: 'Something went wrong. Please try again.' }
+            ? { ...m, content: err?.message?.includes('API key') ? '🔑 Your API key appears to be invalid. Please check it in Settings → API Keys.' : err?.message?.includes('unavailable') ? '⚡ Your AI agent is warming up. Please try again in a moment.' : `Something went wrong: ${err?.message || 'Unknown error'}. Please try again.` }
             : m
         )
       );
     } finally {
       setIsStreaming(false);
+      setAgentBooting(false);
       setToolStatus(null);
-      // NOTE: Do NOT save assistant message here — the chat API route saves it to avoid duplicates
     }
   };
 
@@ -1460,7 +1472,7 @@ export default function AgentPage() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium shimmer-text">Thinking</span>
+                                    <span className="text-sm font-medium shimmer-text">{agentBooting ? 'Starting your agent' : 'Thinking'}</span>
                                     <span className="flex gap-1">
                                       <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
                                       <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" style={{ animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />

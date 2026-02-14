@@ -110,38 +110,47 @@ export async function POST(req: NextRequest) {
       } as any) as any);
     } catch {}
 
-    // Ensure agent is spawned on Ultron
-    try {
-      const spawnRes = await fetch(`${ULTRON_URL}/api/agent/spawn`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ULTRON_API_SECRET}`,
-        },
-        body: JSON.stringify({
-          userId,
-          apiKey,
-          provider,
-          userContext: {
-            name: profile?.full_name,
-            role: profile?.role,
-            industry: profile?.industry,
-            currentFocus: profile?.current_focus,
-            plan: profile?.plan,
-          },
-        }),
-        signal: AbortSignal.timeout(60000),
-      });
+    // Ensure agent is spawned on Ultron (with retry for Fly.io cold starts)
+    const spawnBody = JSON.stringify({
+      userId,
+      apiKey,
+      provider,
+      userContext: {
+        name: profile?.full_name,
+        role: profile?.role,
+        industry: profile?.industry,
+        currentFocus: profile?.current_focus,
+        plan: profile?.plan,
+      },
+    });
 
-      if (!spawnRes.ok) {
-        const err = await spawnRes.text();
-        console.error('Ultron spawn error:', err);
-        return new Response(JSON.stringify({ error: 'Failed to start your AI agent. Please try again.' }), {
-          status: 502, headers: { 'Content-Type': 'application/json' },
+    let spawnOk = false;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const spawnRes = await fetch(`${ULTRON_URL}/api/agent/spawn`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${ULTRON_API_SECRET}`,
+          },
+          body: spawnBody,
+          signal: AbortSignal.timeout(attempt === 0 ? 45000 : 60000),
         });
+
+        if (spawnRes.ok) {
+          spawnOk = true;
+          break;
+        }
+        const err = await spawnRes.text();
+        console.error(`Ultron spawn attempt ${attempt + 1} failed:`, err);
+      } catch (err: any) {
+        console.error(`Ultron spawn attempt ${attempt + 1} error:`, err.message);
       }
-    } catch (err: any) {
-      console.error('Ultron spawn failed:', err.message);
+      // Wait before retry (Fly.io VM might be waking up)
+      if (attempt === 0) await new Promise(r => setTimeout(r, 3000));
+    }
+
+    if (!spawnOk) {
       return new Response(JSON.stringify({ error: 'AI engine unavailable. Please try again in a moment.' }), {
         status: 502, headers: { 'Content-Type': 'application/json' },
       });
