@@ -88,6 +88,21 @@ export async function POST(req: NextRequest) {
     }
     const provider = keyRow.provider;
 
+    // Load conversation history
+    let history: Array<{ role: string; content: string }> = [];
+    try {
+      const historyRes = await supabase.from('agent_messages' as any)
+        .select('role, content')
+        .eq('user_id', userId)
+        .eq('session_key', sessionKey)
+        .order('created_at', { ascending: true })
+        .limit(30);
+      history = ((historyRes as any).data || []).map((h: any) => ({
+        role: h.role === 'assistant' || h.role === 'agent' ? 'assistant' : 'user',
+        content: h.content,
+      })).filter((h: any) => h.content?.trim());
+    } catch {}
+
     // Save user message to history
     try {
       await (supabase.from('agent_messages' as any).insert({
@@ -141,7 +156,7 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${ULTRON_API_SECRET}`,
         },
-        body: JSON.stringify({ userId, message, sessionKey }),
+        body: JSON.stringify({ userId, message, sessionKey, history }),
         signal: AbortSignal.timeout(90000),
       });
 
