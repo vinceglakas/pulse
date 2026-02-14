@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import type { StructuredBrief, SourcePost } from "@/lib/types";
 import { ShareButtons } from "./share-buttons";
+import { SaveToAccountButton } from "./save-to-account";
 import { DeeperSection } from "./deeper-section";
 
 type Props = {
@@ -228,11 +229,18 @@ export default async function BriefPublicPage({ params }: Props) {
         <DeeperSection topic={topic} briefText={structured?.executive_summary || ""} keyThemes={structured?.key_themes || []} />
 
         {/* Share / Draft buttons */}
-        <ShareButtons
-          url={briefUrl}
-          topic={topic}
-          briefText={structured?.executive_summary || (data.brief_text as string)}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <ShareButtons
+            url={briefUrl}
+            topic={topic}
+            briefText={structured?.executive_summary || (data.brief_text as string)}
+          />
+          <SaveToAccountButton
+            topic={topic}
+            briefText={structured?.executive_summary || (data.brief_text as string)}
+            source={briefUrl}
+          />
+        </div>
 
         {/* CTA */}
         <div className="mt-12 text-center">

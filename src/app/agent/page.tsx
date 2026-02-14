@@ -54,17 +54,35 @@ function detectToolUse(content: string): { label: string } | null {
   return null;
 }
 
+/* ── Attachment interface ── */
+interface FileAttachment {
+  name: string;
+  type: string;
+  data: string; // base64
+  size: number;
+}
+
+/* ── Model config ── */
+const MODEL_OPTIONS = [
+  { value: 'Claude', label: 'Claude', provider: 'anthropic', desc: 'Anthropic' },
+  { value: 'GPT-4', label: 'GPT-4', provider: 'openai', desc: 'OpenAI' },
+  { value: 'Gemini', label: 'Gemini', provider: 'google', desc: 'Google' },
+  { value: 'Kimi', label: 'Kimi', provider: 'moonshot', desc: 'Moonshot' },
+];
+
 /* ── Model → Provider mapping ── */
 function getPreferredProvider(model: string): string | undefined {
+  const found = MODEL_OPTIONS.find((m) => m.value === model);
+  if (found) return found.provider;
   switch (model) {
-    case 'Claude': return 'anthropic';
-    case 'GPT-4': return 'openai';
-    case 'Gemini': return 'google';
     case 'Brain': return 'brain';
     case 'Worker': return 'worker';
     default: return undefined;
   }
 }
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_FILE_TYPES = '.pdf,.csv,.txt,.md,.json,.png,.jpg,.gif,.xlsx,.doc,.docx';
 
 /* ── Welcome suggestion cards ── */
 const WELCOME_CARDS = [
@@ -134,10 +152,18 @@ export default function AgentPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [savedBriefs, setSavedBriefs] = useState<any[]>([]);
 
+  /* ── File upload state ── */
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   /* ── Input toolbar state ── */
   const [searchToggled, setSearchToggled] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('Auto');
+  const [selectedModel, setSelectedModel] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('pulsed-selected-model') || 'Claude';
+    return 'Claude';
+  });
 
   /* ── Message action state ── */
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -161,12 +187,24 @@ export default function AgentPage() {
   const [onboardingIndustry, setOnboardingIndustry] = useState('');
   const [onboardingFocus, setOnboardingFocus] = useState('');
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const isInitialScrollRef = useRef(true);
   const [onboardingExiting, setOnboardingExiting] = useState(false);
   const [onboardingProvider, setOnboardingProvider] = useState('anthropic');
   const [onboardingApiKey, setOnboardingApiKey] = useState('');
   const [expandedProvider, setExpandedProvider] = useState<number | null>(0);
   const [onboardingTelegram, setOnboardingTelegram] = useState('');
   const [onboardingDiscord, setOnboardingDiscord] = useState('');
+
+  /* ── Persist model selection ── */
+  useEffect(() => {
+    localStorage.setItem('pulsed-selected-model', selectedModel);
+  }, [selectedModel]);
+
+  /* ── Load userName from localStorage on mount ── */
+  useEffect(() => {
+    const cached = localStorage.getItem('pulsed-user-name');
+    if (cached) setUserName(cached);
+  }, []);
 
   /* ── Auth + load history ── */
   useEffect(() => {
@@ -183,7 +221,10 @@ export default function AgentPage() {
           });
           const profileData = await profileRes.json();
           setUserPlan(profileData?.plan || 'free');
-          if (profileData?.name) setUserName(profileData.name);
+          if (profileData?.name) {
+            setUserName(profileData.name);
+            localStorage.setItem('pulsed-user-name', profileData.name);
+          }
           if (profileData?.agent_name) setAgentName(profileData.agent_name);
         } catch {
           setUserPlan('free');
@@ -238,8 +279,15 @@ export default function AgentPage() {
 
   /* ── Auto-scroll ── */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isInitialScrollRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+      if (messages.length > 0 && historyLoaded) {
+        isInitialScrollRef.current = false;
+      }
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, historyLoaded]);
 
   /* ── Scroll detection for "scroll to bottom" button ── */
   const handleScroll = useCallback(() => {
@@ -281,14 +329,21 @@ export default function AgentPage() {
     const text = input.trim();
     if (!text || isStreaming) return;
 
+    const currentAttachments = [...attachments];
+    const fileNames = currentAttachments.map((a) => a.name);
+    const displayContent = fileNames.length > 0
+      ? `${text}\n\n📎 ${fileNames.join(', ')}`
+      : text;
+
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: text,
+      content: displayContent,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setAttachments([]);
     setIsStreaming(true);
 
     const agentMsgId = crypto.randomUUID();
@@ -299,6 +354,7 @@ export default function AgentPage() {
 
     setAgentBooting(true);
 
+    const provider = getPreferredProvider(selectedModel);
     try {
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
@@ -309,7 +365,8 @@ export default function AgentPage() {
         body: JSON.stringify({
           message: text,
           sessionKey: 'default',
-          ...(getPreferredProvider(selectedModel) ? { preferredProvider: getPreferredProvider(selectedModel) } : {}),
+          ...(provider ? { preferredProvider: provider, model: selectedModel, provider } : {}),
+          ...(currentAttachments.length > 0 ? { attachments: currentAttachments.map(({ name, type, data }) => ({ name, type, data })) } : {}),
         }),
       });
 
@@ -391,6 +448,46 @@ export default function AgentPage() {
     }
   };
 
+  /* ── File upload helpers ── */
+  const handleFileSelect = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`File "${file.name}" exceeds 10MB limit.`);
+        continue;
+      }
+      const data = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1] || '');
+        };
+        reader.readAsDataURL(file);
+      });
+      setAttachments((prev) => [...prev, { name: file.name, type: file.type, data, size: file.size }]);
+    }
+  }, []);
+
+  const removeAttachment = useCallback((index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files);
+  }, [handleFileSelect]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+
   /* ── Onboarding helpers ── */
   const showOnboarding =
     historyLoaded &&
@@ -439,6 +536,7 @@ export default function AgentPage() {
       setOnboardingExiting(false);
       setOnboardingTransition(false);
       setUserName(onboardingName);
+      localStorage.setItem('pulsed-user-name', onboardingName);
       setAgentName(onboardingAgentName.trim() || 'Pulsed Agent');
 
       setInput(firstMessage);
@@ -673,6 +771,7 @@ export default function AgentPage() {
             <Link href="/search" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Research</Link>
             <span className="text-sm font-semibold" style={{ color: '#818cf8' }}>Agent</span>
             <Link href="/workspace" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Workspace</Link>
+            <Link href="/accounts" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Accounts</Link>
             <Link href="/history" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>History</Link>
           </div>
         </div>
@@ -1337,7 +1436,24 @@ export default function AgentPage() {
           </aside>
 
           {/* ── Chat Column ── */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div
+            className="flex-1 flex flex-col min-w-0 relative"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+          >
+            {/* Drag overlay */}
+            {dragOver && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(10,10,15,0.85)', border: '2px dashed rgba(99,102,241,0.5)', borderRadius: '16px' }}>
+                <div className="text-center">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3">
+                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                  <p className="text-lg font-semibold" style={{ color: '#a5b4fc' }}>Drop files here</p>
+                  <p className="text-sm mt-1" style={{ color: '#5a5a6e' }}>Max 10MB per file</p>
+                </div>
+              </div>
+            )}
 
             {/* Agent Identity Header */}
             {messages.length > 0 && (
@@ -1673,6 +1789,33 @@ export default function AgentPage() {
                   className="rounded-2xl overflow-hidden transition-all"
                   style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 30px rgba(0,0,0,0.3)' }}
                 >
+                  {/* File attachment chips */}
+                  {attachments.length > 0 && (
+                    <div className="px-4 pt-3 pb-0 flex flex-wrap gap-2">
+                      {attachments.map((file, idx) => (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs"
+                          style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                          </svg>
+                          <span className="max-w-[120px] truncate">{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(idx)}
+                            className="ml-0.5 hover:text-white transition-colors"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Textarea */}
                   <div className="px-4 pt-3">
                     <textarea
@@ -1695,13 +1838,26 @@ export default function AgentPage() {
                   {/* Toolbar row */}
                   <div className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-center gap-1">
-                      {/* Attach file (disabled) */}
+                      {/* Attach file */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept={ACCEPTED_FILE_TYPES}
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) handleFileSelect(e.target.files);
+                          e.target.value = '';
+                        }}
+                      />
                       <button
                         type="button"
-                        disabled
-                        className="p-2 rounded-lg cursor-not-allowed"
-                        style={{ color: '#3a3a4e' }}
-                        title="Attach file — Coming soon"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{ color: '#8b8b9e' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#f0f0f5'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = '#8b8b9e'; e.currentTarget.style.background = 'transparent'; }}
+                        title="Attach file"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
@@ -1751,14 +1907,10 @@ export default function AgentPage() {
 
                         {modelDropdownOpen && (
                           <div
-                            className="absolute bottom-full left-0 mb-2 w-52 rounded-xl py-1 z-50"
-                            style={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}
+                            className="absolute bottom-full left-0 mb-2 w-56 rounded-xl py-1.5 z-50"
+                            style={{ background: 'rgba(17,17,24,0.95)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}
                           >
-                            {[
-                              { value: 'Auto', label: 'Auto (Brain + Worker)' },
-                              { value: 'Brain', label: 'Brain Only' },
-                              { value: 'Worker', label: 'Worker Only' },
-                            ].map((opt) => (
+                            {MODEL_OPTIONS.map((opt) => (
                               <button
                                 key={opt.value}
                                 type="button"
@@ -1767,38 +1919,23 @@ export default function AgentPage() {
                                   setSelectedModel(opt.value);
                                   setModelDropdownOpen(false);
                                 }}
-                                className="w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between"
+                                className="w-full text-left px-3 py-2.5 transition-colors flex items-center justify-between"
                                 style={{
-                                  color: selectedModel === opt.value ? '#a5b4fc' : '#8b8b9e',
+                                  color: selectedModel === opt.value ? '#a5b4fc' : '#f0f0f5',
                                   background: selectedModel === opt.value ? 'rgba(99,102,241,0.1)' : 'transparent',
-                                  fontWeight: selectedModel === opt.value ? 500 : 400,
                                 }}
-                                onMouseEnter={(e) => { if (selectedModel !== opt.value) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                                onMouseEnter={(e) => { if (selectedModel !== opt.value) e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; }}
                                 onMouseLeave={(e) => { if (selectedModel !== opt.value) e.currentTarget.style.background = 'transparent'; }}
                               >
-                                <span>{opt.label}</span>
-                              </button>
-                            ))}
-                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '4px 0' }} />
-                            {['Claude', 'GPT-4', 'Gemini'].map((model) => (
-                              <button
-                                key={model}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedModel(model);
-                                  setModelDropdownOpen(false);
-                                }}
-                                className="w-full text-left px-3 py-2 text-sm transition-colors"
-                                style={{
-                                  color: selectedModel === model ? '#a5b4fc' : '#8b8b9e',
-                                  background: selectedModel === model ? 'rgba(99,102,241,0.1)' : 'transparent',
-                                  fontWeight: selectedModel === model ? 500 : 400,
-                                }}
-                                onMouseEnter={(e) => { if (selectedModel !== model) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                                onMouseLeave={(e) => { if (selectedModel !== model) e.currentTarget.style.background = 'transparent'; }}
-                              >
-                                {model}
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{opt.label}</span>
+                                  <span className="text-[11px]" style={{ color: '#5a5a6e' }}>{opt.desc}</span>
+                                </div>
+                                {selectedModel === opt.value && (
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                )}
                               </button>
                             ))}
                           </div>

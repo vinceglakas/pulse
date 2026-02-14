@@ -74,7 +74,8 @@ export default function ArtifactTable({ artifact, onUpdate }: Props) {
       if (col.type === 'select' && col.options) {
         return (
           <select
-            className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            style={{ background: '#1a1a2a', borderColor: 'rgba(99,102,241,0.4)', color: '#f0f0f5' }}
             value={editValue}
             onChange={e => setEditValue(e.target.value)}
             onBlur={saveEdit}
@@ -88,7 +89,8 @@ export default function ArtifactTable({ artifact, onUpdate }: Props) {
       return (
         <input
           ref={inputRef}
-          className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          style={{ background: '#1a1a2a', borderColor: 'rgba(99,102,241,0.4)', color: '#f0f0f5' }}
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
           onBlur={saveEdit}
@@ -106,76 +108,97 @@ export default function ArtifactTable({ artifact, onUpdate }: Props) {
           </span>
         ) : null;
       case 'currency':
-        return <span className="font-medium tabular-nums">{formatCurrency(display)}</span>;
+        return <span className="font-medium tabular-nums" style={{ color: '#a78bfa' }}>{formatCurrency(display)}</span>;
       case 'url':
-        return display ? <a href={display} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline truncate block max-w-[200px]">{display}</a> : null;
+        return display ? <a href={display} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline truncate block max-w-[200px]">{display}</a> : null;
       case 'email':
-        return display ? <a href={`mailto:${display}`} className="text-indigo-600 hover:underline">{display}</a> : null;
+        return display ? <a href={`mailto:${display}`} className="text-indigo-400 hover:text-indigo-300 hover:underline">{display}</a> : null;
       case 'phone':
-        return display ? <a href={`tel:${display}`} className="text-indigo-600 hover:underline">{display}</a> : null;
+        return display ? <a href={`tel:${display}`} className="text-indigo-400 hover:text-indigo-300 hover:underline">{display}</a> : null;
       case 'date':
         if (!display) return null;
         try { return <span>{new Date(display).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>; }
         catch { return <span>{display}</span>; }
       default:
-        return <span className="truncate block max-w-[300px]">{String(display)}</span>;
+        return <span className="block" style={{ maxWidth: '350px', lineHeight: '1.5' }}>{String(display)}</span>;
     }
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 bg-gray-50/80">
-            {columns.map(col => (
-              <th
-                key={col.key}
-                className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-indigo-600 transition-colors"
-                style={col.width ? { width: col.width } : undefined}
-                onClick={() => handleSort(col.key)}
-              >
-                <div className="flex items-center gap-1.5">
-                  {col.label}
-                  {sortKey === col.key && (
-                    <span className="text-indigo-500">{sortDir === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-            ))}
-            <th className="w-10 px-2"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {sorted.map(row => (
-            <tr key={row.id} className="hover:bg-indigo-50/30 transition-colors group">
+    <div className="rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(17,17,24,0.8)' }}>
+      <div className="overflow-x-auto overflow-y-auto artifact-table-scroll" style={{ maxHeight: '70vh', scrollbarWidth: 'thin', scrollbarColor: '#333 transparent' }}>
+        <style>{`
+          .artifact-table-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+          .artifact-table-scroll::-webkit-scrollbar-track { background: transparent; }
+          .artifact-table-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+          .artifact-table-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
+        `}</style>
+        <table className="w-full text-sm" style={{ minWidth: `${columns.length * 180}px` }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
               {columns.map(col => (
-                <td
+                <th
                   key={col.key}
-                  className="px-4 py-3 cursor-pointer"
-                  onClick={() => startEdit(row.id, col.key, row[col.key])}
+                  className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors"
+                  style={{ color: '#6b6b80', minWidth: '150px', ...(col.width ? { width: col.width } : {}) }}
+                  onClick={() => handleSort(col.key)}
                 >
-                  {renderCell(col, row[col.key], row.id)}
-                </td>
+                  <div className="flex items-center gap-1.5 hover:text-indigo-400">
+                    {col.label}
+                    {sortKey === col.key && (
+                      <span className="text-indigo-400">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
               ))}
-              <td className="px-2 py-3">
-                <button
-                  onClick={() => deleteRow(row.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
-                  title="Delete row"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
-              </td>
+              <th className="w-10 px-2"></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="border-t border-gray-100 px-4 py-2">
+          </thead>
+          <tbody>
+            {sorted.map(row => (
+              <tr
+                key={row.id}
+                className="group transition-colors"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.04)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                {columns.map(col => (
+                  <td
+                    key={col.key}
+                    className="px-4 py-3 cursor-pointer"
+                    style={{ color: '#c0c0d0' }}
+                    onClick={() => startEdit(row.id, col.key, row[col.key])}
+                  >
+                    {renderCell(col, row[col.key], row.id)}
+                  </td>
+                ))}
+                <td className="px-2 py-3">
+                  <button
+                    onClick={() => deleteRow(row.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
+                    style={{ color: '#555' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#f43f5e'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#555'; }}
+                    title="Delete row"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-4 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <button
           onClick={addRow}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-indigo-600 transition-colors py-1"
+          className="flex items-center gap-1.5 text-sm py-1 transition-colors"
+          style={{ color: '#6b6b80' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6b6b80'; }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14" />

@@ -6,12 +6,12 @@ import ArtifactKanban from './ArtifactKanban';
 import ArtifactList from './ArtifactList';
 import ArtifactDocument from './ArtifactDocument';
 
-const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  table: { label: 'Table', color: 'bg-blue-100 text-blue-700' },
-  kanban: { label: 'Board', color: 'bg-violet-100 text-violet-700' },
-  list: { label: 'List', color: 'bg-emerald-100 text-emerald-700' },
-  document: { label: 'Document', color: 'bg-amber-100 text-amber-700' },
-  chart: { label: 'Chart', color: 'bg-rose-100 text-rose-700' },
+const TYPE_LABELS: Record<string, { label: string; background: string; color: string }> = {
+  table: { label: 'Table', background: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
+  kanban: { label: 'Board', background: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
+  list: { label: 'List', background: 'rgba(52,211,153,0.15)', color: '#34d399' },
+  document: { label: 'Document', background: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
+  chart: { label: 'Chart', background: 'rgba(251,113,133,0.15)', color: '#fb7185' },
 };
 
 interface Props {
@@ -35,7 +35,7 @@ export default function ArtifactRenderer({ artifact, onUpdateRows, onUpdateConte
       case 'document':
         return <ArtifactDocument content={artifact.content || ''} onUpdate={onUpdateContent} />;
       default:
-        return <div className="text-sm text-gray-500 p-8 text-center">Unsupported artifact type: {artifact.type}</div>;
+        return <div className="text-sm p-8 text-center" style={{ color: '#8b8b9e' }}>Unsupported artifact type: {artifact.type}</div>;
     }
   };
 
@@ -47,15 +47,18 @@ export default function ArtifactRenderer({ artifact, onUpdateRows, onUpdateConte
           {artifact.icon && <span className="text-2xl">{artifact.icon}</span>}
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-900">{artifact.name}</h2>
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${typeInfo.color}`}>{typeInfo.label}</span>
+              <h2 className="text-xl font-bold" style={{ color: '#f0f0f5' }}>{artifact.name}</h2>
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: typeInfo.background, color: typeInfo.color }}>{typeInfo.label}</span>
             </div>
-            {artifact.description && <p className="text-sm text-gray-500 mt-0.5">{artifact.description}</p>}
+            {artifact.description && <p className="text-sm mt-0.5" style={{ color: '#8b8b9e' }}>{artifact.description}</p>}
           </div>
         </div>
         <button
           onClick={onDelete}
-          className="text-sm text-gray-400 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+          className="text-sm px-3 py-1.5 rounded-lg transition-colors"
+          style={{ color: '#6b6b80' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#6b6b80'; e.currentTarget.style.background = 'transparent'; }}
         >
           Delete
         </button>

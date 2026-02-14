@@ -116,6 +116,7 @@ export default function DashboardPage() {
             <Link href="/search" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Research</Link>
             <Link href="/agent" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Agent</Link>
             <Link href="/workspace" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Workspace</Link>
+            <Link href="/accounts" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>Accounts</Link>
             <Link href="/history" className="text-sm transition-colors hover:text-indigo-400" style={{ color: '#8b8b9e' }}>History</Link>
             <span className="text-sm font-semibold" style={{ color: '#f0f0f5' }}>Dashboard</span>
           </div>

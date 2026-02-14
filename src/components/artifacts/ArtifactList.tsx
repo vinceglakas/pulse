@@ -8,10 +8,10 @@ interface Props {
   onUpdate: (rows: ArtifactRow[]) => void;
 }
 
-const PRIORITY_STYLES: Record<string, string> = {
-  high: 'bg-red-100 text-red-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-green-100 text-green-700',
+const PRIORITY_STYLES: Record<string, { background: string; color: string }> = {
+  high: { background: 'rgba(239,68,68,0.15)', color: '#f87171' },
+  medium: { background: 'rgba(234,179,8,0.15)', color: '#facc15' },
+  low: { background: 'rgba(34,197,94,0.15)', color: '#4ade80' },
 };
 
 export default function ArtifactList({ artifact, onUpdate }: Props) {
@@ -63,17 +63,19 @@ export default function ArtifactList({ artifact, onUpdate }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}>
       {rows.length === 0 && !adding && (
-        <div className="px-6 py-10 text-center text-sm text-gray-400">No items yet</div>
+        <div className="px-6 py-10 text-center text-sm" style={{ color: '#6b6b80' }}>No items yet</div>
       )}
-      {rows.map(row => (
-        <div key={row.id} className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/30 transition-colors group">
+      {rows.map((row, i) => (
+        <div key={row.id} className="flex items-center gap-3 px-4 py-3 transition-colors group" style={{ borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.04)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
           <button
             onClick={() => toggle(row.id)}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-              row.completed ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300 hover:border-indigo-400'
-            }`}
+            className="w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors"
+            style={{
+              border: row.completed ? '2px solid #818cf8' : '2px solid rgba(255,255,255,0.15)',
+              background: row.completed ? '#818cf8' : 'transparent',
+            }}
           >
             {row.completed && (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -86,7 +88,8 @@ export default function ArtifactList({ artifact, onUpdate }: Props) {
             {editId === row.id ? (
               <input
                 ref={editRef}
-                className="w-full text-sm bg-white border border-indigo-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full text-sm rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                style={{ background: '#1a1a2a', border: '1px solid rgba(99,102,241,0.4)', color: '#f0f0f5' }}
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
                 onBlur={saveEdit}
@@ -94,7 +97,8 @@ export default function ArtifactList({ artifact, onUpdate }: Props) {
               />
             ) : (
               <span
-                className={`text-sm cursor-pointer ${row.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                className="text-sm cursor-pointer"
+                style={{ color: row.completed ? '#6b6b80' : '#f0f0f5', textDecoration: row.completed ? 'line-through' : 'none' }}
                 onClick={() => startEdit(row.id, row.title || '')}
               >
                 {row.title || 'Untitled'}
@@ -104,16 +108,19 @@ export default function ArtifactList({ artifact, onUpdate }: Props) {
 
           <div className="flex items-center gap-2 shrink-0">
             {row.priority && PRIORITY_STYLES[row.priority?.toLowerCase()] && (
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_STYLES[row.priority.toLowerCase()]}`}>
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={PRIORITY_STYLES[row.priority.toLowerCase()]}>
                 {row.priority}
               </span>
             )}
             {row.dueDate && (
-              <span className="text-[11px] text-gray-400">{formatDate(row.dueDate)}</span>
+              <span className="text-[11px]" style={{ color: '#6b6b80' }}>{formatDate(row.dueDate)}</span>
             )}
             <button
               onClick={() => deleteItem(row.id)}
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
+              className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
+              style={{ color: '#6b6b80' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#6b6b80'; e.currentTarget.style.background = 'transparent'; }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
@@ -122,10 +129,11 @@ export default function ArtifactList({ artifact, onUpdate }: Props) {
       ))}
 
       {adding ? (
-        <div className="px-4 py-3">
+        <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <input
             ref={addRef}
-            className="w-full text-sm border border-indigo-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            style={{ background: '#1a1a2a', border: '1px solid rgba(99,102,241,0.4)', color: '#f0f0f5' }}
             placeholder="What needs to be done?"
             value={newText}
             onChange={e => setNewText(e.target.value)}
@@ -134,10 +142,13 @@ export default function ArtifactList({ artifact, onUpdate }: Props) {
           />
         </div>
       ) : (
-        <div className="px-4 py-2">
+        <div className="px-4 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <button
             onClick={() => setAdding(true)}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-indigo-600 transition-colors py-1"
+            className="flex items-center gap-1.5 text-sm transition-colors py-1"
+            style={{ color: '#6b6b80' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#818cf8'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#6b6b80'; }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
             Add item

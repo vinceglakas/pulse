@@ -295,8 +295,8 @@ export default function WorkspacePage() {
         </aside>
 
         {/* Main */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map(n => (

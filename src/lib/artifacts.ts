@@ -35,7 +35,7 @@ export function dbToArtifact(row: any): Artifact {
     icon: row.icon,
     description: row.description,
     columns: row.schema?.columns || [],
-    rows: row.data || [],
+    rows: (row.data || []).map((r: any, i: number) => ({ ...r, id: r.id || `row-${i}-${crypto.randomUUID()}` })),
     groupBy: row.group_by,
     content: row.content,
     createdAt: row.created_at,

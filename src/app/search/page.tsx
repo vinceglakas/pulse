@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import ReferralSection from "../components/ReferralSection";
 
 const STATUS_MESSAGES = [
@@ -24,7 +25,7 @@ const PERSONA_OPTIONS = [
 
 function PersonaPicker({ onSelect }: { onSelect: (p: string) => void }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
+    <div className="flex-1 flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
       <div className="max-w-2xl w-full text-center">
         <p className="text-sm uppercase tracking-wider mb-2" style={{ color: '#6b6b80' }}>Almost there</p>
         <h2 className="text-2xl font-bold mb-2" style={{ color: '#f0f0f5' }}>How will you use this research?</h2>
@@ -100,7 +101,7 @@ function SearchContent() {
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const runResearch = useCallback(async (selectedPersona: string) => {
-    if (!query.trim()) { router.replace("/"); return; }
+    if (!query.trim()) { return; }
     setError(null);
     setIsResearching(true);
 
@@ -169,13 +170,81 @@ function SearchContent() {
     if (persona) runResearch(persona).finally(() => setIsRetrying(false));
   }
 
-  if (!persona && !isResearching && !error) {
-    return <PersonaPicker onSelect={handlePersonaSelect} />;
+  const navBar = (
+    <nav className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'rgba(10,10,15,0.85)', borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="max-w-full mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-1.5">
+          <span className="text-lg font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+          </span>
+        </Link>
+        <div className="flex items-center gap-6">
+          <span className="text-sm font-semibold text-indigo-400">Research</span>
+          <Link href="/agent" className="text-sm transition-colors hover:text-[#f0f0f5]" style={{ color: '#8b8b9e' }}>Agent</Link>
+          <Link href="/workspace" className="text-sm transition-colors hover:text-[#f0f0f5]" style={{ color: '#8b8b9e' }}>Workspace</Link>
+          <Link href="/history" className="text-sm transition-colors hover:text-[#f0f0f5]" style={{ color: '#8b8b9e' }}>History</Link>
+        </div>
+      </div>
+    </nav>
+  );
+
+  // If no query, show search input (with persona picker if no persona saved)
+  if (!query && !isResearching && !error) {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
+        {navBar}
+        {!persona ? (
+          <PersonaPicker onSelect={handlePersonaSelect} />
+        ) : (
+          <div className="flex-1 flex items-center justify-center px-4">
+            <div className="max-w-xl w-full text-center">
+              <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Research anything</h1>
+              <p className="text-sm mb-8" style={{ color: '#8b8b9e' }}>Enter a topic and get an executive brief in under 60 seconds.</p>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const topic = (formData.get('topic') as string)?.trim();
+                if (topic) router.push(`/search?q=${encodeURIComponent(topic)}&persona=${persona}`);
+              }} className="flex gap-3">
+                <input
+                  name="topic"
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. AI in healthcare, California IT procurement, crypto regulation..."
+                  className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  style={{ background: 'rgba(17,17,24,0.8)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-3 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                >
+                  Research
+                </button>
+              </form>
+              <button
+                onClick={() => { setPersona(null); try { localStorage.removeItem('pulsed_persona'); } catch {} }}
+                className="mt-4 text-xs transition-colors hover:text-indigo-400 cursor-pointer"
+                style={{ color: '#6b6b80' }}
+              >
+                Change role ({PERSONA_OPTIONS.find(p => p.id === persona)?.label || persona}) →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
+        {navBar}
+        <div className="flex-1 flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -227,11 +296,14 @@ function SearchContent() {
           </div>
         </div>
       </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
+      {navBar}
+      <div className="flex-1 flex items-center justify-center px-4">
       <div className="text-center">
         {/* Pulsing gradient orb */}
         <div className="relative w-32 h-32 mx-auto mb-10">
@@ -263,6 +335,7 @@ function SearchContent() {
         <p className="mt-6 text-xs" style={{ color: '#6b6b80' }}>
           This usually takes 15-30 seconds
         </p>
+      </div>
       </div>
     </div>
   );

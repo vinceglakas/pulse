@@ -6,11 +6,13 @@ const tiers = [
   {
     name: 'Free',
     price: '$0',
-    period: '/mo',
-    desc: 'Get started with basic research',
+    period: 'forever',
+    desc: 'See what Pulsed can do',
     features: [
-      '3 research briefs/month',
-      'Basic insights',
+      '3 research briefs per month',
+      'All search modes and personas',
+      'Daily Brief of the Day',
+      'Search history',
     ],
     cta: 'get-started',
     highlight: false,
@@ -20,56 +22,22 @@ const tiers = [
   },
   {
     name: 'Pro',
-    price: '$19',
+    price: '$49',
     period: '/mo',
-    desc: 'Full intelligence for power users',
+    desc: 'Your personal AI agent that builds anything',
     features: [
-      '50 research briefs/month',
-      'All personas (Analyst, Sales, Marketing, Creator)',
-      'Search history & bookmarks',
+      'Unlimited research briefs',
+      'Personal AI agent',
+      'BYOLLM — any model, any provider',
+      'Web search, code, file management',
+      'Autonomous scheduled tasks',
+      'Telegram and Discord integrations',
+      'Priority support',
     ],
     cta: 'subscribe',
     plan: 'pro',
-    highlight: false,
-    badge: null,
-    byollm: false,
-    comingSoon: false,
-  },
-  {
-    name: 'Agent',
-    price: '$49',
-    period: '/mo',
-    desc: 'Your personal AI research agent',
-    features: [
-      'Everything in Pro',
-      'Personal AI agent',
-      'BYOLLM -- bring your own API key',
-      'Web search, code execution, file workspace',
-      'Chat interface at /agent',
-    ],
-    cta: 'subscribe',
-    plan: 'agent',
     highlight: true,
-    badge: 'Most Popular',
-    byollm: true,
-    comingSoon: false,
-  },
-  {
-    name: 'Ultra',
-    price: '$99',
-    period: '/mo',
-    desc: 'Unlimited power, fully autonomous',
-    features: [
-      'Everything in Agent',
-      'Unlimited research briefs',
-      'Autonomous tasks & cron jobs',
-      'Telegram/Discord/Slack integrations',
-      'Priority compute',
-    ],
-    cta: 'subscribe',
-    plan: 'ultra',
-    highlight: false,
-    badge: null,
+    badge: 'Full Power',
     byollm: true,
     comingSoon: false,
   },
@@ -78,15 +46,19 @@ const tiers = [
 const faqs = [
   {
     q: 'What is BYOLLM?',
-    a: 'BYOLLM (Bring Your Own LLM) lets you connect your own API keys from providers like OpenAI, Anthropic, Google, and others. You get full control over which models power your research agent.',
+    a: 'BYOLLM (Bring Your Own LLM) means you connect your own API key from any AI provider — OpenAI, Anthropic, Google, Moonshot, or any OpenAI-compatible endpoint. You pick the model, you control the costs, your data stays in your environment.',
   },
   {
     q: 'Do I need my own API key?',
-    a: 'No -- Agent and Ultra tiers include a generous default allocation. BYOLLM is optional for users who want to use specific models or their own existing API credits.',
+    a: 'Not for the free tier — you get 3 research briefs per month using our platform. To unlock the full AI agent (Pro tier), you bring your own API key. This keeps your costs transparent and gives you full control.',
   },
   {
     q: 'What AI models are supported?',
-    a: 'We support OpenAI (GPT-4o, o1), Anthropic (Claude), Google (Gemini), and many open-source models via OpenRouter. Bring any OpenAI-compatible endpoint.',
+    a: 'Anthropic (Claude Opus, Sonnet, Haiku), OpenAI (GPT-4.1, o4-mini, Codex), Google (Gemini 2.5), Moonshot (Kimi K2), Meta (Llama via OpenRouter), and any OpenAI-compatible API endpoint.',
+  },
+  {
+    q: 'Can I cancel anytime?',
+    a: 'Yes. No contracts, no commitments. Cancel anytime and your subscription stays active through the end of your billing period.',
   },
 ];
 
@@ -125,7 +97,7 @@ export default function PricingPage() {
 
       {/* Cards */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {tiers.map((tier) => (
             <div
               key={tier.name}

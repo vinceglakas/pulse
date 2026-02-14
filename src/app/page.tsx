@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ReferralCapture from './components/ReferralCapture';
+import BriefOfTheDay from './components/BriefOfTheDay';
 
 export default function Home() {
   const router = useRouter();
@@ -289,13 +290,16 @@ export default function Home() {
       {/* Stats bar */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap justify-center gap-8 md:gap-16 text-sm text-[#6b6b80]">
-          <span>2,400+ agents created</span>
+          <span>BYOLLM — your model, your data</span>
           <span className="hidden sm:inline text-white/10">|</span>
-          <span>50+ countries</span>
+          <span>Works globally</span>
           <span className="hidden sm:inline text-white/10">|</span>
-          <span>99.9% uptime</span>
+          <span>Always on</span>
         </div>
       </div>
+
+      {/* Brief of the Day */}
+      <BriefOfTheDay />
 
       {/* What It Does — Demo Section */}
       <section id="what-it-does" className="py-24 md:py-32">
@@ -439,48 +443,27 @@ export default function Home() {
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
             <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             {[
               {
-                title: 'Your CRM',
-                desc: 'Tracks contacts, manages pipeline, sends follow-ups, logs every interaction automatically.',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
-                ),
-              },
-              {
-                title: 'Your research tools',
-                desc: 'Scans the internet, synthesizes findings, delivers executive briefs in seconds.',
+                title: 'Your research team',
+                desc: 'Scans the entire internet — Reddit, Hacker News, X, YouTube, news sites — and delivers an executive brief in under 60 seconds. The kind of research that used to take a full day.',
                 icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
                 ),
               },
               {
-                title: 'Your data enrichment',
-                desc: 'Takes a list of names or companies and fills in everything — emails, tech stack, funding, news.',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" /></svg>
-                ),
-              },
-              {
                 title: 'Your workflow automation',
-                desc: 'Builds multi-step workflows on the fly. No drag-and-drop builders. Just describe what you want.',
+                desc: 'Describe what you want in plain English — monitor competitors, enrich a lead list, generate weekly reports. Your agent builds the workflow and runs it on autopilot.',
                 icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 ),
               },
               {
-                title: 'Your analytics dashboards',
-                desc: 'Analyzes your data, spots trends, generates reports. Ask questions in plain English.',
+                title: 'Your AI that builds tools',
+                desc: 'Need a CRM? A dashboard? A lead tracker? Just describe it. Your agent writes the code, manages the data, and keeps it running. No developers needed.',
                 icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                ),
-              },
-              {
-                title: 'Your project management',
-                desc: 'Tracks tasks, sets deadlines, sends reminders, writes status updates. Manages itself.',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.58-3.18M16.58 8.89l-5.58 3.18m0 0l.01 6.36m-.01-6.36l.01-6.36M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 ),
               },
             ].map((item) => (
@@ -488,7 +471,6 @@ export default function Home() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
                   <span className="text-indigo-400">{item.icon}</span>
                 </div>
-                <p className="text-xs text-[#6b6b80] uppercase tracking-wider mb-2">Replaces</p>
                 <h3 className="text-lg font-bold text-white mb-3">{item.title}</h3>
                 <p className="text-[#8b8b9e] leading-relaxed text-sm">{item.desc}</p>
               </div>
@@ -507,7 +489,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { step: '01', title: 'Create your account', desc: 'Sign up with Google or email. Takes 10 seconds.' },
-              { step: '02', title: 'Add your API key', desc: 'Paste your key from Anthropic, OpenAI, or any supported provider. Your key, your model, your costs.' },
+              { step: '02', title: 'Add your API key', desc: 'Paste your key from Anthropic, OpenAI, or any provider. Optional for free tier — required for Pro to unlock your own models.' },
               { step: '03', title: 'Tell it what to build', desc: 'Describe what you need in plain English. Your agent handles the rest — research, code, files, automation.' },
             ].map((s) => (
               <div key={s.step} className="relative group">
@@ -524,33 +506,39 @@ export default function Home() {
       <section className="py-24 md:py-32">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">What people are saying</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Built for operators who ship fast</h2>
+            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Why people switch</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">One agent. Infinite use cases.</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                quote: 'I replaced three SaaS tools in my first week. The research briefs alone are worth the subscription.',
-                name: 'Sarah K.',
-                role: 'Founder, B2B SaaS',
+                icon: (
+                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                ),
+                title: 'Hours → Seconds',
+                desc: 'Research that used to take a full day now takes under 60 seconds. Real sources, real analysis, executive-ready briefs.',
               },
               {
-                quote: 'The BYOLLM approach is genius. I use Claude for strategy and GPT for code generation. Best of both worlds.',
-                name: 'James P.',
-                role: 'CTO, AI Startup',
+                icon: (
+                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+                ),
+                title: 'Your keys. Your models.',
+                desc: 'No markup on AI costs. Use Claude for strategy, GPT for code, Gemini for analysis. Switch anytime. Your data never leaves your environment.',
               },
               {
-                quote: 'My agent monitors competitors on autopilot and sends me Telegram alerts. It feels like having a full-time analyst.',
-                name: 'Priya S.',
-                role: 'Head of Growth',
+                icon: (
+                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+                ),
+                title: 'It works while you sleep',
+                desc: 'Set up autonomous tasks — competitor monitoring, daily briefs, lead enrichment. Your agent runs 24/7 and alerts you when something matters.',
               },
             ].map((t) => (
-              <div key={t.name} className="glass-card rounded-2xl p-8 transition-all duration-300 flex flex-col">
-                <p className="text-[#c4c4d4] leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</p>
-                <div className="mt-6 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p className="text-white font-semibold text-sm">{t.name}</p>
-                  <p className="text-[#6b6b80] text-sm">{t.role}</p>
+              <div key={t.title} className="glass-card rounded-2xl p-8 transition-all duration-300 flex flex-col">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                  {t.icon}
                 </div>
+                <h3 className="text-lg font-bold text-white mb-2">{t.title}</h3>
+                <p className="text-[#8b8b9e] leading-relaxed text-sm flex-1">{t.desc}</p>
               </div>
             ))}
           </div>
@@ -626,84 +614,78 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Pricing</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">The last subscription you will ever pay for</h2>
-            <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">One agent replaces your entire tool stack. You pay for the platform. You control the AI costs.</p>
+            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Simple pricing. No surprises.</h2>
+            <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">Start free. Upgrade when you&apos;re hooked.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto items-start">
-            {[
-              {
-                name: 'Pro',
-                price: '$19',
-                desc: 'AI-powered research briefs',
-                features: ['50 research briefs per month', 'All personas and search modes', 'Search history and bookmarks'],
-                cta: '/signup?plan=pro',
-                ctaText: 'Get Pro',
-                highlight: false,
-              },
-              {
-                name: 'Agent',
-                price: '$49',
-                desc: 'Your personal AI that builds anything',
-                features: ['Everything in Pro', 'Personal AI agent', 'BYOLLM — any model, any provider', 'Web search, code, file management', 'Telegram and Discord integrations'],
-                cta: '/signup?plan=agent',
-                ctaText: 'Get Agent',
-                highlight: true,
-              },
-              {
-                name: 'Ultra',
-                price: '$99',
-                desc: 'Unlimited power. Full autonomy.',
-                features: ['Everything in Agent', 'Unlimited research briefs', 'Autonomous scheduled tasks', 'All integrations', 'Priority support'],
-                cta: '/signup?plan=ultra',
-                ctaText: 'Get Ultra',
-                highlight: false,
-              },
-            ].map((tier) => (
-              <div
-                key={tier.name}
-                className="rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1"
-                style={{
-                  background: tier.highlight ? 'rgba(99, 102, 241, 0.06)' : 'rgba(17, 17, 24, 0.8)',
-                  border: tier.highlight ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255,255,255,0.06)',
-                  boxShadow: tier.highlight ? '0 0 40px rgba(99, 102, 241, 0.1), 0 0 80px rgba(139, 92, 246, 0.05)' : 'none',
-                  transform: tier.highlight ? 'scale(1.05)' : undefined,
-                  position: tier.highlight ? 'relative' as const : undefined,
-                }}
-              >
-                {tier.highlight && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="glow-btn text-xs font-bold text-white px-4 py-1.5 rounded-full">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <h3 className="text-xl font-bold text-white">{tier.name}</h3>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold text-white">{tier.price}</span>
-                  <span className="text-[#6b6b80]">/mo</span>
-                </div>
-                <p className="mt-2 text-sm text-[#8b8b9e]">{tier.desc}</p>
-                <ul className="mt-6 space-y-3">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-[#8b8b9e]">
-                      <svg className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={tier.cta}
-                  className={`mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                    tier.highlight ? 'glow-btn text-white' : 'text-[#8b8b9e] hover:text-white hover:border-white/20'
-                  }`}
-                  style={!tier.highlight ? { border: '1px solid rgba(255,255,255,0.1)' } : undefined}
-                >
-                  {tier.ctaText}
-                </a>
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto items-start">
+            {/* Free tier */}
+            <div
+              className="rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1"
+              style={{
+                background: 'rgba(17, 17, 24, 0.8)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <h3 className="text-xl font-bold text-white">Free</h3>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-white">$0</span>
+                <span className="text-[#6b6b80]">forever</span>
               </div>
-            ))}
+              <p className="mt-2 text-sm text-[#8b8b9e]">See what Pulsed can do</p>
+              <ul className="mt-6 space-y-3">
+                {['3 research briefs per month', 'All search modes and personas', 'Daily Brief of the Day', 'Search history'].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#8b8b9e]">
+                    <svg className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="/signup"
+                className="mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold text-[#8b8b9e] hover:text-white hover:border-white/20 transition-all duration-200"
+                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Get started free
+              </a>
+            </div>
+            {/* Pro tier */}
+            <div
+              className="rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 relative"
+              style={{
+                background: 'rgba(99, 102, 241, 0.06)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                boxShadow: '0 0 40px rgba(99, 102, 241, 0.1), 0 0 80px rgba(139, 92, 246, 0.05)',
+                transform: 'scale(1.05)',
+              }}
+            >
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="glow-btn text-xs font-bold text-white px-4 py-1.5 rounded-full">
+                  Full Power
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white">Pro</h3>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-white">$49</span>
+                <span className="text-[#6b6b80]">/mo</span>
+              </div>
+              <p className="mt-2 text-sm text-[#8b8b9e]">Your personal AI agent that builds anything</p>
+              <ul className="mt-6 space-y-3">
+                {['Unlimited research briefs', 'Personal AI agent', 'BYOLLM — any model, any provider', 'Web search, code, file management', 'Autonomous scheduled tasks', 'Telegram and Discord integrations', 'Priority support'].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#8b8b9e]">
+                    <svg className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="/signup?plan=pro"
+                className="mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold glow-btn text-white transition-all duration-200"
+              >
+                Get Pro
+              </a>
+            </div>
           </div>
-          <p className="text-center mt-8 text-sm text-[#6b6b80]">All plans include a free tier with 3 research briefs per month. No credit card required to start.</p>
+          <p className="text-center mt-8 text-sm text-[#6b6b80]">No credit card required. Bring your own API key — you control AI costs.</p>
         </div>
       </section>
 
@@ -769,7 +751,7 @@ export default function Home() {
             </div>
           </div>
           <div className="pt-6 text-sm text-[#4a4a5a] text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            &copy; 2026 Pulsed. All rights reserved.
+            &copy; 2026 Pulsed. All rights reserved. &middot; <a href="/privacy" className="hover:text-white transition-colors">Privacy</a> &middot; <a href="/terms" className="hover:text-white transition-colors">Terms</a>
           </div>
         </div>
       </footer>
