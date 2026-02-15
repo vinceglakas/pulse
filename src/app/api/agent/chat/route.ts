@@ -364,7 +364,9 @@ export async function POST(req: NextRequest) {
       messages.push({ role: 'user', content: message });
     }
 
-    const toolCtx: ToolContext = { userId };
+    // Pass user's decrypted API key for tools that need it (image gen, etc.)
+    const userOpenAIKey = provider === 'openai' ? apiKey : undefined;
+    const toolCtx: ToolContext = { userId, userOpenAIKey };
 
     // Try Ultron first (full OpenClaw agent), fall back to direct BYOLLM
     const ultronAvailable = await tryUltron(userId, apiKey, provider, profile, message, sessionKey, history);

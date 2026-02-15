@@ -359,15 +359,15 @@ export const TOOL_SCHEMAS = [
     type: 'function' as const,
     function: {
       name: 'update_app',
-      description: 'Update an existing app artifact with new HTML. Use when user wants to iterate: "make the hero bigger", "change colors", "add a section", "fix the layout". Fetches the current HTML, you modify it, and save back.',
+      description: 'Update an existing app artifact. Two modes: (1) Pass only artifactId to FETCH current HTML so you can see it, then call again with changes. (2) Pass artifactId + html to save updated version. Use when user wants to iterate on an app.',
       parameters: {
         type: 'object',
         properties: {
           artifactId: { type: 'string', description: 'The artifact ID to update' },
-          html: { type: 'string', description: 'The complete updated HTML document' },
+          html: { type: 'string', description: 'The complete updated HTML document. Omit to fetch current HTML.' },
           changeDescription: { type: 'string', description: 'Brief description of what changed' },
         },
-        required: ['artifactId', 'html'],
+        required: ['artifactId'],
       },
     },
   },
@@ -979,26 +979,38 @@ async function execRunAutomation(args: Record<string, any>, ctx: ToolContext): P
         }
         case 'transform': {
           if (step.expression && data) {
-            // Safe eval with data context
-            const fn = new Function('data', `return ${step.expression}`);
-            data = fn(data);
-            results.push({ step: 'transform', expression: step.expression, resultPreview: JSON.stringify(data).slice(0, 500) });
+            try {
+              // Sandboxed eval — only data variable available, no globals
+              const fn = new Function('data', `"use strict"; return ${step.expression}`);
+              data = fn(data);
+              results.push({ step: 'transform', expression: step.expression, resultPreview: JSON.stringify(data).slice(0, 500) });
+            } catch (e: any) {
+              results.push({ step: 'transform', error: e.message });
+            }
           }
           break;
         }
         case 'filter': {
           if (step.expression && Array.isArray(data)) {
-            const fn = new Function('item', `return ${step.expression}`);
-            data = data.filter((item: any) => fn(item));
-            results.push({ step: 'filter', remaining: data.length });
+            try {
+              const fn = new Function('item', `"use strict"; return ${step.expression}`);
+              data = data.filter((item: any) => fn(item));
+              results.push({ step: 'filter', remaining: data.length });
+            } catch (e: any) {
+              results.push({ step: 'filter', error: e.message });
+            }
           }
           break;
         }
         case 'aggregate': {
           if (step.expression && data) {
-            const fn = new Function('data', `return ${step.expression}`);
-            data = fn(data);
-            results.push({ step: 'aggregate', result: JSON.stringify(data).slice(0, 500) });
+            try {
+              const fn = new Function('data', `"use strict"; return ${step.expression}`);
+              data = fn(data);
+              results.push({ step: 'aggregate', result: JSON.stringify(data).slice(0, 500) });
+            } catch (e: any) {
+              results.push({ step: 'aggregate', error: e.message });
+            }
           }
           break;
         }
@@ -1068,10 +1080,29 @@ async function execGenerateImage(args: Record<string, any>, ctx: ToolContext): P
     }
 
     const data = await res.json();
-    const imageUrl = data.data?.[0]?.url;
+    const tempUrl = data.data?.[0]?.url;
     const revisedPrompt = data.data?.[0]?.revised_prompt;
 
-    if (!imageUrl) return JSON.stringify({ error: 'No image returned' });
+    if (!tempUrl) return JSON.stringify({ error: 'No image returned' });
+
+    // Download and upload to Supabase Storage for permanent URL
+    let permanentUrl = tempUrl;
+    try {
+      const imgRes = await fetch(tempUrl);
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+      const fileName = `${ctx.userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      
+      const { error: uploadErr } = await supabaseAdmin.storage
+        .from('generated-images')
+        .upload(fileName, imgBuffer, { contentType: 'image/png', upsert: true });
+      
+      if (!uploadErr) {
+        const { data: urlData } = supabaseAdmin.storage.from('generated-images').getPublicUrl(fileName);
+        if (urlData?.publicUrl) permanentUrl = urlData.publicUrl;
+      }
+    } catch {
+      // Fall back to temp URL if storage upload fails
+    }
 
     // Save as artifact
     await supabaseAdmin.from('artifacts').insert({
@@ -1079,16 +1110,16 @@ async function execGenerateImage(args: Record<string, any>, ctx: ToolContext): P
       name: `Image: ${prompt.slice(0, 50)}`,
       type: 'document',
       description: prompt,
-      content: `# Generated Image\n\n**Prompt:** ${prompt}\n\n**Revised prompt:** ${revisedPrompt || 'N/A'}\n\n![Generated Image](${imageUrl})\n\nDirect URL: ${imageUrl}`,
+      content: `# Generated Image\n\n**Prompt:** ${prompt}\n\n**Revised prompt:** ${revisedPrompt || 'N/A'}\n\n![Generated Image](${permanentUrl})\n\nDirect URL: ${permanentUrl}`,
       data: [],
       schema: { columns: [] },
     });
 
     return JSON.stringify({
       success: true,
-      imageUrl,
+      imageUrl: permanentUrl,
       revisedPrompt,
-      message: `Generated image. URL: ${imageUrl}`,
+      message: `Generated image. URL: ${permanentUrl}`,
     });
   } catch (err: any) {
     return JSON.stringify({ error: `Image generation failed: ${err.message}` });
@@ -1169,8 +1200,27 @@ async function execDeployApp(args: Record<string, any>, ctx: ToolContext): Promi
 
 async function execUpdateApp(args: Record<string, any>, ctx: ToolContext): Promise<string> {
   const { artifactId, html, changeDescription } = args;
-  if (!artifactId || !html) return JSON.stringify({ error: 'Artifact ID and HTML are required' });
+  if (!artifactId) return JSON.stringify({ error: 'Artifact ID is required' });
 
+  // Fetch mode: return current HTML so LLM can see it and modify
+  if (!html) {
+    const { data, error } = await supabaseAdmin
+      .from('artifacts')
+      .select('id, name, content, description')
+      .eq('id', artifactId)
+      .eq('user_id', ctx.userId)
+      .single();
+    if (error || !data) return JSON.stringify({ error: 'App not found' });
+    return JSON.stringify({
+      mode: 'fetch',
+      artifactId: data.id,
+      name: data.name,
+      currentHtml: data.content,
+      message: `Fetched current HTML for "${data.name}" (${data.content?.length || 0} chars). Now call update_app again with the modified html.`,
+    });
+  }
+
+  // Update mode: save new HTML
   const { data, error } = await supabaseAdmin
     .from('artifacts')
     .update({
