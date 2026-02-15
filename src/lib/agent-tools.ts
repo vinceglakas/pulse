@@ -989,7 +989,7 @@ async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promis
   if (error) return JSON.stringify({ error: error.message });
 
   // Trigger async generation via separate API route (gets its own 60s serverless timeout)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://www.runpulsed.ai');
+  const baseUrl = 'https://www.runpulsed.ai';
   fetch(`${baseUrl}/api/apps/generate`, {
     method: 'POST',
     headers: {
