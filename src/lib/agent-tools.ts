@@ -1197,6 +1197,7 @@ async function execDeployApp(args: Record<string, any>, ctx: ToolContext): Promi
           framework: null,
         },
         target: 'production',
+        deploymentProtection: { standard: 'none' },
       }),
     });
 
