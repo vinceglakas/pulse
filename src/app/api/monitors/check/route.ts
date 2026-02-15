@@ -52,14 +52,24 @@ export async function POST(req: NextRequest) {
 
   const { newResults, allResults } = await checkMonitor(monitor)
 
-  // Create notification if new results found
+  // Create alerts + notifications if new results found
   if (newResults.length > 0) {
-    await supabase.from('notifications').insert({
-      user_id: user.id,
-      monitor_id: monitor.id,
-      title: `🔔 ${newResults.length} new result${newResults.length > 1 ? 's' : ''} for "${monitor.topic}"`,
-      body: newResults.slice(0, 5).map(r => `• ${r.title}\n  ${r.url}`).join('\n\n'),
-    })
+    const alertTitle = `${newResults.length} new result${newResults.length > 1 ? 's' : ''} for "${monitor.topic}"`
+    const alertBody = newResults.slice(0, 5).map(r => `• ${r.title}\n  ${r.url}`).join('\n\n')
+
+    await Promise.all([
+      supabase.from('notifications').insert({
+        user_id: user.id, monitor_id: monitor.id,
+        title: `🔔 ${alertTitle}`, body: alertBody,
+      }),
+      supabase.from('monitor_alerts').insert(
+        newResults.slice(0, 10).map(r => ({
+          user_id: user.id, monitor_id: monitor.id,
+          title: r.title, body: r.snippet, topic: monitor.topic,
+          url: r.url, source: 'brave', severity: 'info',
+        }))
+      ),
+    ])
   }
 
   // Update last checked + store results
@@ -91,12 +101,21 @@ export async function GET() {
     const { newResults, allResults } = await checkMonitor(monitor)
 
     if (newResults.length >= (monitor.alert_threshold || 1)) {
-      await supabase.from('notifications').insert({
-        user_id: monitor.user_id,
-        monitor_id: monitor.id,
-        title: `🔔 ${newResults.length} new result${newResults.length > 1 ? 's' : ''} for "${monitor.topic}"`,
-        body: newResults.slice(0, 5).map(r => `• ${r.title}\n  ${r.url}`).join('\n\n'),
-      })
+      const alertTitle = `${newResults.length} new result${newResults.length > 1 ? 's' : ''} for "${monitor.topic}"`
+      await Promise.all([
+        supabase.from('notifications').insert({
+          user_id: monitor.user_id, monitor_id: monitor.id,
+          title: `🔔 ${alertTitle}`,
+          body: newResults.slice(0, 5).map(r => `• ${r.title}\n  ${r.url}`).join('\n\n'),
+        }),
+        supabase.from('monitor_alerts').insert(
+          newResults.slice(0, 10).map(r => ({
+            user_id: monitor.user_id, monitor_id: monitor.id,
+            title: r.title, body: r.snippet, topic: monitor.topic,
+            url: r.url, source: 'brave', severity: 'info',
+          }))
+        ),
+      ])
       alertsSent++
     }
 

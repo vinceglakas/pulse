@@ -784,8 +784,8 @@ async function execSendNotification(args: Record<string, any>, ctx: ToolContext)
 async function execCRMContacts(args: Record<string, any>, ctx: ToolContext): Promise<string> {
   const { action } = args;
   
-  if (action === 'search') {
-    let query = supabaseAdmin.from('contacts').select('id, name, email, phone, company, title, tags, notes, last_contacted').eq('user_id', ctx.userId).order('created_at', { ascending: false }).limit(20);
+  if (action === 'search' || action === 'list') {
+    let query = supabaseAdmin.from('contacts').select('id, name, email, phone, company, title, tags, notes, last_contacted').eq('user_id', ctx.userId).order('created_at', { ascending: false }).limit(50);
     if (args.search) query = query.or(`name.ilike.%${args.search}%,email.ilike.%${args.search}%,company.ilike.%${args.search}%`);
     const { data, error } = await query;
     if (error) return JSON.stringify({ error: error.message });
@@ -930,15 +930,16 @@ async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promis
   const { name, description, html, framework } = args;
   if (!html) return JSON.stringify({ error: 'HTML content is required' });
 
-  // Save as artifact with type 'app'
+  // Save as artifact — use 'document' type with app marker in schema
+  // (artifacts table has a type check constraint that may not include 'app')
   const { data, error } = await supabaseAdmin
     .from('artifacts')
     .insert({
       user_id: ctx.userId,
       name: name || 'Untitled App',
-      type: 'app',
-      description: description || '',
-      schema: { framework: framework || 'vanilla', columns: [] },
+      type: 'document',
+      description: `[APP] ${description || ''}`,
+      schema: { isApp: true, framework: framework || 'vanilla', columns: [] },
       content: html,
       data: [],
     })

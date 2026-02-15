@@ -14,7 +14,7 @@ const SECTION_CONFIG: Record<SidebarSection, { label: string; types: string[]; i
   boards: { label: 'Boards', types: ['kanban'], icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
   lists: { label: 'Lists', types: ['list'], icon: 'M9 5l7 7-7 7' },
   docs: { label: 'Documents', types: ['document'], icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z' },
-  apps: { label: 'Apps', types: ['app'], icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z' },
+  apps: { label: 'Apps', types: ['app_marker'], icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z' },
 };
 
 const NEW_TEMPLATES: { type: string; label: string; iconPath: string }[] = [
@@ -229,7 +229,12 @@ export default function WorkspacePage() {
 
           <div className="flex-1 overflow-y-auto px-3 py-3">
             {(Object.entries(SECTION_CONFIG) as [SidebarSection, typeof SECTION_CONFIG[SidebarSection]][]).map(([key, cfg]) => {
-              const items = artifacts.filter(a => cfg.types.includes(a.type));
+              const isApp = (a: any) => (a as any).schema?.isApp || a.description?.startsWith('[APP]');
+              const items = key === 'apps'
+                ? artifacts.filter(a => isApp(a))
+                : key === 'docs'
+                ? artifacts.filter(a => cfg.types.includes(a.type) && !isApp(a))
+                : artifacts.filter(a => cfg.types.includes(a.type));
               if (items.length === 0) return null;
               const isCollapsed = collapsed[key];
               return (
