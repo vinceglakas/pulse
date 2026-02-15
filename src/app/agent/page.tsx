@@ -1636,6 +1636,33 @@ export default function AgentPage() {
                                   >
                                     {msg.content}
                                   </ReactMarkdown>
+                                  {/* Inline app preview for build_app results */}
+                                  {msg.content.match(/\/workspace\/app\/[a-f0-9-]+/) && (
+                                    <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(99,102,241,0.3)' }}>
+                                      <div className="flex items-center justify-between px-3 py-2" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                                        <span className="text-xs font-medium" style={{ color: '#818cf8' }}>🚀 Live Preview</span>
+                                        <div className="flex gap-2">
+                                          <a href={msg.content.match(/\/workspace\/app\/[a-f0-9-]+/)?.[0]} target="_blank" rel="noopener noreferrer"
+                                            className="text-xs px-2 py-0.5 rounded hover:bg-white/10 transition" style={{ color: '#8b8b9e' }}>Open ↗</a>
+                                        </div>
+                                      </div>
+                                      <iframe
+                                        src={msg.content.match(/\/workspace\/app\/[a-f0-9-]+/)?.[0]}
+                                        className="w-full border-0"
+                                        style={{ height: 300, background: '#0a0a0f' }}
+                                        sandbox="allow-scripts allow-same-origin"
+                                      />
+                                    </div>
+                                  )}
+                                  {/* Inline image preview for generate_image results */}
+                                  {msg.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/) && (() => {
+                                    const imgMatch = msg.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
+                                    return imgMatch ? (
+                                      <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <img src={imgMatch[1]} alt="Generated" className="w-full max-h-96 object-contain" style={{ background: '#111118' }} />
+                                      </div>
+                                    ) : null;
+                                  })()}
                                 </div>
                               </div>
                             ) : (
