@@ -514,14 +514,33 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
         if (!hasToolCalls || pendingToolCalls.length === 0) break;
 
         // Execute tool calls
+        const friendlyToolNames: Record<string, string> = {
+          'pulsed_research': '🔍 Researching',
+          'web_search': '🌐 Searching the web',
+          'create_artifact': '🏗️ Building',
+          'update_artifact': '📝 Updating workspace',
+          'list_artifacts': '📂 Checking workspace',
+          'memory_save': '🧠 Saving to memory',
+          'memory_recall': '🧠 Searching memory',
+          'schedule_task': '📅 Setting up task',
+          'send_notification': '🔔 Sending notification',
+          'crm_manage_contacts': '👥 Managing contacts',
+          'crm_manage_deals': '💰 Managing deals',
+          'crm_log_activity': '📋 Logging activity',
+          'set_monitor': '📡 Setting up monitor',
+          'generate_content': '✍️ Generating content',
+        };
         const toolResults: Array<{ id: string; name: string; result: string }> = [];
         for (const tc of pendingToolCalls) {
-          controller.enqueue(sse({ status: `Running ${tc.name}...` }));
+          const friendly = friendlyToolNames[tc.name] || `Running ${tc.name}`;
+          let argPreview = '';
+          try { const a = JSON.parse(tc.args); argPreview = a.topic || a.query || a.name || a.keyword || ''; } catch {}
+          controller.enqueue(sse({ tool_start: tc.name, status: `${friendly}${argPreview ? ': ' + argPreview : ''}...` }));
           let args: Record<string, any> = {};
           try { args = JSON.parse(tc.args); } catch {}
           const result = await executeTool(tc.name, args, toolCtx);
           toolResults.push({ id: tc.id, name: tc.name, result });
-          controller.enqueue(sse({ tool_done: tc.name, status: `Completed ${tc.name}` }));
+          controller.enqueue(sse({ tool_done: tc.name }));
         }
 
         // Add assistant message + tool results to conversation for next round
