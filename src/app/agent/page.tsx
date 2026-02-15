@@ -176,6 +176,9 @@ export default function AgentPage() {
   /* ── Tool status from SSE ── */
   const [toolStatus, setToolStatus] = useState<string | null>(null);
 
+  /* ── Proactive briefing ── */
+  const [briefing, setBriefing] = useState<string | null>(null);
+
   /* ── Agent boot status ── */
   const [agentBooting, setAgentBooting] = useState(false);
 
@@ -275,6 +278,17 @@ export default function AgentPage() {
           }
         } catch {}
         setHistoryLoaded(true);
+
+        // Fetch proactive briefing if no messages
+        if (!messages.length) {
+          try {
+            const bRes = await fetch('/api/briefing', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+            if (bRes.ok) {
+              const bd = await bRes.json();
+              if (bd.briefing) setBriefing(bd.briefing);
+            }
+          } catch {}
+        }
       }
     });
   }, [router]);
@@ -1509,9 +1523,17 @@ export default function AgentPage() {
                     <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ color: '#f0f0f5' }}>
                       {getGreeting()}, {userName || 'there'}
                     </h1>
-                    <p className="text-base sm:text-lg mb-10" style={{ color: '#8b8b9e' }}>
-                      I can research, build, manage your CRM, track topics, generate content, and more. What do you need?
-                    </p>
+                    {briefing ? (
+                      <div className="text-sm sm:text-base mb-10 text-left max-w-xl whitespace-pre-wrap" style={{ color: '#c4c4d4', lineHeight: 1.8 }}>
+                        {briefing.split('\n').map((line, i) => (
+                          <p key={i} className={line.startsWith('**') || line.startsWith('�') || line.startsWith('💰') || line.startsWith('🔍') ? 'mt-1' : ''}>{line}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-base sm:text-lg mb-10" style={{ color: '#8b8b9e' }}>
+                        I can research, build, manage your CRM, track topics, generate content, and more. What do you need?
+                      </p>
+                    )}
 
                     {/* Suggestion card grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-2xl w-full">

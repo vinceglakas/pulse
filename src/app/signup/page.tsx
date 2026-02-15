@@ -39,9 +39,9 @@ function SignupPageInner() {
       setLoading(false);
     } else {
       if (planParam) {
-        router.push(`/dashboard?pending_plan=${planParam}`);
+        router.push(`/agent?pending_plan=${planParam}`);
       } else {
-        router.push("/dashboard");
+        router.push("/agent");
       }
     }
   }
