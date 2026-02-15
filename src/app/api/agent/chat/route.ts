@@ -497,6 +497,7 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
       let toolRounds = 0;
       const maxToolRounds = 10;
       let currentMessages = [...messages];
+      const startTime = Date.now();
 
       controller.enqueue(sse({ status: 'Thinking...' }));
 
@@ -611,6 +612,33 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
           const result = await executeTool(tc.name, args, toolCtx);
           toolResults.push({ id: tc.id, name: tc.name, result });
           controller.enqueue(sse({ tool_done: tc.name }));
+          
+          // Build user-visible summary of tool result
+          let resultSummary = '';
+          try {
+            const parsed = JSON.parse(result);
+            if (tc.name === 'build_app' && parsed.id) {
+              resultSummary = `Built app → [View Preview](/workspace/app/${parsed.id})`;
+            } else if (tc.name === 'deploy_app' && parsed.url) {
+              resultSummary = `Deployed → [${parsed.url}](${parsed.url})`;
+            } else if (tc.name === 'generate_image' && parsed.url) {
+              resultSummary = `![Generated image](${parsed.url})`;
+            } else if (tc.name === 'create_artifact' && parsed.id) {
+              resultSummary = `Created "${parsed.title || 'item'}" in workspace`;
+            } else if (tc.name === 'web_search' || tc.name === 'pulsed_research') {
+              resultSummary = ''; // Don't show raw search results inline
+            } else if (tc.name === 'crm_manage_contacts' || tc.name === 'crm_manage_deals') {
+              resultSummary = `CRM updated`;
+            } else if (tc.name === 'memory_save') {
+              resultSummary = `Saved to memory`;
+            }
+          } catch {}
+          
+          if (resultSummary) {
+            // Inject the summary into the text stream so it appears in the message AND gets saved
+            fullText += '\n' + resultSummary + '\n';
+            controller.enqueue(sse({ text: '\n' + resultSummary + '\n' }));
+          }
         }
 
         // Add assistant message + tool results to conversation for next round
@@ -654,6 +682,14 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
         pendingToolCalls = [];
         hasToolCalls = false;
         activeToolCall = null;
+        
+        // Check timeout after each tool round
+        const elapsed = Date.now() - startTime;
+        if (elapsed > 45000) {
+          // Inject time warning and break
+          controller.enqueue(sse({ text: '\n\n*[Running low on time — wrapping up...]*\n\n' }));
+          break;
+        }
       }
 
       // Save full response
