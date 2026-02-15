@@ -11,6 +11,7 @@ export default function AppPreviewPage() {
   const [artifact, setArtifact] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
+  const [isBuilding, setIsBuilding] = useState(false)
 
   useEffect(() => {
     getSession().then(async (session) => {
@@ -24,12 +25,47 @@ export default function AppPreviewPage() {
         })
         if (res.ok) {
           const data = await res.json()
-          setArtifact(data.artifact || data.artifacts?.[0] || null)
+          const artifactData = data.artifact || data.artifacts?.[0] || null
+          setArtifact(artifactData)
+          
+          // Check if app is building
+          if (artifactData?.schema?.status === 'building') {
+            setIsBuilding(true)
+            startPolling(token)
+          }
         }
       } catch {}
       setLoading(false)
     })
   }, [router, params.id])
+
+  const startPolling = (token: string) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/artifacts?id=${params.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const artifactData = data.artifact || data.artifacts?.[0] || null
+          
+          if (artifactData?.schema?.status === 'ready' || artifactData?.schema?.status === 'error') {
+            setArtifact(artifactData)
+            setIsBuilding(false)
+            clearInterval(interval)
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err)
+      }
+    }, 3000) // Poll every 3 seconds
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      clearInterval(interval)
+      setIsBuilding(false)
+    }, 300000)
+  }
 
   if (loading) {
     return (
@@ -109,12 +145,22 @@ export default function AppPreviewPage() {
       )}
 
       {/* Live preview */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
+        {isBuilding && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ background: 'rgba(10, 10, 15, 0.9)' }}>
+            <div className="text-center">
+              <div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <h2 className="text-lg font-semibold mb-2">Building your app...</h2>
+              <p className="text-sm" style={{ color: '#8b8b9e' }}>This usually takes 20-30 seconds</p>
+            </div>
+          </div>
+        )}
         <iframe
           srcDoc={htmlContent}
           className="w-full h-full border-0"
           style={{ minHeight: 'calc(100vh - 96px)' }}
           sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+          key={artifact?.updated_at || 'initial'} // Force reload when artifact updates
         />
       </div>
     </div>
