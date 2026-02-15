@@ -1,21 +1,13 @@
-import { supabase } from "@/lib/supabase";
-
 export async function GET() {
-  const { data: briefs } = await supabase
-    .from("briefs")
-    .select("id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5000);
-
-  const baseUrl = "https://pulsed.ai";
+  const baseUrl = "https://www.runpulsed.ai";
 
   const urls = [
     `<url><loc>${baseUrl}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
     `<url><loc>${baseUrl}/signup</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
-    ...(briefs ?? []).map(
-      (b) =>
-        `<url><loc>${baseUrl}/brief/${b.id}</loc><lastmod>${new Date(b.created_at).toISOString().split("T")[0]}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`
-    ),
+    `<url><loc>${baseUrl}/pricing</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>`,
+    `<url><loc>${baseUrl}/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
+    `<url><loc>${baseUrl}/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>`,
+    `<url><loc>${baseUrl}/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>`,
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

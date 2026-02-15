@@ -136,13 +136,13 @@ export default function ApiKeysPage() {
           </Link>
           <div className="flex items-center gap-2 mb-2">
             <h1 className="text-2xl font-bold text-[#f0f0f5]">API Keys</h1>
-            <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-medium">
               Ultron
             </span>
           </div>
           <p className="text-sm text-[#8b8b9e]">
             Add your LLM API keys to power your AI agent. Keys are encrypted and
-            never exposed.
+            never exposed. <span className="text-cyan-400">BYOLLM</span> — Bring Your Own LLM.
           </p>
         </div>
 
@@ -158,8 +158,8 @@ export default function ApiKeysPage() {
               href={item.href}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 item.href === '/settings/keys'
-                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white'
-                  : 'bg-[rgba(255,255,255,0.04)] text-[#8b8b9e] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(99,102,241,0.2)] hover:text-[#f0f0f5]'
+                  ? 'bg-gradient-to-r from-[#06b6d4] to-[#6366f1] text-white'
+                  : 'bg-[rgba(255,255,255,0.04)] text-[#8b8b9e] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(6,182,212,0.2)] hover:text-[#f0f0f5]'
               }`}
             >
               {item.label}
@@ -198,7 +198,7 @@ export default function ApiKeysPage() {
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
-                className="w-full h-[44px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 text-sm text-[#f0f0f5] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all appearance-none cursor-pointer"
+                className="w-full h-[44px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 text-sm text-[#f0f0f5] outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all appearance-none cursor-pointer"
               >
                 {PROVIDERS.map((p) => (
                   <option key={p.value} value={p.value} className="bg-[#111118]">
@@ -216,15 +216,14 @@ export default function ApiKeysPage() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-..."
-                className="w-full h-[44px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 text-sm text-[#f0f0f5] placeholder:text-[#6b6b80] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                className="w-full h-[44px] bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 text-sm text-[#f0f0f5] placeholder:text-[#6b6b80] outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={saving || !apiKey}
-              className="w-full h-[44px] text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              className="w-full h-[44px] bg-white text-[#0a0a0f] text-sm font-medium rounded-xl hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {saving ? "Testing & Saving..." : "Test & Save"}
             </button>
@@ -252,7 +251,7 @@ export default function ApiKeysPage() {
               {keys.map((k) => (
                 <div
                   key={k.id}
-                  className="flex items-center justify-between rounded-xl px-5 py-4 transition-all hover:border-[rgba(99,102,241,0.2)]"
+                  className="flex items-center justify-between rounded-xl px-5 py-4 transition-all hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]"
                   style={{
                     background: 'rgba(17,17,24,0.8)',
                     backdropFilter: 'blur(20px)',
@@ -280,7 +279,7 @@ export default function ApiKeysPage() {
                   <button
                     onClick={() => handleDelete(k.id)}
                     disabled={deleting === k.id}
-                    className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50 ml-4 shrink-0"
+                    className="text-xs text-red-400 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-50 ml-4 shrink-0"
                   >
                     {deleting === k.id ? "Deleting..." : "Delete"}
                   </button>

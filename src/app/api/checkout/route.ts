@@ -11,9 +11,9 @@ const PRICE_MAP: Record<string, string | undefined> = {
 };
 
 const SUCCESS_MAP: Record<string, string> = {
-  pro: '/dashboard?checkout=success',
-  agent: '/dashboard?checkout=success',
-  ultra: '/dashboard?checkout=success',
+  pro: '/agent?checkout=success',
+  agent: '/agent?checkout=success',
+  ultra: '/agent?checkout=success',
 };
 
 export async function POST(request: Request) {

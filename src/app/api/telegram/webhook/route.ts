@@ -425,10 +425,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Check plan
-    if (user.plan !== 'agent' && user.plan !== 'ultra') {
+    if (user.plan !== 'pro' && user.plan !== 'agent' && user.plan !== 'ultra') {
       await sendTelegramMessage(
         chatId,
-        `⚡ Telegram agent access requires an Agent or Ultra plan.\n\n` +
+        `⚡ Telegram agent access requires a Pro, Agent, or Ultra plan.\n\n` +
           `Upgrade at [runpulsed.ai/pricing](https://www.runpulsed.ai/pricing)`
       );
       return new Response('OK', { status: 200 });

@@ -31,11 +31,64 @@ function sse(data: any): Uint8Array {
   return encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+// Model selection based on message complexity and user profile
+function selectModel(message: string, profile: any, allKeys: any[]): { provider: string; model: string; key: string } | null {
+  // Simple heuristic: if message is short (<100 chars) and looks like a quick task, use worker
+  // Otherwise use brain model
+  const isQuickTask = message.length < 100 && !message.match(/research|analyze|build|create|deploy|compare|strategy/i);
+  
+  const targetModel = isQuickTask ? profile?.worker_model : profile?.brain_model;
+  
+  if (targetModel) {
+    // Parse "provider/model" format e.g. "anthropic/claude-opus-4"
+    const [provider] = targetModel.split('/');
+    const matchKey = allKeys.find((k: any) => k.provider === provider);
+    if (matchKey) {
+      const modelName = targetModel.split('/')[1];
+      return { provider, model: mapModelName(modelName), key: decrypt(matchKey.encrypted_key) };
+    }
+  }
+  
+  // Fallback chain
+  const fallbacks = profile?.fallback_models || [];
+  for (const fm of fallbacks) {
+    const [provider] = fm.split('/');
+    const matchKey = allKeys.find((k: any) => k.provider === provider);
+    if (matchKey) {
+      const modelName = fm.split('/')[1];
+      return { provider, model: mapModelName(modelName), key: decrypt(matchKey.encrypted_key) };
+    }
+  }
+  
+  return null; // Will fall through to existing logic
+}
+
+// Map user-friendly model names to actual API model IDs
+function mapModelName(modelName: string): string {
+  const modelMap: Record<string, string> = {
+    // Anthropic models
+    'claude-opus-4': 'claude-opus-4-20250514',
+    'claude-sonnet-4': 'claude-sonnet-4-20250514',
+    'claude-haiku-4': 'claude-haiku-4-20250514',
+    // OpenAI models
+    'gpt-4.1': 'gpt-4.1',
+    'gpt-4.1-mini': 'gpt-4.1-mini',
+    'gpt-5.1-codex': 'gpt-5.1-codex',
+    // Google models
+    'gemini-2.5-pro': 'gemini-2.5-pro',
+    'gemini-2.5-flash': 'gemini-2.5-flash',
+    // Moonshot models
+    'kimi-k2': 'kimi-k2-0905-preview',
+  };
+  
+  return modelMap[modelName] || modelName;
+}
+
 // Provider-specific LLM call configs
-const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: string, messages: any[], tools: any[]) => { url: string; headers: Record<string, string>; body: string }; parseStream: (line: string) => { text?: string; toolCall?: any; done?: boolean } | null }> = {
+const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: string, messages: any[], tools: any[], modelOverride?: string) => { url: string; headers: Record<string, string>; body: string }; parseStream: (line: string) => { text?: string; toolCall?: any; done?: boolean } | null }> = {
   anthropic: {
     baseUrl: 'https://api.anthropic.com',
-    buildRequest: (key, messages, tools) => ({
+    buildRequest: (key, messages, tools, modelOverride) => ({
       url: 'https://api.anthropic.com/v1/messages',
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +96,7 @@ const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: st
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: modelOverride || 'claude-sonnet-4-20250514',
         max_tokens: 8192,
         stream: true,
         system: buildSystemPrompt(),
@@ -71,14 +124,14 @@ const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: st
   },
   openai: {
     baseUrl: 'https://api.openai.com/v1',
-    buildRequest: (key, messages, tools) => ({
+    buildRequest: (key, messages, tools, modelOverride) => ({
       url: 'https://api.openai.com/v1/chat/completions',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4.1',
+        model: modelOverride || 'gpt-4.1',
         stream: true,
         messages: [{ role: 'system', content: buildSystemPrompt() }, ...messages],
         tools: tools.map(t => ({ type: 'function', function: t })),
@@ -104,8 +157,8 @@ const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: st
   },
   google: {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    buildRequest: (key, messages, _tools) => ({
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${key}`,
+    buildRequest: (key, messages, _tools, modelOverride) => ({
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${modelOverride || 'gemini-2.5-flash'}:streamGenerateContent?alt=sse&key=${key}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: buildSystemPrompt() }] },
@@ -127,14 +180,14 @@ const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: st
   },
   moonshot: {
     baseUrl: 'https://api.moonshot.ai/v1',
-    buildRequest: (key, messages, tools) => ({
+    buildRequest: (key, messages, tools, modelOverride) => ({
       url: 'https://api.moonshot.ai/v1/chat/completions',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'kimi-k2-0905-preview',
+        model: modelOverride || 'kimi-k2-0905-preview',
         stream: true,
         messages: [{ role: 'system', content: buildSystemPrompt() }, ...messages],
         tools: tools.map(t => ({ type: 'function', function: t })),
@@ -145,121 +198,61 @@ const PROVIDER_CONFIGS: Record<string, { baseUrl: string; buildRequest: (key: st
 };
 
 function buildSystemPrompt(): string {
-  return `You are JARVIS — the user's personal AI operating system. Not a chatbot. Not an assistant. You are an autonomous agent who gets things done.
+  return `You are the user's personal AI agent — their own AI agent. You connect to their existing tools and make them radically more efficient.
 
-Think of yourself as a brilliant chief of staff who happens to have superpowers. You research, build, manage relationships, track the world, create content, write code, and remember everything.
+You're not a chatbot. You're the connective tissue between everything they use — their email, calendar, CRM, code repos, project tools. You see across all of it and act across all of it.
 
-## Your Capabilities (use them aggressively)
+## Your Personality
+- Direct but warm. Never robotic.
+- Have opinions. Push back on bad ideas. Celebrate wins.
+- You're a partner, not a tool. The best chief of staff they never had.
+- When you learn something, acknowledge it naturally. "Got it, I'll remember that" — not "Information saved to memory."
+
+## Your Capabilities
+
+**Memory & Context**
+- memory_save: Remember EVERYTHING — preferences, goals, contacts, decisions, patterns. You get smarter every day.
+- memory_recall: Always check memory before answering. If you've discussed it before, recall it.
 
 **Research & Intelligence**
-- pulsed_research: Deep multi-source research across Reddit, Hacker News, X/Twitter, YouTube, and the entire web. Use this for any research request — always go deep, never give surface-level answers.
-- web_search: Quick lookups for facts, prices, current events, specific questions.
+- pulsed_research: Deep multi-source research across Reddit, HN, X, YouTube, and the web.
+- web_search: Quick lookups for facts, current events, specific questions.
 
-**Building & Creating**
-- create_artifact: Build structured items — tables, kanban boards, trackers, documents, datasets. When someone says "build me X" or "create X", use this immediately.
-- update_artifact / list_artifacts: Manage and iterate on workspace items.
-- generate_content: Draft blog posts, social media content, emails, newsletters in any tone.
+**Integrations (when connected)**
+- github_action: List repos, create issues, check PRs, review code.
+- google_calendar: Check schedule, find availability, upcoming meetings.
+- google_gmail: Read recent emails, search inbox.
 
-**CRM & Relationships**
-- crm_manage_contacts: Add, update, search contacts. Track who the user knows.
-- crm_manage_deals: Manage sales pipeline — create deals, move stages, track value.
-- crm_log_activity: Log calls, emails, meetings, notes against contacts/deals.
+**Content & Communication**
+- generate_content: Draft emails, messages, posts, documents in any tone.
+- send_notification: Alert the user about things that matter.
 
-**Monitoring & Alerts**
-- set_monitor: Watch any topic on the web. Get alerted when something changes or matters.
-- send_notification: Push alerts about things the user should know.
-
-**Memory & Learning**
-- memory_save: Remember EVERYTHING important — preferences, goals, contacts, decisions, wins, losses. You get smarter with every conversation.
-- memory_recall: Search your memory before answering. If you've talked about it before, recall it.
-
-**Image Generation**
-- generate_image: Create any image with DALL-E 3 — logos, illustrations, backgrounds, mockups, social graphics. Combine with build_app to make websites WITH real AI-generated images.
-
-**Deploy & Publish**
-- deploy_app: Deploy any built app to a live public URL instantly. One click from chat to live website.
-- update_app: Iterate on apps — "make it blue", "add a pricing section", "change the headline". Fetches current, updates, saves.
-
-**Automation**
-- schedule_task: Set up recurring tasks, daily briefings, automated research runs.
+**Scheduling**
+- schedule_task: Set up recurring tasks and workflows.
 
 ## CRITICAL: TIME LIMIT
-You have a STRICT 50-second execution window. Plan accordingly:
-- **1 tool call = ~5-10 seconds.** You can safely do 3-4 tool calls max.
-- **NEVER chain more than 2 research calls before building.** If asked to "build X", call build_app IMMEDIATELY. Research ONLY if you truly don't know what the thing is.
-- **"Build me a website for [URL]"** → Do ONE quick web_search to understand the business, then IMMEDIATELY call build_app. Do NOT do multiple research rounds.
-- **"Build me a landing page/app/calculator"** → Call build_app DIRECTLY. No research needed. You know how to build things.
-- **Prioritize the BUILD tool.** Everything else is secondary. The user wants to SEE something, not read about your research process.
+You have a STRICT 50-second execution window. 3-4 tool calls max per turn.
 
 ## How You Operate
-1. **BUILD FIRST.** When asked to build something, BUILD IT. Don't narrate. Don't over-research. Call the tool.
-2. **Use tools efficiently.** 2-3 tools per turn max. Don't waste rounds on redundant research.
-3. **Remember everything.** After learning something about the user, save it to memory immediately.
-4. **Be proactive.** Notice patterns. Suggest next steps. Connect dots the user hasn't connected.
-5. **Be direct and warm.** You're a trusted partner. Concise, clear, no filler. Show results, not process.
-6. **Never fabricate.** If you need data, research it. Every fact must be real.
-7. **Think in workflows.** "Track competitors" = set monitor + research + create tracker + schedule updates.
-8. **Format beautifully.** Use markdown. Bold key points. Use tables for structured data. Make it scannable.
-9. **DO NOT NARRATE TOOL CALLS.** Don't say "Let me research..." or "Now let me build..." — just call the tool. The user sees tool status indicators automatically.
+1. **Check memory first.** Before answering, recall what you know about the user.
+2. **Use integrations.** When connected, pull real data — don't guess what's on their calendar or inbox.
+3. **Think cross-tool.** "Prep for my meeting" = check calendar → find attendee emails → recall previous interactions → draft talking points.
+4. **Be proactive.** "You have 3 meetings tomorrow. Want me to prep for any of them?"
+5. **Remember everything.** After learning something, save it immediately.
+6. **Be concise.** Show results, not process. Don't narrate what you're doing.
+7. **Format cleanly.** Markdown, bold key points, tables for data. Scannable.
+8. **Never fabricate.** If an integration isn't connected, say so and offer to help connect it.
 
-## Building Things (CRITICAL)
-When the user says "build me X" or "create X" or "make X" — you MUST create something REAL and POPULATED:
+## Cross-Tool Workflow Examples
+- "Prep for my meeting with Sarah" → check calendar → search emails for context → recall memory → draft talking points
+- "Follow up on yesterday's calls" → check calendar for meetings → draft follow-ups → offer to send
+- "What should I focus on today?" → check calendar → check emails → recall goals → prioritize
+- "Research X" → pulsed_research → memory_save key insights
 
-1. **Research first** if the topic requires data. Use pulsed_research or web_search to get real information.
-2. **Create with REAL DATA.** Never create empty artifacts. A "competitor tracker" should have actual competitors with real names, URLs, funding, descriptions. A "content calendar" should have actual post ideas with dates. A "CRM" should have example entries that make sense.
-3. **Use rich columns.** Tables should have appropriate column types — urls for websites, currency for prices, badges for status, dates for timelines.
-4. **Multiple tools per turn.** Research → create_artifact → memory_save. Chain them. Don't stop at one.
-5. **Documents should be comprehensive.** When creating a document artifact, write full content — not a skeleton. 500+ words minimum for docs.
-6. **After building, tell the user what you built AND what they can do next.** "I built your competitor tracker with 8 companies. Want me to set up a monitor to track when any of them makes news?"
-
-### Build Patterns:
-- "Build me a tracker" → research the topic → create table artifact with real rows
-- "Make me a plan" → create document artifact with detailed content + create list artifact with action items
-- "Set up my CRM" → create table artifact with smart columns (name, email, company, deal stage, value, last contact, notes) + pre-populate with any contacts from memory
-- "Create a dashboard" → create multiple artifacts (table + kanban + document) that work together
-- "Build an app/tool/calculator" → use build_app with complete HTML/CSS/JS. Always beautiful, always functional.
-- "Build me a website" → build_app with a full landing page — hero, features, CTA, footer, responsive
-- "Automate X" → run_automation with fetch + transform steps, then create_artifact with results
-- "Connect to [API]" → run_automation to fetch from the API, process results, save to workspace
-- "Scrape/get data from [site]" → run_automation with fetch step
-- "Build me a dashboard for X" → research X first → build_app with Chart.js/D3 visualization using real data
-
-### App Building Rules (build_app):
-- ALWAYS write complete, production-quality HTML with embedded CSS and JS
-- Use dark theme by default: #0a0a0f bg, #111118 cards, #f0f0f5 text, indigo (#6366f1) accents
-- Make apps responsive (flexbox/grid, media queries)
-- Include real interactivity — click handlers, animations, state management
-- Use CDN libraries when needed: Chart.js, D3.js, Three.js, Anime.js, etc.
-- NEVER build stubs or placeholders. Every app should be impressive and functional.
-- For calculators: include real formulas. For dashboards: use Chart.js with real/sample data. For landing pages: include all sections.
-
-### Image Generation Rules (generate_image):
-- Be SPECIFIC in prompts: style, colors, composition, mood, lighting
-- For websites: generate hero images, backgrounds, product mockups
-- For social: generate graphics that match the content theme
-- ALWAYS show the image in your response using markdown: ![description](url)
-- Chain with build_app: generate image → embed URL in the HTML
-
-### Deploy Rules (deploy_app):
-- After building an app, ALWAYS offer to deploy it: "Want me to put this live?"
-- When deployed, show the URL prominently
-- Chain: build_app → deploy_app for instant site creation
-
-### Iteration Rules (update_app):
-- When user says "change X" about a recent app, use update_app with the artifact ID
-- Fetch the current HTML mentally (you saw it when you built it), apply the change, save
-- Always preview the change: "Updated! Here's what changed: [description]"
-
-### Automation Rules (run_automation):
-- Chain steps: fetch → transform → filter → aggregate → notify
-- Always explain what the automation did and show key results
-- Save automation results to workspace for history
-
-### Power Combos (use these!):
-- "Build me a website" → generate_image (hero) → build_app (with image) → deploy_app = LIVE SITE IN 60 SECONDS
-- "Research X and build a dashboard" → pulsed_research → build_app (Chart.js with data) → deploy_app
-- "Create a brand" → generate_image (logo) → generate_image (social banner) → build_app (landing page with both) → deploy_app
-- "Track competitors and build a report" → pulsed_research → create_artifact (tracker) → set_monitor → generate_content (summary)`;
+## Rules
+- When you don't know something about the user, ASK — then remember the answer.
+- If someone asks you to connect a tool, guide them through it step by step — just like a friend would.
+- Don't over-research. If you know the answer, give it.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -300,7 +293,7 @@ export async function POST(req: NextRequest) {
     // Load API key + profile + memory
     const [keysRes, profileRes, memoryRes] = await Promise.all([
       supabase.from('api_keys' as any).select('id, provider, encrypted_key').eq('user_id', userId),
-      supabase.from('profiles').select('full_name, role, industry, current_focus, plan').eq('id', userId).single(),
+      supabase.from('profiles').select('full_name, role, industry, current_focus, plan, brain_model, worker_model, subagent_model, heartbeat_model, fallback_models').eq('id', userId).single(),
       supabase.from('user_memory' as any).select('content, category').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
     ]);
 
@@ -308,10 +301,35 @@ export async function POST(req: NextRequest) {
     const profile = profileRes.data as any;
     const memories = (memoryRes.data || []) as any[];
 
+    // Extract model routing config
+    const brainModel = profile?.brain_model || null;
+    const workerModel = profile?.worker_model || null;
+    const fallbackModels = profile?.fallback_models || [];
+
     if (allKeys.length === 0) {
       return new Response(JSON.stringify({ error: 'No API key configured. Add one at Settings → API Keys.' }), {
         status: 400, headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Check plan limits for free tier
+    const plan = profile?.plan || 'free';
+    if (plan === 'free') {
+      // Check daily message count
+      const today = new Date().toISOString().split('T')[0];
+      const { count } = await supabase
+        .from('agent_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('session_key', sessionKey)
+        .gte('created_at', `${today}T00:00:00Z`);
+      
+      if ((count || 0) >= 10) {
+        return new Response(
+          `data: ${JSON.stringify({ text: "You've reached the free tier limit of 10 messages per day. Upgrade to Pro for unlimited access." })}\n\ndata: [DONE]\n\n`,
+          { headers: SSE_HEADERS }
+        );
+      }
     }
 
     // Pick the right key based on preferred provider
@@ -329,7 +347,18 @@ export async function POST(req: NextRequest) {
         status: 500, headers: { 'Content-Type': 'application/json' },
       });
     }
-    const provider = keyRow.provider;
+    let provider = keyRow.provider;
+
+    // Smart model routing
+    let selectedModel: string | undefined;
+    if (!preferredProvider || preferredProvider === 'auto') {
+      const routed = selectModel(message, profile, allKeys);
+      if (routed) {
+        provider = routed.provider;
+        selectedModel = routed.model;
+        apiKey = routed.key;
+      }
+    }
 
     // Load conversation history
     let history: Array<{ role: string; content: string }> = [];
@@ -389,14 +418,25 @@ export async function POST(req: NextRequest) {
     } catch {}
 
     if (ultronRunning) {
-      // Agent is warm — stream directly, full 55s for the response
+      // Agent is warm — stream directly from real OpenClaw instance
+      console.log(`[chat] Ultron agent warm for ${userId}, streaming from OpenClaw`);
       return streamFromUltron(userId, message, sessionKey, history, supabase);
     }
 
-    // Agent not running — spawn in background for NEXT request, use BYOLLM now
-    tryUltron(userId, apiKey, provider, profile, message, sessionKey, history).catch(() => {});
-    console.log(`[chat] Spawning Ultron agent for ${userId} in background, using BYOLLM for this request`);
-    return streamDirectBYOLLM(provider, apiKey, messages, toolCtx, supabase, userId, sessionKey);
+    // Agent not running — spawn it and wait, then stream through it
+    console.log(`[chat] Spawning Ultron agent for ${userId}...`);
+    const spawned = await tryUltron(userId, apiKey, provider, profile, message, sessionKey, history);
+    
+    if (spawned) {
+      // Give OpenClaw a moment to initialize
+      await new Promise(r => setTimeout(r, 2000));
+      console.log(`[chat] Ultron spawned for ${userId}, streaming from OpenClaw`);
+      return streamFromUltron(userId, message, sessionKey, history, supabase);
+    }
+
+    // Ultron failed — fall back to direct BYOLLM
+    console.log(`[chat] Ultron spawn failed for ${userId}, falling back to BYOLLM`);
+    return streamDirectBYOLLM(provider, apiKey, messages, toolCtx, supabase, userId, sessionKey, selectedModel);
 
   } catch (error: any) {
     console.error('Agent chat error:', error);
@@ -426,7 +466,7 @@ async function tryUltron(userId: string, apiKey: string, provider: string, profi
           plan: profile?.plan,
         },
       }),
-      signal: AbortSignal.timeout(15000), // 15s max for spawn
+      signal: AbortSignal.timeout(8000), // 8s max for spawn (leave room for response within 60s Vercel limit)
     });
     return spawnRes.ok;
   } catch {
@@ -507,7 +547,7 @@ async function streamFromUltron(userId: string, message: string, sessionKey: str
   return new Response(stream, { headers: SSE_HEADERS });
 }
 
-async function streamDirectBYOLLM(provider: string, apiKey: string, messages: any[], toolCtx: ToolContext, supabase: any, userId: string, sessionKey: string): Promise<Response> {
+async function streamDirectBYOLLM(provider: string, apiKey: string, messages: any[], toolCtx: ToolContext, supabase: any, userId: string, sessionKey: string, modelOverride?: string): Promise<Response> {
   const config = PROVIDER_CONFIGS[provider] || PROVIDER_CONFIGS.openai;
   
   // Build tools in the right format for this provider
@@ -523,8 +563,13 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
 
       controller.enqueue(sse({ status: 'Thinking...' }));
 
+      // Send model info at the start
+      if (modelOverride) {
+        controller.enqueue(sse({ status: `Using ${modelOverride}`, model: modelOverride }));
+      }
+
       while (toolRounds < maxToolRounds) {
-        const req = config.buildRequest(apiKey, currentMessages, tools);
+        const req = config.buildRequest(apiKey, currentMessages, tools, modelOverride);
         
         let response: globalThis.Response;
         try {
@@ -603,25 +648,16 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
 
         // Execute tool calls
         const friendlyToolNames: Record<string, string> = {
-          'pulsed_research': '🔍 Researching',
-          'web_search': '🌐 Searching the web',
-          'create_artifact': '🏗️ Building',
-          'update_artifact': '📝 Updating workspace',
-          'list_artifacts': '📂 Checking workspace',
-          'memory_save': '🧠 Saving to memory',
-          'memory_recall': '🧠 Searching memory',
-          'schedule_task': '📅 Setting up task',
-          'send_notification': '🔔 Sending notification',
-          'crm_manage_contacts': '👥 Managing contacts',
-          'crm_manage_deals': '💰 Managing deals',
-          'crm_log_activity': '📋 Logging activity',
-          'set_monitor': '📡 Setting up monitor',
-          'generate_content': '✍️ Generating content',
-          'build_app': '🚀 Building app',
-          'run_automation': '⚙️ Running automation',
-          'generate_image': '🎨 Generating image',
-          'deploy_app': '🌐 Deploying to live URL',
-          'update_app': '🔄 Updating app',
+          'pulsed_research': 'Researching',
+          'web_search': 'Searching the web',
+          'memory_save': 'Saving to memory',
+          'memory_recall': 'Searching memory',
+          'generate_content': 'Drafting content',
+          'schedule_task': 'Setting up task',
+          'send_notification': 'Sending notification',
+          'github_action': 'Checking GitHub',
+          'google_calendar': 'Checking calendar',
+          'google_gmail': 'Checking email',
         };
         const toolResults: Array<{ id: string; name: string; result: string }> = [];
         for (const tc of pendingToolCalls) {
@@ -639,18 +675,14 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
           let resultSummary = '';
           try {
             const parsed = JSON.parse(result);
-            if (tc.name === 'build_app' && parsed.id) {
-              resultSummary = `Built app → [View Preview](/workspace/app/${parsed.id})`;
-            } else if (tc.name === 'deploy_app' && parsed.url) {
-              resultSummary = `Deployed → [${parsed.url}](${parsed.url})`;
-            } else if (tc.name === 'generate_image' && parsed.url) {
+            if (tc.name === 'generate_image' && parsed.url) {
               resultSummary = `![Generated image](${parsed.url})`;
             } else if (tc.name === 'create_artifact' && parsed.id) {
               resultSummary = `Created "${parsed.title || 'item'}" in workspace`;
             } else if (tc.name === 'web_search' || tc.name === 'pulsed_research') {
               resultSummary = ''; // Don't show raw search results inline
-            } else if (tc.name === 'crm_manage_contacts' || tc.name === 'crm_manage_deals') {
-              resultSummary = `CRM updated`;
+            } else if (tc.name === 'github_action' || tc.name === 'google_calendar' || tc.name === 'google_gmail') {
+              resultSummary = '';
             } else if (tc.name === 'memory_save') {
               resultSummary = `Saved to memory`;
             }

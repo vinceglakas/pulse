@@ -1,758 +1,249 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import ReferralCapture from './components/ReferralCapture';
-import BriefOfTheDay from './components/BriefOfTheDay';
+import Link from 'next/link';
+import { useState } from 'react';
+
+const integrations = [
+  { name: 'Google Calendar', dot: '#4285f4' }, { name: 'Gmail', dot: '#ea4335' },
+  { name: 'Slack', dot: '#e01e5a' }, { name: 'GitHub', dot: '#f0f0f5' },
+  { name: 'Salesforce', dot: '#00a1e0' }, { name: 'Notion', dot: '#f0f0f5' },
+  { name: 'Linear', dot: '#5e6ad2' }, { name: 'Figma', dot: '#a259ff' },
+  { name: 'HubSpot', dot: '#ff7a59' }, { name: 'Jira', dot: '#0052cc' },
+  { name: 'Microsoft 365', dot: '#00a4ef' }, { name: 'Google Drive', dot: '#34a853' },
+];
+
+const faqs = [
+  { q: "What's BYOLLM?", a: "Bring Your Own LLM. You add your API key from OpenAI, Anthropic, Google, or Moonshot. Your agent uses your key directly — we never store or route your conversations." },
+  { q: "How is this different from ChatGPT?", a: "ChatGPT is a chatbot. Your agent is an operating system. It connects to your real tools, remembers your context permanently, and takes actions across your entire stack." },
+  { q: "What integrations are available?", a: "Google Calendar, Gmail, Slack, GitHub, Salesforce, Notion, Linear, Figma, HubSpot, Jira, and more launching weekly." },
+  { q: "Is my data secure?", a: "Your API keys are encrypted at rest. Your conversations go directly to your LLM provider. We never see, store, or train on your data." },
+  { q: "Can I use it on mobile?", a: "Yes. Connect via Telegram and talk to your agent from anywhere. Slack and Discord support coming soon." },
+];
+
+const glass = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, backdropFilter: 'blur(20px)' } as const;
+const cx = '#22d3ee';
 
 export default function Home() {
-  const router = useRouter();
-  const [activeUseCase, setActiveUseCase] = useState(0);
-  const [fadeIn, setFadeIn] = useState(true);
-  const [displayedCommand, setDisplayedCommand] = useState('');
-  const typingRef = useRef<NodeJS.Timeout | null>(null);
-
-  const useCases = [
-    {
-      label: 'CRM',
-      command: 'Build me a CRM that tracks my pipeline and sends follow-up reminders',
-      agentHtml: (
-        <div className="space-y-2">
-          <p className="text-[#f0f0f5] font-medium text-sm">Done. I created your CRM:</p>
-          <ul className="space-y-1.5 text-sm text-[#8b8b9e]">
-            <li className="flex items-center gap-2"><svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg><span><strong className="text-[#c4c4d4]">Contact management</strong> — add, tag, search</span></li>
-            <li className="flex items-center gap-2"><svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg><span><strong className="text-[#c4c4d4]">Deal pipeline</strong> — drag deals through stages</span></li>
-            <li className="flex items-center gap-2"><svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg><span><strong className="text-[#c4c4d4]">Automated follow-ups</strong> — at your intervals</span></li>
-            <li className="flex items-center gap-2"><svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg><span><strong className="text-[#c4c4d4]">Weekly pipeline report</strong> — every Monday 9am</span></li>
-          </ul>
-          <p className="text-xs text-[#6b6b80] mt-2">Your CRM is live. Try <span className="text-indigo-400 font-medium">&quot;Add a lead: John Smith, Acme Corp&quot;</span></p>
-        </div>
-      ),
-    },
-    {
-      label: 'Research',
-      command: 'Research every AI startup that raised Series A this quarter and find me the decision makers',
-      agentHtml: (
-        <div className="space-y-2">
-          <p className="text-[#f0f0f5] font-medium text-sm">Found <strong>34 AI startups</strong> with Series A rounds in Q1 2026:</p>
-          <ul className="space-y-1.5 text-sm text-[#8b8b9e]">
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span><strong className="text-[#c4c4d4]">NovaMind AI</strong> — $28M, CEO: Sarah Chen</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span><strong className="text-[#c4c4d4]">Axion Labs</strong> — $22M, CEO: James Park</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span><strong className="text-[#c4c4d4]">Cortex Systems</strong> — $19M, CTO: Priya Sharma</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0"></span><strong className="text-[#c4c4d4]">Synth AI</strong> — $15M, CEO: Marco Rossi</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0"></span><strong className="text-[#c4c4d4]">DeepForge</strong> — $14M, CEO: Lisa Wang</li>
-          </ul>
-          <p className="text-xs text-[#6b6b80] mt-2">Full brief with LinkedIn profiles ready. <span className="text-indigo-400 font-medium">View brief</span></p>
-        </div>
-      ),
-    },
-    {
-      label: 'Workflows',
-      command: 'Set up a workflow that monitors competitors and alerts me when they launch something new',
-      agentHtml: (
-        <div className="space-y-2">
-          <p className="text-[#f0f0f5] font-medium text-sm">Monitoring configured. Now watching:</p>
-          <ul className="space-y-1.5 text-sm text-[#8b8b9e]">
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span><strong className="text-[#c4c4d4]">3 competitor websites</strong> — product pages, pricing, blog</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span><strong className="text-[#c4c4d4]">Social media</strong> — Twitter/X, LinkedIn, Product Hunt</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span><strong className="text-[#c4c4d4]">Press releases</strong> — TechCrunch, VentureBeat</li>
-          </ul>
-          <p className="text-xs text-[#6b6b80] mt-2">Telegram alerts within minutes of any change. Ask for a weekly summary anytime.</p>
-        </div>
-      ),
-    },
-    {
-      label: 'Automation',
-      command: 'Automate lead enrichment for this list of 500 contacts — emails, company data, tech stack',
-      agentHtml: (
-        <div className="space-y-2">
-          <p className="text-[#f0f0f5] font-medium text-sm">Enrichment complete. Processed <strong>500 leads</strong>:</p>
-          <div className="rounded-lg p-3 text-xs font-mono text-[#8b8b9e] space-y-1 border border-white/[0.06] bg-white/[0.03]">
-            <p className="flex items-center gap-2"><svg className="w-3 h-3 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>487/500 matched to companies</p>
-            <p className="flex items-center gap-2"><svg className="w-3 h-3 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Added: email, title, company size, tech stack</p>
-            <p className="flex items-center gap-2"><svg className="w-3 h-3 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Added: recent news, funding data, social links</p>
-            <p className="flex items-center gap-2"><svg className="w-3 h-3 text-amber-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>Flagged 23 high-priority leads (recent funding)</p>
-          </div>
-          <p className="text-xs text-[#6b6b80] mt-2">Spreadsheet exported. <span className="text-indigo-400 font-medium">Download enriched_leads.csv</span></p>
-        </div>
-      ),
-    },
-    {
-      label: 'Analytics',
-      command: 'Analyze the sentiment around our brand across every major platform this month',
-      agentHtml: (
-        <div className="space-y-2">
-          <p className="text-[#f0f0f5] font-medium text-sm">Brand sentiment analysis complete. Scanned <strong>2,847 mentions</strong>:</p>
-          <div className="space-y-2.5 mt-2">
-            <div className="flex items-center gap-3 text-sm">
-              <span className="text-[#8b8b9e] w-16 text-xs">Positive</span>
-              <div className="flex-1 bg-white/[0.06] rounded-full h-2 overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full" style={{ width: '64%' }}></div>
-              </div>
-              <span className="text-xs text-[#8b8b9e] font-medium w-8">64%</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm">
-              <span className="text-[#8b8b9e] w-16 text-xs">Neutral</span>
-              <div className="flex-1 bg-white/[0.06] rounded-full h-2 overflow-hidden">
-                <div className="bg-violet-400/60 h-full rounded-full" style={{ width: '24%' }}></div>
-              </div>
-              <span className="text-xs text-[#8b8b9e] font-medium w-8">24%</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm">
-              <span className="text-[#8b8b9e] w-16 text-xs">Negative</span>
-              <div className="flex-1 bg-white/[0.06] rounded-full h-2 overflow-hidden">
-                <div className="bg-[#3a3a4a] h-full rounded-full" style={{ width: '12%' }}></div>
-              </div>
-              <span className="text-xs text-[#8b8b9e] font-medium w-8">12%</span>
-            </div>
-          </div>
-          <p className="text-xs text-[#6b6b80] mt-2">Top theme: <strong className="text-[#c4c4d4]">&quot;great support&quot;</strong> (89 mentions). <span className="text-indigo-400 font-medium">Full report</span></p>
-        </div>
-      ),
-    },
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFadeIn(false);
-      setTimeout(() => {
-        setActiveUseCase((prev) => (prev + 1) % useCases.length);
-        setFadeIn(true);
-      }, 300);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [useCases.length]);
-
-  useEffect(() => {
-    if (typingRef.current) clearTimeout(typingRef.current);
-    setDisplayedCommand('');
-    const fullCommand = useCases[activeUseCase].command;
-    let i = 0;
-    const type = () => {
-      if (i <= fullCommand.length) {
-        setDisplayedCommand(fullCommand.slice(0, i));
-        i++;
-        typingRef.current = setTimeout(type, 18);
-      }
-    };
-    type();
-    return () => {
-      if (typingRef.current) clearTimeout(typingRef.current);
-    };
-  }, [activeUseCase]);
-
-  const handleUseCaseClick = (i: number) => {
-    setFadeIn(false);
-    setTimeout(() => {
-      setActiveUseCase(i);
-      setFadeIn(true);
-    }, 200);
-  };
-
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mobileMenu, setMobileMenu] = useState(false);
 
   return (
-    <div className="min-h-screen scroll-smooth" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
-      <ReferralCapture />
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes gradient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+    <div style={{ background: '#0a0a0f', color: '#f0f0f5', minHeight: '100vh' }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .hidden-mobile { display: none !important; }
+          .show-mobile { display: block !important; }
         }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
+        @media (min-width: 641px) {
+          .show-mobile { display: none !important; }
         }
-        .typing-cursor::after {
-          content: '|';
-          animation: blink 0.8s step-end infinite;
-          color: #818cf8;
-          margin-left: 1px;
-          font-weight: 300;
-        }
-        @keyframes scroll-left {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes scroll-right {
-          0% { transform: translateX(-50%); }
-          100% { transform: translateX(0); }
-        }
-        .marquee-row:hover {
-          animation-play-state: paused;
-        }
-        @keyframes glow-pulse {
-          0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), 0 0 60px rgba(139, 92, 246, 0.08); }
-          50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.25), 0 0 80px rgba(139, 92, 246, 0.12); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
-        }
-        .glass-card {
-          background: rgba(17, 17, 24, 0.8);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .glass-card:hover {
-          border-color: rgba(99, 102, 241, 0.2);
-          box-shadow: 0 0 30px rgba(99, 102, 241, 0.08);
-        }
-        .glow-btn {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-          transition: all 0.3s ease;
-        }
-        .glow-btn:hover {
-          box-shadow: 0 0 40px rgba(99, 102, 241, 0.5), 0 0 80px rgba(139, 92, 246, 0.2);
-          transform: translateY(-1px);
-        }
-      ` }} />
-
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl" style={{ background: 'rgba(10, 10, 15, 0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl font-bold text-white">Pulsed</span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
+      `}</style>
+      {/* Nav */}
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(10,10,15,0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Pulsed</span>
+          {/* Desktop nav */}
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }} className="hidden-mobile">
+            <Link href="/pricing" style={{ color: '#8b8b9e', fontSize: 14, textDecoration: 'none' }}>Pricing</Link>
+            <Link href="/login" style={{ color: '#8b8b9e', fontSize: 14, textDecoration: 'none' }}>Log in</Link>
+            <Link href="/signup" style={{ background: '#f0f0f5', color: '#0a0a0f', fontSize: 14, fontWeight: 600, padding: '8px 20px', borderRadius: 8, textDecoration: 'none' }}>Get Started</Link>
           </div>
-          <div className="flex items-center gap-8">
-            <button onClick={() => scrollTo('what-it-does')} className="hidden md:block text-sm text-[#8b8b9e] hover:text-white transition-colors">What it does</button>
-            <button onClick={() => scrollTo('how-it-works')} className="hidden md:block text-sm text-[#8b8b9e] hover:text-white transition-colors">How it works</button>
-            <div className="flex items-center gap-3">
-              <a href="/pricing" className="text-sm text-[#8b8b9e] hover:text-white transition-colors">Pricing</a>
-              <a href="/login" className="text-sm text-[#8b8b9e] hover:text-white transition-colors">Sign in</a>
-              <a href="/signup" className="glow-btn text-sm font-semibold text-white px-4 py-2 rounded-lg">
-                Get Started
-              </a>
-            </div>
-          </div>
+          {/* Mobile hamburger */}
+          <button onClick={() => setMobileMenu(!mobileMenu)} className="show-mobile" style={{ background: 'none', border: 'none', color: '#f0f0f5', fontSize: 24, cursor: 'pointer', display: 'none' }}>
+            {mobileMenu ? '\u2715' : '\u2630'}
+          </button>
         </div>
+        {/* Mobile menu */}
+        {mobileMenu && (
+          <div className="show-mobile" style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Link href="/pricing" onClick={() => setMobileMenu(false)} style={{ color: '#8b8b9e', fontSize: 15, textDecoration: 'none', padding: '8px 0' }}>Pricing</Link>
+            <Link href="/login" onClick={() => setMobileMenu(false)} style={{ color: '#8b8b9e', fontSize: 15, textDecoration: 'none', padding: '8px 0' }}>Log in</Link>
+            <Link href="/signup" onClick={() => setMobileMenu(false)} style={{ background: '#f0f0f5', color: '#0a0a0f', fontSize: 15, fontWeight: 600, padding: '12px 20px', borderRadius: 8, textDecoration: 'none', textAlign: 'center' }}>Get Started</Link>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-24 pb-20 md:pt-36 md:pb-32 overflow-hidden">
-        {/* Animated gradient background */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.08) 40%, transparent 70%)',
-          }}
-        />
-        {/* Grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <div className="relative max-w-6xl mx-auto px-6 text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/70 font-medium mb-6">The last software you will ever need</p>
-          <h1 className="text-5xl md:text-[76px] font-extrabold tracking-[-0.04em] leading-[1.02] max-w-4xl mx-auto text-white">
-            Your AI.{' '}
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #818cf8, #a78bfa, #c084fc)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              Your rules.
-            </span>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '140px 24px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 48, alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: 'clamp(40px, 6vw, 64px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 20 }}>
+            Your own<br />AI agent.
           </h1>
-          <p className="mt-8 text-xl text-[#8b8b9e] leading-relaxed max-w-2xl mx-auto">
-            One AI agent that builds, researches, and automates anything you describe. Powered by your own model. Controlled entirely by you.
+          <p style={{ fontSize: 18, color: '#8b8b9e', lineHeight: 1.6, marginBottom: 36, maxWidth: 460 }}>
+            Connects to every tool you use. Learns how you work. Makes you radically more efficient.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <a href="/signup" className="glow-btn font-semibold rounded-lg px-8 py-4 text-base text-white">
-              Start building now
-            </a>
-            <button
-              onClick={() => scrollTo('what-it-does')}
-              className="border border-white/10 text-white/80 font-semibold rounded-lg px-8 py-4 text-base hover:border-white/25 hover:text-white transition-all"
-            >
-              See what it can do
-            </button>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <Link href="/signup" style={{ background: '#f0f0f5', color: '#0a0a0f', fontSize: 15, fontWeight: 600, padding: '13px 28px', borderRadius: 10, textDecoration: 'none' }}>Get Started</Link>
+            <a href="#how" style={{ color: '#f0f0f5', fontSize: 15, fontWeight: 500, padding: '13px 28px', borderRadius: 10, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.12)' }}>See how it works</a>
           </div>
-          <p className="mt-6 text-sm text-[#6b6b80]">Free to start. Bring your own API key. Cancel anytime.</p>
         </div>
-      </section>
-
-      {/* Stats bar */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap justify-center gap-8 md:gap-16 text-sm text-[#6b6b80]">
-          <span>BYOLLM — your model, your data</span>
-          <span className="hidden sm:inline text-white/10">|</span>
-          <span>Works globally</span>
-          <span className="hidden sm:inline text-white/10">|</span>
-          <span>Always on</span>
-        </div>
-      </div>
-
-      {/* Brief of the Day */}
-      <BriefOfTheDay />
-
-      {/* What It Does — Demo Section */}
-      <section id="what-it-does" className="py-24 md:py-32">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">What it does</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto">You describe the outcome. Your agent figures out the rest.</h2>
+        {/* Chat mockup */}
+        <div style={{ ...glass, padding: 0, overflow: 'hidden', boxShadow: '0 0 60px rgba(6,182,212,0.06)', maxWidth: 440 }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22d3ee' }} />
+            <span style={{ fontSize: 14, fontWeight: 600 }}>Agent</span>
+            <span style={{ fontSize: 11, color: '#5a5a6e', marginLeft: 'auto' }}>Online</span>
           </div>
-
-          <div className="max-w-4xl mx-auto">
-            {/* Use case selector */}
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {useCases.map((uc, i) => (
-                <button
-                  key={uc.label}
-                  onClick={() => handleUseCaseClick(i)}
-                  className="text-sm px-5 py-2.5 rounded-lg font-medium transition-all duration-200"
-                  style={{
-                    background: activeUseCase === i ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(255,255,255,0.04)',
-                    color: activeUseCase === i ? '#fff' : '#8b8b9e',
-                    border: activeUseCase === i ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                    boxShadow: activeUseCase === i ? '0 0 20px rgba(99, 102, 241, 0.2)' : 'none',
-                  }}
-                >
-                  {uc.label}
-                </button>
-              ))}
+          <div style={{ padding: '20px 20px 12px', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 240 }}>
+            <div style={{ alignSelf: 'flex-end', background: 'rgba(255,255,255,0.06)', borderRadius: '14px 14px 4px 14px', padding: '10px 16px', fontSize: 13, maxWidth: '85%', color: '#c0c0d0' }}>
+              Prep me for my 2pm meeting with Sarah
             </div>
-
-            {/* Chat mockup */}
-            <div
-              className="rounded-2xl overflow-hidden glass-card"
-              style={{
-                opacity: fadeIn ? 1 : 0,
-                transform: fadeIn ? 'translateY(0)' : 'translateY(8px)',
-                transition: 'opacity 0.3s ease, transform 0.3s ease',
-                animation: 'glow-pulse 4s ease-in-out infinite',
-              }}
-            >
-              {/* Chat header */}
-              <div className="px-5 py-3.5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">Pulsed Agent</p>
-                  <p className="text-xs text-emerald-400">Online</p>
-                </div>
-              </div>
-              {/* Chat messages */}
-              <div className="px-5 py-6 space-y-4 min-h-[240px]">
-                {/* User message */}
-                <div className="flex justify-end">
-                  <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-br-md text-white text-sm leading-relaxed" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                    <span className="typing-cursor">{displayedCommand}</span>
-                  </div>
-                </div>
-                {/* Agent message */}
-                <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
-                  </div>
-                  <div className="max-w-[85%]">
-                    <p className="text-[11px] text-[#6b6b80] mb-1.5 font-medium">Pulsed Agent</p>
-                    <div className="px-4 py-3 rounded-2xl rounded-bl-md" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      {useCases[activeUseCase].agentHtml}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Chat input */}
-              <div className="px-5 pb-4">
-                <div className="flex items-center gap-2 rounded-xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p className="text-sm text-[#6b6b80] flex-1">Type a message...</p>
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" /></svg>
-                  </div>
-                </div>
-              </div>
+            <div style={{ alignSelf: 'flex-start', borderLeft: `2px solid ${cx}`, paddingLeft: 14, fontSize: 13, color: '#8b8b9e', maxWidth: '85%', lineHeight: 1.5 }}>
+              Found your meeting. Sarah Chen, VP Product at Acme. Checking your last 3 emails and CRM notes...
+            </div>
+            <div style={{ alignSelf: 'flex-start', borderLeft: `2px solid ${cx}`, paddingLeft: 14, fontSize: 13, color: '#c0c0d0', maxWidth: '85%', lineHeight: 1.5 }}>
+              <strong style={{ color: '#f0f0f5' }}>Here&apos;s your prep:</strong> She mentioned Q2 roadmap concerns last Tuesday. Your deal is at $45k, proposal stage. I drafted 3 talking points and pulled her LinkedIn updates.
+            </div>
+          </div>
+          <div style={{ padding: '12px 20px 16px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#5a5a6e' }}>
+              Message your agent...
             </div>
           </div>
         </div>
       </section>
 
-      {/* BYOLLM */}
-      <section className="py-24 md:py-32" style={{ background: 'rgba(17, 17, 24, 0.6)' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+      {/* Integration pills */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 24px' }}>
+        <p style={{ textAlign: 'center', fontSize: 14, color: cx, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 }}>Connects to your entire stack</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+          {integrations.map(i => (
+            <span key={i.name} style={{ ...glass, borderRadius: 20, padding: '8px 16px', fontSize: 13, color: '#c0c0d0', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: i.dot, flexShrink: 0 }} />
+              {i.name}
+            </span>
+          ))}
+        </div>
+        <p style={{ textAlign: 'center', color: '#5a5a6e', fontSize: 13, marginTop: 16 }}>And we&apos;re adding more every week.</p>
+      </section>
+
+      {/* How it works — timeline */}
+      <section id="how" style={{ maxWidth: 700, margin: '0 auto', padding: '80px 24px' }}>
+        <p style={{ fontSize: 14, color: cx, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 48 }}>How it works</p>
+        {[
+          { n: '01', t: 'Connect your tools', d: 'Two clicks to link Gmail, Slack, Salesforce, or any tool in your stack. Your agent sees everything, securely.' },
+          { n: '02', t: 'Your agent learns you', d: 'Goals, patterns, preferences, contacts. Every conversation makes it smarter. It never forgets.' },
+          { n: '03', t: 'One command, every tool', d: '"Prep for my meeting, update the deal, and draft the follow-up." One sentence. Three tools. Done.' },
+        ].map((s, i) => (
+          <div key={s.n} style={{ display: 'flex', gap: 24, marginBottom: i < 2 ? 40 : 0, position: 'relative' }}>
+            {i < 2 && <div style={{ position: 'absolute', left: 19, top: 40, bottom: -40, width: 1, background: 'rgba(255,255,255,0.06)' }} />}
+            <span style={{ fontSize: 28, fontWeight: 700, color: cx, fontFamily: 'monospace', lineHeight: 1, flexShrink: 0, width: 40 }}>{s.n}</span>
             <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Your model. Your data. Your rules.</p>
-              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Bring your own LLM</h2>
-              <p className="mt-5 text-lg text-[#8b8b9e] leading-relaxed">
-                Connect your API key from Anthropic, OpenAI, Google, or any provider. Your data never touches our servers. Swap models anytime. Zero vendor lock-in.
-              </p>
-              <div className="mt-8 space-y-4">
-                {[
-                  'Your API key, your costs — we never mark up model usage',
-                  'Switch between Claude, GPT, Gemini, Llama, Kimi anytime',
-                  'Data stays in your environment — nothing stored on our side',
-                  'Works with any OpenAI-compatible endpoint',
-                ].map((point) => (
-                  <div key={point} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center mt-0.5 shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    </div>
-                    <p className="text-[#8b8b9e]">{point}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="glass-card rounded-2xl p-8 transition-all duration-300">
-              <p className="text-sm text-[#6b6b80] uppercase tracking-wider mb-6">Supported providers</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { name: 'Anthropic', sub: 'Claude Opus, Sonnet, Haiku', color: '#D97757' },
-                  { name: 'OpenAI', sub: 'GPT-4.1, o4-mini, Codex', color: '#10A37F' },
-                  { name: 'Google', sub: 'Gemini 2.5 Flash, Pro', color: '#4285F4' },
-                  { name: 'Moonshot', sub: 'Kimi K2', color: '#8b8b9e' },
-                  { name: 'Meta', sub: 'Llama 4 via OpenRouter', color: '#0668E1' },
-                  { name: 'Any provider', sub: 'OpenAI-compatible API', color: '#6366f1' },
-                ].map((p) => (
-                  <div
-                    key={p.name}
-                    className="rounded-lg px-4 py-3 transition-all duration-200 hover:bg-white/[0.04]"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: `3px solid ${p.color}` }}
-                  >
-                    <p className="font-semibold text-white text-sm">{p.name}</p>
-                    <p className="text-xs text-[#6b6b80] mt-0.5">{p.sub}</p>
-                  </div>
-                ))}
-              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 600, marginBottom: 6, letterSpacing: '-0.01em' }}>{s.t}</h3>
+              <p style={{ color: '#8b8b9e', lineHeight: 1.6, fontSize: 15 }}>{s.d}</p>
             </div>
           </div>
+        ))}
+      </section>
+
+      {/* Use cases */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 24px' }}>
+        <p style={{ fontSize: 14, color: cx, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>Use cases</p>
+        <h2 style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: 48 }}>What your agent does for you</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+          {[
+            { t: 'Meeting prep', d: 'Checks your calendar, pulls email history, recalls past conversations, drafts talking points. All before you walk in.' },
+            { t: 'Cross-tool workflows', d: 'Update Salesforce, send the Slack message, log the activity, schedule the follow-up. One command.' },
+            { t: 'Research & intelligence', d: 'Deep research across Reddit, Hacker News, X, YouTube, and the web. Real insights, not summaries of summaries.' },
+            { t: 'Memory that compounds', d: 'Your agent remembers every preference, every contact, every decision. It gets better every single day.' },
+          ].map(c => (
+            <div key={c.t} style={{ ...glass, padding: 28 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>{c.t}</h3>
+              <p style={{ color: '#8b8b9e', fontSize: 14, lineHeight: 1.6 }}>{c.d}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Features — Glass Cards */}
-      <section className="py-24 md:py-32">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stop paying for software that does one thing</h2>
-            <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">Every tool in your stack does a fraction of what one AI agent can do.</p>
+      {/* BYOLLM trust */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>Your data. Your model.<br />Your agent.</h2>
+            <p style={{ color: '#8b8b9e', lineHeight: 1.7, fontSize: 15 }}>
+              Bring your own API key from OpenAI, Anthropic, Google, or Moonshot. Your conversations never touch our servers. Swap models anytime. No vendor lock-in.
+            </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              {
-                title: 'Your research team',
-                desc: 'Scans the entire internet — Reddit, Hacker News, X, YouTube, news sites — and delivers an executive brief in under 60 seconds. The kind of research that used to take a full day.',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-                ),
-              },
-              {
-                title: 'Your workflow automation',
-                desc: 'Describe what you want in plain English — monitor competitors, enrich a lead list, generate weekly reports. Your agent builds the workflow and runs it on autopilot.',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                ),
-              },
-              {
-                title: 'Your AI that builds tools',
-                desc: 'Need a CRM? A dashboard? A lead tracker? Just describe it. Your agent writes the code, manages the data, and keeps it running. No developers needed.',
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.58-3.18M16.58 8.89l-5.58 3.18m0 0l.01 6.36m-.01-6.36l.01-6.36M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                ),
-              },
-            ].map((item) => (
-              <div key={item.title} className="glass-card rounded-2xl p-8 transition-all duration-300">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                  <span className="text-indigo-400">{item.icon}</span>
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">{item.title}</h3>
-                <p className="text-[#8b8b9e] leading-relaxed text-sm">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-24 md:py-32" style={{ background: 'rgba(17, 17, 24, 0.6)' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">How it works</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Three minutes from signup to your first agent</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { step: '01', title: 'Create your account', desc: 'Sign up with Google or email. Takes 10 seconds.' },
-              { step: '02', title: 'Add your API key', desc: 'Paste your key from Anthropic, OpenAI, or any provider. Optional for free tier — required for Pro to unlock your own models.' },
-              { step: '03', title: 'Tell it what to build', desc: 'Describe what you need in plain English. Your agent handles the rest — research, code, files, automation.' },
-            ].map((s) => (
-              <div key={s.step} className="relative group">
-                <span className="text-8xl font-bold leading-none transition-colors duration-300" style={{ color: 'rgba(99, 102, 241, 0.08)' }}>{s.step}</span>
-                <h3 className="text-xl font-bold text-white mt-4 mb-2">{s.title}</h3>
-                <p className="text-[#8b8b9e] leading-relaxed">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof */}
-      <section className="py-24 md:py-32">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Why people switch</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">One agent. Infinite use cases.</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                ),
-                title: 'Hours → Seconds',
-                desc: 'Research that used to take a full day now takes under 60 seconds. Real sources, real analysis, executive-ready briefs.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
-                ),
-                title: 'Your keys. Your models.',
-                desc: 'No markup on AI costs. Use Claude for strategy, GPT for code, Gemini for analysis. Switch anytime. Your data never leaves your environment.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
-                ),
-                title: 'It works while you sleep',
-                desc: 'Set up autonomous tasks — competitor monitoring, daily briefs, lead enrichment. Your agent runs 24/7 and alerts you when something matters.',
-              },
-            ].map((t) => (
-              <div key={t.title} className="glass-card rounded-2xl p-8 transition-all duration-300 flex flex-col">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                  {t.icon}
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{t.title}</h3>
-                <p className="text-[#8b8b9e] leading-relaxed text-sm flex-1">{t.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Connects to Everything */}
-      <section className="py-24 md:py-32" style={{ background: 'rgba(17, 17, 24, 0.6)' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Connects to your world</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Your agent works with the tools you already use</h2>
-          </div>
-
-          <div className="overflow-hidden mb-6">
-            <div className="flex marquee-row" style={{ animation: 'scroll-left 30s linear infinite', width: 'max-content' }}>
-              {[
-                { name: 'Telegram', color: '#229ED9' },
-                { name: 'Discord', color: '#5865F2' },
-                { name: 'Slack', color: '#4A154B' },
-                { name: 'WhatsApp', color: '#25D366' },
-                { name: 'Google Sheets', color: '#0F9D58' },
-                { name: 'Notion', color: '#ffffff' },
-                { name: 'Salesforce', color: '#00A1E0' },
-                { name: 'HubSpot', color: '#FF7A59' },
-                { name: 'Telegram', color: '#229ED9' },
-                { name: 'Discord', color: '#5865F2' },
-                { name: 'Slack', color: '#4A154B' },
-                { name: 'WhatsApp', color: '#25D366' },
-                { name: 'Google Sheets', color: '#0F9D58' },
-                { name: 'Notion', color: '#ffffff' },
-                { name: 'Salesforce', color: '#00A1E0' },
-                { name: 'HubSpot', color: '#FF7A59' },
-              ].map((t, i) => (
-                <span key={i} className="flex items-center gap-2 px-4 py-2 mx-1.5 rounded-full text-sm font-medium text-[#8b8b9e] whitespace-nowrap" style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                  <span className="w-2 h-2 rounded-full" style={{ background: t.color }}></span>
-                  {t.name}
-                </span>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+              {['Claude', 'GPT-4', 'Gemini', 'Kimi'].map(m => (
+                <span key={m} style={{ ...glass, borderRadius: 20, padding: '8px 18px', fontSize: 14, fontWeight: 500, color: '#c0c0d0' }}>{m}</span>
               ))}
             </div>
-            <div className="flex mt-3 marquee-row" style={{ animation: 'scroll-right 25s linear infinite', width: 'max-content' }}>
-              {[
-                { name: 'Gmail', color: '#EA4335' },
-                { name: 'Google Calendar', color: '#4285F4' },
-                { name: 'Jira', color: '#0052CC' },
-                { name: 'Linear', color: '#5E6AD2' },
-                { name: 'GitHub', color: '#8b949e' },
-                { name: 'Stripe', color: '#635BFF' },
-                { name: 'Zapier', color: '#FF4F00' },
-                { name: 'Make', color: '#6D00CC' },
-                { name: 'Gmail', color: '#EA4335' },
-                { name: 'Google Calendar', color: '#4285F4' },
-                { name: 'Jira', color: '#0052CC' },
-                { name: 'Linear', color: '#5E6AD2' },
-                { name: 'GitHub', color: '#8b949e' },
-                { name: 'Stripe', color: '#635BFF' },
-                { name: 'Zapier', color: '#FF4F00' },
-                { name: 'Make', color: '#6D00CC' },
-              ].map((t, i) => (
-                <span key={i} className="flex items-center gap-2 px-4 py-2 mx-1.5 rounded-full text-sm font-medium text-[#8b8b9e] whitespace-nowrap" style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                  <span className="w-2 h-2 rounded-full" style={{ background: t.color }}></span>
-                  {t.name}
-                </span>
-              ))}
-            </div>
+            <p style={{ color: '#5a5a6e', fontSize: 13 }}>Enterprise-grade encryption. You own everything.</p>
           </div>
-          <p className="text-center text-sm text-[#6b6b80]">And thousands more via API</p>
         </div>
       </section>
 
       {/* Pricing */}
-      <section className="py-24 md:py-32">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Pricing</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Simple pricing. No surprises.</h2>
-            <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">Get full access to your personal AI agent for $49/month.</p>
+      <section style={{ maxWidth: 900, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: 48 }}>Simple pricing</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+          {/* Pro */}
+          <div style={{ ...glass, padding: 32 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#8b8b9e', marginBottom: 8 }}>Pro</p>
+            <p style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 20 }}>$49<span style={{ fontSize: 16, color: '#5a5a6e', fontWeight: 400 }}>/mo</span></p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {['Your own AI agent', '12+ tool integrations', 'Persistent memory', 'Telegram connectivity', 'Multi-model support', 'Unlimited conversations'].map(f => (
+                <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#c0c0d0' }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke={cx} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/signup?plan=pro" style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', color: '#f0f0f5', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>Start free trial</Link>
           </div>
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto items-start">
-            {/* Free tier */}
-            <div
-              className="rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1"
-              style={{
-                background: 'rgba(17, 17, 24, 0.8)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <h3 className="text-xl font-bold text-white">Free</h3>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">$0</span>
-                <span className="text-[#6b6b80]">forever</span>
-              </div>
-              <p className="mt-2 text-sm text-[#8b8b9e]">See what Pulsed can do</p>
-              <ul className="mt-6 space-y-3">
-                {['3 research briefs per month', 'All search modes and personas', 'Daily Brief of the Day', 'Search history'].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#8b8b9e]">
-                    <svg className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="/signup"
-                className="mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold text-[#8b8b9e] hover:text-white hover:border-white/20 transition-all duration-200"
-                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-              >
-                Get started free
-              </a>
-            </div>
-            {/* Pro tier */}
-            <div
-              className="rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1 relative"
-              style={{
-                background: 'rgba(99, 102, 241, 0.06)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                boxShadow: '0 0 40px rgba(99, 102, 241, 0.1), 0 0 80px rgba(139, 92, 246, 0.05)',
-                transform: 'scale(1.05)',
-              }}
-            >
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="glow-btn text-xs font-bold text-white px-4 py-1.5 rounded-full">
-                  Full Power
-                </span>
-              </div>
-              <h3 className="text-xl font-bold text-white">Pro</h3>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">$49</span>
-                <span className="text-[#6b6b80]">/mo</span>
-              </div>
-              <p className="mt-2 text-sm text-[#8b8b9e]">Your personal AI agent that builds anything</p>
-              <ul className="mt-6 space-y-3">
-                {['Unlimited research briefs', 'Personal AI agent', 'BYOLLM — any model, any provider', 'Web search, code, file management', 'Autonomous scheduled tasks', 'Telegram and Discord integrations', 'Priority support'].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#8b8b9e]">
-                    <svg className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="/signup?plan=pro"
-                className="mt-8 block w-full text-center py-3 px-6 rounded-lg text-sm font-semibold glow-btn text-white transition-all duration-200"
-              >
-                Get Pro
-              </a>
-            </div>
+          {/* Ultra */}
+          <div style={{ ...glass, padding: 32, border: '1px solid rgba(6,182,212,0.3)', boxShadow: '0 0 40px rgba(6,182,212,0.06)' }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: cx, marginBottom: 8 }}>Ultra</p>
+            <p style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 20 }}>$199<span style={{ fontSize: 16, color: '#5a5a6e', fontWeight: 400 }}>/mo</span></p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {['Everything in Pro', 'Advanced integrations', 'Multi-model routing', 'Priority support', 'Custom agent personality', 'API access'].map(f => (
+                <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#c0c0d0' }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke={cx} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/signup?plan=ultra" style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: 10, background: '#f0f0f5', color: '#0a0a0f', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>Start free trial</Link>
           </div>
-          <p className="text-center mt-8 text-sm text-[#6b6b80]">No credit card required. Bring your own API key — you control AI costs.</p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ maxWidth: 700, margin: '0 auto', padding: '80px 24px' }}>
+        <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', textAlign: 'center', marginBottom: 40 }}>Questions</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {faqs.map((f, i) => (
+            <div key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 0', background: 'none', border: 'none', color: '#f0f0f5', fontSize: 15, fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}
+              >
+                {f.q}
+                <span style={{ color: '#5a5a6e', fontSize: 18, transform: openFaq === i ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}>+</span>
+              </button>
+              {openFaq === i && (
+                <p style={{ color: '#8b8b9e', fontSize: 14, lineHeight: 1.6, padding: '0 0 18px', margin: 0 }}>{f.a}</p>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-28 relative overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse 80% 50% at 50% 50%, rgba(99, 102, 241, 0.12) 0%, transparent 70%)',
-          }}
-        />
-        <div className="relative max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-            Stop subscribing to tools.<br />
-            <span style={{ background: 'linear-gradient(135deg, #818cf8, #a78bfa, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              Start building with intelligence.
-            </span>
-          </h2>
-          <p className="mt-6 text-lg text-[#8b8b9e]">One agent. Any task. Your model. Your data.</p>
-          <div className="mt-10">
-            <a href="/signup" className="glow-btn inline-block font-semibold rounded-lg px-10 py-4 text-base text-white">
-              Get started free
-            </a>
-          </div>
-          <p className="mt-6 text-sm text-[#6b6b80]">No credit card required. Set up in under 3 minutes.</p>
-        </div>
+      <section style={{ textAlign: 'center', padding: '80px 24px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 24, position: 'relative' }}>Ready to get your own AI agent?</h2>
+        <Link href="/signup" style={{ background: '#f0f0f5', color: '#0a0a0f', fontSize: 15, fontWeight: 600, padding: '14px 32px', borderRadius: 10, textDecoration: 'none', position: 'relative' }}>Start free trial</Link>
       </section>
 
       {/* Footer */}
-      <footer className="py-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-lg font-bold text-white">Pulsed</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-              </div>
-              <p className="text-sm text-[#6b6b80]">The last software you will ever need.</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Product</h4>
-              <ul className="space-y-2 text-sm text-[#6b6b80]">
-                <li><a href="/signup" className="hover:text-white transition-colors">Research</a></li>
-                <li><a href="/agent" className="hover:text-white transition-colors">Agent</a></li>
-                <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Platform</h4>
-              <ul className="space-y-2 text-sm text-[#6b6b80]">
-                <li><a href="/agent" className="hover:text-white transition-colors">Web Chat</a></li>
-                <li><span>Telegram</span></li>
-                <li><span>Discord</span></li>
-                <li><span className="text-[#4a4a5a]">Slack (coming soon)</span></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Legal</h4>
-              <ul className="space-y-2 text-sm text-[#6b6b80]">
-                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy</a></li>
-                <li><a href="/terms" className="hover:text-white transition-colors">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-6 text-sm text-[#4a4a5a] text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            &copy; 2026 Pulsed. All rights reserved. &middot; <a href="/privacy" className="hover:text-white transition-colors">Privacy</a> &middot; <a href="/terms" className="hover:text-white transition-colors">Terms</a>
-          </div>
+      <footer style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 48px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <span style={{ fontSize: 13, color: '#3a3a4a' }}>Pulsed 2026</span>
+        <div style={{ display: 'flex', gap: 24 }}>
+          <Link href="/privacy" style={{ fontSize: 13, color: '#3a3a4a', textDecoration: 'none' }}>Privacy</Link>
+          <Link href="/terms" style={{ fontSize: 13, color: '#3a3a4a', textDecoration: 'none' }}>Terms</Link>
         </div>
       </footer>
     </div>

@@ -47,33 +47,26 @@ function SignupPageInner() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-16" style={{ background: '#0a0a0f' }}>
-      {/* Subtle glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.08) 0%, transparent 60%)' }} />
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0f]">
+      <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-cyan-500/[0.03] via-transparent to-transparent" />
 
       <div className="w-full max-w-sm relative z-10">
         <div
-          className="rounded-2xl p-8"
+          className="rounded-xl p-8"
           style={{
-            background: 'rgba(17,17,24,0.8)',
-            backdropFilter: 'blur(20px)',
+            background: 'rgba(17,17,24,0.6)',
+            backdropFilter: 'blur(24px)',
             border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          {/* Header */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-1.5 mb-4">
-              <span className="text-xl font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-              </span>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <span className="text-lg font-bold text-white">Pulsed</span>
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: '#f0f0f5' }}>
-              Join the Pulsed beta
-            </h1>
-            <p className="text-sm" style={{ color: '#8b8b9e' }}>
-              Get 3 free trend briefs every month
+            <h1 className="text-xl font-bold text-white mb-1">Create your agent</h1>
+            <p className="text-sm text-[#8b8b9e]">
+              {planParam ? `Start with the ${planParam.charAt(0).toUpperCase() + planParam.slice(1)} plan` : 'Free for 7 days. No credit card required.'}
             </p>
           </div>
 
@@ -83,17 +76,16 @@ function SignupPageInner() {
             </div>
           )}
 
-          {/* Google OAuth button */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 h-[48px] rounded-xl text-sm font-medium transition-all duration-200 mb-6 cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 h-11 rounded-lg text-sm font-medium transition-all duration-300 mb-6 cursor-pointer"
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',
               color: '#f0f0f5',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -105,95 +97,77 @@ function SignupPageInner() {
             Continue with Google
           </button>
 
-          {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div className="w-full border-t border-white/[0.06]" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-3" style={{ background: 'rgba(17,17,24,1)', color: '#6b6b80' }}>or</span>
+              <span className="px-3 text-[#6b6b80]" style={{ background: 'rgba(17,17,24,1)' }}>or</span>
             </div>
           </div>
 
-          {/* Email/password/name form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="fullName" className="block text-sm mb-1.5" style={{ color: '#8b8b9e' }}>
-                Full name
-              </label>
+              <label htmlFor="fullName" className="block text-xs text-[#8b8b9e] mb-1.5">Full name</label>
               <input
                 id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Jane Doe"
-                className="w-full h-[44px] rounded-xl px-4 text-sm outline-none transition-all duration-200 focus:border-indigo-500"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#f0f0f5',
-                }}
+                className="w-full h-10 rounded-lg px-4 text-sm outline-none transition-all duration-300 text-[#f0f0f5]"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                 required
               />
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm mb-1.5" style={{ color: '#8b8b9e' }}>
-                Email
-              </label>
+              <label htmlFor="email" className="block text-xs text-[#8b8b9e] mb-1.5">Email</label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full h-[44px] rounded-xl px-4 text-sm outline-none transition-all duration-200 focus:border-indigo-500"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#f0f0f5',
-                }}
+                className="w-full h-10 rounded-lg px-4 text-sm outline-none transition-all duration-300 text-[#f0f0f5]"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                 required
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm mb-1.5" style={{ color: '#8b8b9e' }}>
-                Password
-              </label>
+              <label htmlFor="password" className="block text-xs text-[#8b8b9e] mb-1.5">Password</label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full h-[44px] rounded-xl px-4 text-sm outline-none transition-all duration-200 focus:border-indigo-500"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#f0f0f5',
-                }}
+                className="w-full h-10 rounded-lg px-4 text-sm outline-none transition-all duration-300 text-[#f0f0f5]"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                 required
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[48px] text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              className="w-full h-11 bg-white text-[#0a0a0f] text-sm font-medium rounded-lg hover:bg-white/90 transition-colors duration-300 cursor-pointer disabled:opacity-50"
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Creating agent..." : "Create agent"}
             </button>
           </form>
 
-          {/* Links */}
           <div className="mt-6 text-center space-y-3">
-            <p className="text-sm" style={{ color: '#8b8b9e' }}>
+            <p className="text-sm text-[#8b8b9e]">
               Already have an account?{" "}
-              <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                Log in
-              </Link>
+              <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">Sign in</Link>
             </p>
-            <p className="text-xs" style={{ color: '#6b6b80' }}>
-              By signing up, you agree to our Terms of Service
+            <p className="text-[11px] text-[#6b6b80]">
+              By signing up, you agree to our <Link href="/terms" className="hover:text-[#8b8b9e] transition-colors">Terms</Link> and <Link href="/privacy" className="hover:text-[#8b8b9e] transition-colors">Privacy Policy</Link>
             </p>
           </div>
         </div>

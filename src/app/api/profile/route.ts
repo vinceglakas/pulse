@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, stripe_customer_id, name, agent_name, role, industry, current_focus, brain_model, worker_model')
+    .select('plan, stripe_customer_id, name, agent_name, role, industry, current_focus, brain_model, worker_model, subagent_model, heartbeat_model, fallback_models')
     .eq('id', user.id)
     .single();
 
@@ -40,6 +40,9 @@ export async function GET(req: NextRequest) {
     current_focus: profile?.current_focus || '',
     brain_model: profile?.brain_model || '',
     worker_model: profile?.worker_model || '',
+    subagent_model: profile?.subagent_model || '',
+    heartbeat_model: profile?.heartbeat_model || '',
+    fallback_models: profile?.fallback_models || [],
   });
 }
 
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const allowedFields = [
     'name', 'agent_name', 'role', 'industry', 'current_focus',
-    'brain_model', 'worker_model',
+    'brain_model', 'worker_model', 'subagent_model', 'heartbeat_model', 'fallback_models',
     'telegram_username', 'discord_username',
   ];
 

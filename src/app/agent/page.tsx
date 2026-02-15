@@ -64,6 +64,7 @@ interface FileAttachment {
 
 /* ── Model config ── */
 const MODEL_OPTIONS = [
+  { value: 'Auto', label: 'Auto', provider: 'auto', desc: 'Best model per task' },
   { value: 'Claude', label: 'Claude', provider: 'anthropic', desc: 'Anthropic' },
   { value: 'GPT-4', label: 'GPT-4', provider: 'openai', desc: 'OpenAI' },
   { value: 'Gemini', label: 'Gemini', provider: 'google', desc: 'Google' },
@@ -86,12 +87,12 @@ const ACCEPTED_FILE_TYPES = '.pdf,.csv,.txt,.md,.json,.png,.jpg,.gif,.xlsx,.doc,
 
 /* ── Welcome suggestion cards ── */
 const WELCOME_CARDS = [
-  { title: '🔍 Deep Research', desc: 'Search Reddit, HN, X, YouTube & web', prompt: 'Research everything about ' },
-  { title: '👥 Add to CRM', desc: 'Contacts, deals, and pipeline', prompt: 'Add a contact: ' },
-  { title: '📡 Track a Topic', desc: 'Monitor the web, get alerts', prompt: 'Track and alert me about ' },
-  { title: '🏗️ Build Something', desc: 'Tables, boards, docs, trackers', prompt: 'Build me a ' },
-  { title: '✍️ Write Content', desc: 'Posts, emails, newsletters', prompt: 'Write a LinkedIn post about ' },
-  { title: '💡 What can you do?', desc: 'See all your capabilities', prompt: 'What are all the things you can do for me? Show me everything.' },
+  { title: 'What are you working on?', desc: 'Tell me your goals and I\'ll help prioritize', prompt: 'I\'m working on ' },
+  { title: 'Research anything', desc: 'Deep dive any topic across the web', prompt: 'Research everything about ' },
+  { title: 'Connect my tools', desc: 'Help me link my existing services', prompt: 'Help me connect my tools. I use ' },
+  { title: 'Talk on Telegram', desc: 'Chat with your agent from your phone', prompt: 'Set up Telegram so I can message you there' },
+  { title: 'Remember something', desc: 'Your agent never forgets', prompt: 'Remember this about me: ' },
+  { title: 'What do you know?', desc: 'See what your agent remembers', prompt: 'What do you know about me? Show me your memory.' },
 ];
 
 /* ── Copy to clipboard helper ── */
@@ -134,6 +135,45 @@ function CodeBlockWithCopy({ children, className, ...props }: any) {
   );
 }
 
+/* ── Task Plan Pattern ── */
+const PLAN_PATTERN = /(?:Here'?s (?:my|the) plan|I'll|Let me|Steps?:|Plan:)\s*\n((?:\s*(?:\d+[\.\):]|\-|\*)\s*.+\n?)+)/i;
+
+function TaskPlanView({ content }: { content: string }) {
+  const match = content.match(PLAN_PATTERN);
+  if (!match) return null;
+  
+  const steps = match[1]
+    .split('\n')
+    .map(s => s.replace(/^\s*(?:\d+[\.\):]|\-|\*)\s*/, '').trim())
+    .filter(Boolean);
+  
+  if (steps.length < 2) return null;
+  
+  return (
+    <div className="my-3 rounded-xl overflow-hidden" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}>
+      <div className="px-4 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(99,102,241,0.1)' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+          <rect x="9" y="3" width="6" height="4" rx="1" />
+        </svg>
+        <span className="text-xs font-semibold" style={{ color: '#a5b4fc' }}>Task Plan</span>
+        <span className="text-[10px] ml-auto" style={{ color: '#6b6b80' }}>{steps.length} steps</span>
+      </div>
+      <div className="px-4 py-3 space-y-2">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold" 
+              style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+              {i + 1}
+            </div>
+            <span className="text-sm" style={{ color: '#c0c0d0' }}>{step}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 export default function AgentPage() {
   const router = useRouter();
@@ -172,10 +212,13 @@ export default function AgentPage() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   /* ── Agent name state ── */
-  const [agentName, setAgentName] = useState('Pulsed Agent');
+  const [agentName, setAgentName] = useState('Agent');
 
   /* ── Tool status from SSE ── */
   const [toolStatus, setToolStatus] = useState<string | null>(null);
+
+  /* ── Tool activity log ── */
+  const [toolLog, setToolLog] = useState<Array<{label: string; done: boolean; ts: number}>>([]);
 
   /* ── Proactive briefing ── */
   const [briefing, setBriefing] = useState<string | null>(null);
@@ -191,7 +234,7 @@ export default function AgentPage() {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingTransition, setOnboardingTransition] = useState(false);
   const [onboardingName, setOnboardingName] = useState('');
-  const [onboardingAgentName, setOnboardingAgentName] = useState('Pulsed Agent');
+  const [onboardingAgentName, setOnboardingAgentName] = useState('Agent');
   const [onboardingRole, setOnboardingRole] = useState('');
   const [onboardingIndustry, setOnboardingIndustry] = useState('');
   const [onboardingFocus, setOnboardingFocus] = useState('');
@@ -203,6 +246,9 @@ export default function AgentPage() {
   const [expandedProvider, setExpandedProvider] = useState<number | null>(0);
   const [onboardingTelegram, setOnboardingTelegram] = useState('');
   const [onboardingDiscord, setOnboardingDiscord] = useState('');
+  const [telegramBotUsername, setTelegramBotUsername] = useState('PulsedAIBot');
+  const [onboardingFirstTask, setOnboardingFirstTask] = useState('');
+  const [showApiKeyHelp, setShowApiKeyHelp] = useState(false);
 
   /* ── Persist model selection ── */
   useEffect(() => {
@@ -213,6 +259,14 @@ export default function AgentPage() {
   useEffect(() => {
     const cached = localStorage.getItem('pulsed-user-name');
     if (cached) setUserName(cached);
+    
+    // Fetch Telegram bot username
+    fetch('/api/telegram/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.username) setTelegramBotUsername(data.username);
+      })
+      .catch(() => {});
   }, []);
 
   /* ── Auth + load history ── */
@@ -249,15 +303,7 @@ export default function AgentPage() {
         } catch {
           setHasApiKey(false);
         }
-        try {
-          const briefsRes = await fetch('/api/briefs/saved', {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (briefsRes.ok) {
-            const briefsData = await briefsRes.json();
-            setSavedBriefs(Array.isArray(briefsData) ? briefsData.slice(0, 10) : []);
-          }
-        } catch {}
+        // Briefs removed — integration-focused product
         try {
           const histRes = await fetch('/api/agent/history?sessionKey=default&limit=100', {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -284,16 +330,7 @@ export default function AgentPage() {
         } catch {}
         setHistoryLoaded(true);
 
-        // Fetch proactive briefing if no messages
-        if (!messages.length) {
-          try {
-            const bRes = await fetch('/api/briefing', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-            if (bRes.ok) {
-              const bd = await bRes.json();
-              if (bd.briefing) setBriefing(bd.briefing);
-            }
-          } catch {}
-        }
+        // Briefing removed — integration-focused product
 
         // Pre-warm Ultron agent (spawns in background, ready for next message)
         try {
@@ -380,6 +417,7 @@ export default function AgentPage() {
     setInput('');
     setAttachments([]);
     setIsStreaming(true);
+    setToolLog([]);
 
     const agentMsgId = crypto.randomUUID();
     setMessages((prev) => [
@@ -450,8 +488,10 @@ export default function AgentPage() {
               if (parsed.tool_start) {
                 setAgentBooting(false);
                 setToolStatus(parsed.status || `Running ${parsed.tool_start}...`);
+                setToolLog(prev => [...prev, { label: parsed.status || parsed.tool_start, done: false, ts: Date.now() }]);
               } else if (parsed.tool_done) {
                 setToolStatus(null);
+                setToolLog(prev => prev.map((t, i) => i === prev.length - 1 ? { ...t, done: true } : t));
               } else if (parsed.status && !parsed.tool_start) {
                 setToolStatus(parsed.status);
               }
@@ -570,7 +610,7 @@ export default function AgentPage() {
           },
           body: JSON.stringify({
             name: onboardingName,
-            agent_name: onboardingAgentName.trim() || 'Pulsed Agent',
+            agent_name: onboardingAgentName.trim() || 'Agent',
             role: onboardingRole,
             industry: onboardingIndustry,
             current_focus: onboardingFocus,
@@ -590,7 +630,7 @@ export default function AgentPage() {
       setOnboardingTransition(false);
       setUserName(onboardingName);
       localStorage.setItem('pulsed-user-name', onboardingName);
-      setAgentName(onboardingAgentName.trim() || 'Pulsed Agent');
+      setAgentName(onboardingAgentName.trim() || 'Agent');
 
       setInput(firstMessage);
       setTimeout(() => {
@@ -604,6 +644,7 @@ export default function AgentPage() {
         setMessages((prev) => [...prev, userMsg]);
         setInput('');
         setIsStreaming(true);
+        setToolLog([]);
 
         const agentMsgId = crypto.randomUUID();
         setMessages((prev) => [
@@ -653,8 +694,10 @@ export default function AgentPage() {
                     const parsed = JSON.parse(data);
                     if (parsed.tool_start) {
                       setToolStatus(parsed.status || `Running ${parsed.tool_start}...`);
+                      setToolLog(prev => [...prev, { label: parsed.status || parsed.tool_start, done: false, ts: Date.now() }]);
                     } else if (parsed.tool_done) {
                       setToolStatus(null);
+                      setToolLog(prev => prev.map((t, i) => i === prev.length - 1 ? { ...t, done: true } : t));
                     } else if (parsed.status && !parsed.tool_start) {
                       setToolStatus(parsed.status);
                     }
@@ -736,7 +779,7 @@ export default function AgentPage() {
           100% { transform: rotate(360deg); }
         }
         .shimmer-text {
-          background: linear-gradient(90deg, #6366f1 25%, #a78bfa 50%, #6366f1 75%);
+          background: linear-gradient(90deg, #06b6d4 25%, #818cf8 50%, #06b6d4 75%);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -776,17 +819,17 @@ export default function AgentPage() {
           40% { opacity: 1; transform: scale(1); }
         }
         .glass-surface {
-          background: rgba(17, 17, 24, 0.8);
+          background: rgba(17, 17, 24, 0.6);
+          backdrop-filter: blur(24px);
           border: 1px solid rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(12px);
         }
         .glass-surface-light {
           background: rgba(24, 24, 35, 0.6);
           border: 1px solid rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(12px);
+          backdrop-filter: blur(24px);
         }
         .accent-gradient {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, #06b6d4, #6366f1);
         }
         .glow-hover:hover {
           box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
@@ -815,16 +858,16 @@ export default function AgentPage() {
             <Link href="/" className="flex items-center gap-1.5">
               <span className="text-lg font-bold" style={{ color: '#f0f0f5' }}>Pulsed</span>
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
               </span>
             </Link>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/search" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Research</Link>
-            <span className="text-sm font-semibold" style={{ color: '#818cf8' }}>Agent</span>
-            <Link href="/workspace" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Workspace</Link>
-            <Link href="/history" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>History</Link>
+            <span className="text-sm font-semibold" style={{ color: '#22d3ee' }}>Agent</span>
+            <Link href="/settings/integrations" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Integrations</Link>
+            <Link href="/settings/models" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Models</Link>
+            <Link href="/settings/integrations" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Integrations</Link>
           </div>
         </div>
       </nav>
@@ -895,9 +938,9 @@ export default function AgentPage() {
               {/* Step 1: Name */}
               {onboardingStep === 0 && (
                 <div>
-                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Welcome to Pulsed</h1>
-                  <p className="mb-8" style={{ color: '#8b8b9e' }}>Let&apos;s set up your agent. This takes 30 seconds.</p>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>What should I call you?</label>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Let's set up your agent</h1>
+                  <p className="mb-8" style={{ color: '#8b8b9e' }}>In about 2 minutes, you'll have a personal AI that connects to your tools and makes you more efficient.</p>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#22d3ee' }}>What should I call you?</label>
                   <input
                     type="text"
                     value={onboardingName}
@@ -906,26 +949,27 @@ export default function AgentPage() {
                     autoFocus
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
                     }}
                   />
-                  <label className="block text-sm font-medium mb-2 mt-4" style={{ color: '#a5b4fc' }}>What should your agent be called?</label>
+                  <label className="block text-sm font-medium mb-2 mt-4" style={{ color: '#22d3ee' }}>What should your agent be called?</label>
                   <input
                     type="text"
                     value={onboardingAgentName}
                     onChange={(e) => setOnboardingAgentName(e.target.value)}
-                    placeholder="Pulsed Agent"
+                    placeholder="e.g. Jarvis, Friday, Atlas"
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingName.trim()) advanceStep();
                     }}
                   />
+                  <p className="text-xs mt-2" style={{ color: '#8b8b9e' }}>Your agent's name. You can always change this.</p>
                   <button
                     type="button"
                     disabled={!onboardingName.trim()}
@@ -945,7 +989,7 @@ export default function AgentPage() {
                 <div>
                   <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Nice to meet you, {onboardingName}</h1>
                   <p className="mb-8" style={{ color: '#8b8b9e' }}>Help your agent understand what you do.</p>
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>What&apos;s your role?</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#22d3ee' }}>What&apos;s your role?</label>
                   <input
                     type="text"
                     value={onboardingRole}
@@ -954,10 +998,10 @@ export default function AgentPage() {
                     autoFocus
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all mb-4"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>What industry?</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#22d3ee' }}>What industry?</label>
                   <input
                     type="text"
                     value={onboardingIndustry}
@@ -965,7 +1009,7 @@ export default function AgentPage() {
                     placeholder="e.g. SaaS, Healthcare, Government"
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && onboardingRole.trim() && onboardingIndustry.trim()) advanceStep();
@@ -998,7 +1042,7 @@ export default function AgentPage() {
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
                   <button
@@ -1018,8 +1062,12 @@ export default function AgentPage() {
               {/* Step 4: API Key Walkthrough */}
               {onboardingStep === 3 && (
                 <div>
-                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Connect your AI</h1>
-                  <p className="mb-6" style={{ color: '#8b8b9e' }}>Your agent needs an API key to think. Here&apos;s how to get one in 60 seconds.</p>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: '#f0f0f5' }}>Your agent needs a brain</h1>
+                  <p className="mb-6" style={{ color: '#8b8b9e' }}>Add an API key from any provider. Your key stays encrypted and is never shared.</p>
+                  
+                  <div className="mb-6 p-4 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+                    <p className="text-sm" style={{ color: '#a5b4fc' }}>Most users spend $5-20/mo on API calls</p>
+                  </div>
 
                   <div className="space-y-3 mb-6">
                     {/* Anthropic */}
@@ -1054,7 +1102,7 @@ export default function AgentPage() {
                             <li>Click &apos;API Keys&apos; in the sidebar</li>
                             <li>Click &apos;Create Key&apos; and copy it</li>
                           </ol>
-                          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#818cf8' }}>
+                          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#22d3ee' }}>
                             Open Anthropic Console
                           </a>
                         </div>
@@ -1093,7 +1141,7 @@ export default function AgentPage() {
                             <li>Go to API Keys in settings</li>
                             <li>Click &apos;Create new secret key&apos; and copy it</li>
                           </ol>
-                          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#818cf8' }}>
+                          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#22d3ee' }}>
                             Open OpenAI Dashboard
                           </a>
                         </div>
@@ -1132,15 +1180,39 @@ export default function AgentPage() {
                             <li>Click &apos;Get API Key&apos;</li>
                             <li>Create key and copy it</li>
                           </ol>
-                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#818cf8' }}>
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium mt-2" style={{ color: '#22d3ee' }}>
                             Open Google AI Studio
                           </a>
                         </div>
                       </div>
                     </div>
                   </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKeyHelp(!showApiKeyHelp)}
+                    className="text-sm font-medium mb-4 flex items-center gap-1 transition-colors"
+                    style={{ color: '#22d3ee' }}
+                  >
+                    What's an API key?
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showApiKeyHelp ? 'rotate-180' : ''}`}>
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+                  
+                  {showApiKeyHelp && (
+                    <div className="mb-6 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <p className="text-sm mb-2" style={{ color: '#8b8b9e' }}>An API key is like a password that lets your agent access AI models (Claude, GPT, etc.)</p>
+                      <ul className="text-sm space-y-1 list-disc list-inside" style={{ color: '#8b8b9e' }}>
+                        <li>You get it directly from AI providers (Anthropic, OpenAI, Google)</li>
+                        <li>It's stored encrypted and never leaves your account</li>
+                        <li>You control how much you spend - most users spend $5-20/month</li>
+                        <li>You can add or change keys anytime in Settings</li>
+                      </ul>
+                    </div>
+                  )}
 
-                  <label className="block text-sm font-medium mb-2" style={{ color: '#a5b4fc' }}>Paste your API key</label>
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#22d3ee' }}>Paste your API key</label>
                   <div className="flex gap-2 mb-3">
                     {[
                       { value: 'anthropic', label: 'Anthropic' },
@@ -1171,7 +1243,7 @@ export default function AgentPage() {
                     autoFocus
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all font-mono"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                   />
 
@@ -1205,8 +1277,8 @@ export default function AgentPage() {
                       }
                       advanceStep();
                     }}
-                    className="mt-5 w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.2)' }}
+                    className="mt-5 w-full py-3.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: '#ffffff', color: '#0a0a0f', boxShadow: '0 0 30px rgba(6,182,212,0.2)' }}
                   >
                     Save key &amp; continue
                   </button>
@@ -1253,7 +1325,7 @@ export default function AgentPage() {
                         placeholder="@username"
                         className="w-full px-3 py-2 rounded-lg text-xs outline-none transition-all"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                        onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                        onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                         onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                       />
                     </div>
@@ -1281,7 +1353,7 @@ export default function AgentPage() {
                         placeholder="username#1234"
                         className="w-full px-3 py-2 rounded-lg text-xs outline-none transition-all"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f0f5' }}
-                        onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'}
+                        onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                         onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                       />
                     </div>
@@ -1290,8 +1362,8 @@ export default function AgentPage() {
                   <button
                     type="button"
                     onClick={() => finishOnboarding()}
-                    className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 30px rgba(99,102,241,0.2)' }}
+                    className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all"
+                    style={{ background: '#ffffff', color: '#0a0a0f', boxShadow: '0 0 30px rgba(6,182,212,0.2)' }}
                   >
                     Finish setup
                   </button>
@@ -1317,7 +1389,7 @@ export default function AgentPage() {
                   className="h-2 rounded-full transition-all duration-300"
                   style={{
                     width: dot === onboardingStep ? '24px' : '8px',
-                    background: dot === onboardingStep ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : dot < onboardingStep ? '#6366f1' : 'rgba(255,255,255,0.1)',
+                    background: dot === onboardingStep ? 'linear-gradient(135deg, #06b6d4, #6366f1)' : dot < onboardingStep ? '#06b6d4' : 'rgba(255,255,255,0.1)',
                   }}
                 />
               ))}
@@ -1394,61 +1466,41 @@ export default function AgentPage() {
                 </div>
               </div>
 
-              {/* ── Capabilities ── */}
+              {/* ── Workspace ── */}
               <div className="mt-5 px-1">
                 <div className="px-3 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5a5a6e' }}>Capabilities</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5a5a6e' }}>Workspace</span>
                 </div>
                 {[
-                  { icon: '🔍', label: 'Deep Research', href: '/search', color: '#6366f1' },
-                  { icon: '👥', label: 'CRM', href: '/dashboard/crm', color: '#ec4899' },
-                  { icon: '📡', label: 'Monitors', href: '/dashboard/monitors', color: '#22c55e' },
-                  { icon: '🎨', label: 'Design Studio', href: '/dashboard/design', color: '#f59e0b' },
-                  { icon: '💻', label: 'Code Editor', href: '/dashboard/code', color: '#06b6d4' },
-                  { icon: '⚡', label: 'Workflows', href: '/dashboard/workflows', color: '#8b5cf6' },
-                  { icon: '📊', label: 'Dashboard', href: '/dashboard', color: '#8b8b9e' },
+                  { label: 'Integrations', href: '/settings/integrations', color: '#22d3ee' },
+                  { label: 'Memory', href: '#', color: '#22d3ee' },
+                  { label: 'API Keys', href: '/settings/keys', color: '#8b8b9e' },
+                  { label: 'Models', href: '/settings/models', color: '#8b8b9e' },
                 ].map(item => (
                   <Link key={item.label} href={item.href}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all hover:bg-white/[0.04]"
                     style={{ color: '#8b8b9e' }}
                     onMouseEnter={e => e.currentTarget.style.color = item.color}
                     onMouseLeave={e => e.currentTarget.style.color = '#8b8b9e'}>
-                    <span className="w-5 text-center">{item.icon}</span>
+                    <span className="w-2 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}></span>
                     {item.label}
                   </Link>
                 ))}
               </div>
 
-              {/* ── Recent Research ── */}
-              {savedBriefs.length > 0 && (
-                <div className="mt-5 px-1">
-                  <div className="px-3 mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5a5a6e' }}>Recent Research</span>
-                  </div>
-                  {savedBriefs.slice(0, 5).map((brief: any) => (
-                    <Link key={brief.id} href={`/brief/${brief.id}`}
-                      className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-white/[0.04]"
-                      style={{ color: '#6b6b80' }}>
-                      <span className="truncate flex-1">{brief.title || 'Untitled'}</span>
-                      {brief.source_count != null && (
-                        <span className="text-[10px] rounded-full px-1.5 py-0.5 ml-2" style={{ color: '#818cf8', background: 'rgba(99,102,241,0.1)' }}>{brief.source_count}</span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              {/* Research sidebar removed — integration-focused product */}
 
               {/* ── Settings ── */}
               <div className="mt-auto px-1 pt-4 pb-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 {[
-                  { icon: '⚙️', label: 'Settings', href: '/settings/keys' },
-                  { icon: '🧠', label: 'Models', href: '/settings/models' },
-                  { icon: '📄', label: 'Workspace', href: '/workspace' },
+                  { label: 'Settings', href: '/settings/keys' },
+                  { label: 'Models', href: '/settings/models' },
+                  { label: 'Integrations', href: '/settings/integrations' },
                 ].map(item => (
                   <Link key={item.label} href={item.href}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-white/[0.04]"
                     style={{ color: '#5a5a6e' }}>
-                    <span>{item.icon}</span> {item.label}
+                    <span className="w-2 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}></span> {item.label}
                   </Link>
                 ))}
               </div>
@@ -1490,7 +1542,7 @@ export default function AgentPage() {
                       <span className="w-2 h-2 rounded-full" style={{ background: '#10b981' }}></span>
                       <span className="text-[11px]" style={{ color: '#5a5a6e' }}>Online</span>
                     </span>
-                    <span className="text-[11px] font-medium rounded-full px-2 py-0.5 ml-1" style={{ color: '#8b8b9e', background: 'rgba(255,255,255,0.06)' }}>{selectedModel}</span>
+                    <span className="text-[11px] font-medium rounded-full px-2 py-0.5 ml-1" style={{ color: selectedModel === 'Auto' ? '#a5b4fc' : '#8b8b9e', background: selectedModel === 'Auto' ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)' }}>{selectedModel === 'Auto' ? '✨ Auto' : selectedModel}</span>
                   </div>
                 </div>
                 <button
@@ -1516,7 +1568,7 @@ export default function AgentPage() {
                 <div className="sticky top-0 z-40 h-0.5 w-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <div
                     className="h-full w-1/2 rounded-full"
-                    style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1)', animation: 'progress-slide 1.5s ease-in-out infinite' }}
+                    style={{ background: 'linear-gradient(90deg, #06b6d4, #6366f1, #06b6d4)', animation: 'progress-slide 1.5s ease-in-out infinite' }}
                   />
                 </div>
               )}
@@ -1536,7 +1588,7 @@ export default function AgentPage() {
                       </div>
                     ) : (
                       <p className="text-base sm:text-lg mb-10" style={{ color: '#8b8b9e' }}>
-                        I can research, build, manage your CRM, track topics, generate content, and more. What do you need?
+                        I can research, build, automate, connect services, and more. What do you need?
                       </p>
                     )}
 
@@ -1612,16 +1664,16 @@ export default function AgentPage() {
                             {msg.content ? (
                               <div
                                 className="rounded-2xl rounded-tl-md px-5 py-4"
-                                style={{ background: 'rgba(17, 17, 24, 0.8)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid #6366f1', fontSize: '15px', lineHeight: '1.7' }}
+                                style={{ background: 'rgba(17, 17, 24, 0.8)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid rgba(6,182,212,0.4)', fontSize: '15px', lineHeight: '1.7' }}
                               >
                                 {/* Tool status from SSE events */}
                                 {isStreamingThis && toolStatus && (
                                   <div className="flex items-center gap-2 mb-3">
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1" style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.1)' }}>
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1" style={{ color: '#22d3ee', background: 'rgba(6,182,212,0.1)' }}>
                                       <svg
                                         width="12" height="12" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                                        style={{ animation: 'spin-slow 1s linear infinite' }}
+                                        style={{ animation: 'spin-slow 1s linear infinite', color: '#22d3ee' }}
                                       >
                                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                                       </svg>
@@ -1633,11 +1685,11 @@ export default function AgentPage() {
                                 {/* Tool use indicator (legacy pattern detection) */}
                                 {toolUse && !toolStatus && (
                                   <div className="flex items-center gap-2 mb-3">
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1" style={{ color: '#a5b4fc', background: 'rgba(99,102,241,0.1)' }}>
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1" style={{ color: '#22d3ee', background: 'rgba(6,182,212,0.1)' }}>
                                       <svg
                                         width="12" height="12" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                                        style={{ animation: 'spin-slow 1s linear infinite' }}
+                                        style={{ animation: 'spin-slow 1s linear infinite', color: '#22d3ee' }}
                                       >
                                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                                       </svg>
@@ -1673,24 +1725,8 @@ export default function AgentPage() {
                                   >
                                     {msg.content}
                                   </ReactMarkdown>
-                                  {/* Inline app preview for build_app results */}
-                                  {msg.content.match(/\/workspace\/app\/[a-f0-9-]+/) && (
-                                    <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(99,102,241,0.3)' }}>
-                                      <div className="flex items-center justify-between px-3 py-2" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                                        <span className="text-xs font-medium" style={{ color: '#818cf8' }}>🚀 Live Preview</span>
-                                        <div className="flex gap-2">
-                                          <a href={msg.content.match(/\/workspace\/app\/[a-f0-9-]+/)?.[0]} target="_blank" rel="noopener noreferrer"
-                                            className="text-xs px-2 py-0.5 rounded hover:bg-white/10 transition" style={{ color: '#8b8b9e' }}>Open ↗</a>
-                                        </div>
-                                      </div>
-                                      <iframe
-                                        src={msg.content.match(/\/workspace\/app\/[a-f0-9-]+/)?.[0]}
-                                        className="w-full border-0"
-                                        style={{ height: 300, background: '#0a0a0f' }}
-                                        sandbox="allow-scripts allow-same-origin"
-                                      />
-                                    </div>
-                                  )}
+                                  <TaskPlanView content={msg.content} />
+                                  {/* App preview removed — integration-focused product */}
                                   {/* Inline image preview for generate_image results */}
                                   {msg.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/) && (() => {
                                     const imgMatch = msg.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
@@ -1706,8 +1742,27 @@ export default function AgentPage() {
                               /* Streaming placeholder */
                               <div
                                 className="rounded-2xl rounded-tl-md px-5 py-4"
-                                style={{ background: 'rgba(17, 17, 24, 0.8)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid #6366f1' }}
+                                style={{ background: 'rgba(17, 17, 24, 0.8)', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '2px solid rgba(6,182,212,0.4)' }}
                               >
+                                {toolLog.length > 0 && (
+                                  <div className="space-y-1.5 mb-2">
+                                    {toolLog.map((t, i) => (
+                                      <div key={i} className="flex items-center gap-2 text-xs">
+                                        {t.done ? (
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M20 6 9 17l-5-5" />
+                                          </svg>
+                                        ) : (
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin-slow 1s linear infinite' }}>
+                                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                          </svg>
+                                        )}
+                                        <span style={{ color: t.done ? '#6b6b80' : '#a5b4fc' }}>{t.label}</span>
+                                        {t.done && <span style={{ color: '#3a3a4a' }}>✓</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                                 {toolStatus ? (
                                   <div className="flex items-center gap-2">
                                     <svg
@@ -1723,9 +1778,9 @@ export default function AgentPage() {
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium shimmer-text">{agentBooting ? 'Starting your agent' : 'Thinking'}</span>
                                     <span className="flex gap-1">
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8', animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8', animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#818cf8', animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22d3ee', animation: 'dot-pulse 1.4s ease-in-out infinite' }} />
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22d3ee', animation: 'dot-pulse 1.4s ease-in-out 0.2s infinite' }} />
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22d3ee', animation: 'dot-pulse 1.4s ease-in-out 0.4s infinite' }} />
                                     </span>
                                   </div>
                                 )}
@@ -1925,7 +1980,7 @@ export default function AgentPage() {
                         onClick={() => setSearchToggled(!searchToggled)}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
                         style={{
-                          background: searchToggled ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(255,255,255,0.06)',
+                          background: searchToggled ? 'linear-gradient(135deg, #06b6d4, #6366f1)' : 'rgba(255,255,255,0.06)',
                           color: searchToggled ? '#fff' : '#8b8b9e',
                           border: `1px solid ${searchToggled ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
                         }}
@@ -1954,7 +2009,7 @@ export default function AgentPage() {
                             <path d="M12 17v5" />
                             <path d="M8 22h8" />
                           </svg>
-                          {selectedModel}
+                          {selectedModel === 'Auto' ? '✨ Auto' : selectedModel}
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="m6 9 6 6 6-6" />
                           </svg>
@@ -2009,7 +2064,7 @@ export default function AgentPage() {
                         type="submit"
                         disabled={!input.trim() || isStreaming}
                         className="h-10 w-10 rounded-xl text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 hover:scale-105 active:scale-95"
-                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 20px rgba(99,102,241,0.2)' }}
+                        style={{ background: 'linear-gradient(135deg, #06b6d4, #6366f1)', boxShadow: '0 0 20px rgba(6,182,212,0.2)' }}
                       >
                         {isStreaming ? (
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

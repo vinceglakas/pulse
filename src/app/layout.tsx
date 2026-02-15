@@ -6,9 +6,9 @@ import FloatingChat from "@/components/FloatingChat";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pulsed — AI Market Intelligence",
+  title: "Pulsed — Your AI Agent",
   description:
-    "Research any topic in 30 seconds. AI-powered intelligence briefs with key themes, sentiment analysis, and actionable insights.",
+    "One AI agent that researches, builds, and automates anything you describe. Powered by your own model. Controlled entirely by you.",
   icons: {
     icon: "/favicon.ico",
   },
