@@ -182,6 +182,101 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'crm_manage_contacts',
+      description: 'Manage CRM contacts — search, create, update, or delete contacts. Use when user mentions adding contacts, people, or managing relationships.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['search', 'create', 'update', 'delete'], description: 'What to do' },
+          search: { type: 'string', description: 'Search query (for search action)' },
+          id: { type: 'string', description: 'Contact ID (for update/delete)' },
+          name: { type: 'string', description: 'Full name' },
+          email: { type: 'string', description: 'Email address' },
+          phone: { type: 'string', description: 'Phone number' },
+          company: { type: 'string', description: 'Company name' },
+          title: { type: 'string', description: 'Job title' },
+          notes: { type: 'string', description: 'Notes about the contact' },
+          tags: { type: 'array', items: { type: 'string' }, description: 'Tags for categorization' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'crm_manage_deals',
+      description: 'Manage CRM deals pipeline — list, create, update, or delete deals. Use when user mentions deals, pipeline, revenue, or sales.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['list', 'create', 'update', 'delete'], description: 'What to do' },
+          id: { type: 'string', description: 'Deal ID (for update/delete)' },
+          title: { type: 'string', description: 'Deal title' },
+          value: { type: 'number', description: 'Deal value in dollars' },
+          stage: { type: 'string', enum: ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'], description: 'Pipeline stage' },
+          probability: { type: 'number', description: 'Win probability (0-100)' },
+          contact_id: { type: 'string', description: 'Associated contact ID' },
+          notes: { type: 'string', description: 'Deal notes' },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'crm_log_activity',
+      description: 'Log a CRM activity — calls, emails, meetings, notes, or tasks. Use when user wants to record an interaction or action.',
+      parameters: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['call', 'email', 'meeting', 'note', 'task'], description: 'Activity type' },
+          subject: { type: 'string', description: 'Activity subject line' },
+          body: { type: 'string', description: 'Details or notes' },
+          contact_id: { type: 'string', description: 'Associated contact ID' },
+          deal_id: { type: 'string', description: 'Associated deal ID' },
+        },
+        required: ['type'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'set_monitor',
+      description: 'Create a web monitor to track a topic and get alerts when new content appears. Use when user says "track", "monitor", "watch", or "alert me about".',
+      parameters: {
+        type: 'object',
+        properties: {
+          topic: { type: 'string', description: 'Topic to monitor' },
+          keywords: { type: 'array', items: { type: 'string' }, description: 'Keywords to watch for' },
+          frequency: { type: 'string', enum: ['hourly', 'daily'], description: 'Check frequency. Default: daily' },
+        },
+        required: ['topic'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'generate_content',
+      description: 'Generate content from a research brief or topic — Twitter threads, LinkedIn posts, newsletters, or blog outlines.',
+      parameters: {
+        type: 'object',
+        properties: {
+          topic: { type: 'string', description: 'Topic or context for the content' },
+          format: { type: 'string', enum: ['twitter_thread', 'linkedin_post', 'newsletter', 'blog_outline'], description: 'Output format' },
+          briefId: { type: 'string', description: 'Optional: ID of a research brief to use as source material' },
+          tone: { type: 'string', description: 'Tone guidance (professional, casual, bold, etc.)' },
+        },
+        required: ['topic', 'format'],
+      },
+    },
+  },
 ];
 
 // Convert to Anthropic tool format
@@ -248,6 +343,16 @@ export async function executeTool(
         return await execScheduleTask(args, ctx);
       case 'send_notification':
         return await execSendNotification(args, ctx);
+      case 'crm_manage_contacts':
+        return await execCRMContacts(args, ctx);
+      case 'crm_manage_deals':
+        return await execCRMDeals(args, ctx);
+      case 'crm_log_activity':
+        return await execCRMActivity(args, ctx);
+      case 'set_monitor':
+        return await execSetMonitor(args, ctx);
+      case 'generate_content':
+        return await execGenerateContent(args, ctx);
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
@@ -568,4 +673,151 @@ async function execSendNotification(args: Record<string, any>, ctx: ToolContext)
   
   if (error) return JSON.stringify({ error: error.message });
   return JSON.stringify({ success: true, message: 'Notification sent.' });
+}
+
+// ─── CRM Tools ───
+
+async function execCRMContacts(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { action } = args;
+  
+  if (action === 'search') {
+    let query = supabaseAdmin.from('contacts').select('id, name, email, phone, company, title, tags, notes, last_contacted').eq('user_id', ctx.userId).order('created_at', { ascending: false }).limit(20);
+    if (args.search) query = query.or(`name.ilike.%${args.search}%,email.ilike.%${args.search}%,company.ilike.%${args.search}%`);
+    const { data, error } = await query;
+    if (error) return JSON.stringify({ error: error.message });
+    return JSON.stringify({ contacts: data || [], count: (data || []).length });
+  }
+  
+  if (action === 'create') {
+    const { name, email, phone, company, title, notes, tags } = args;
+    if (!name) return JSON.stringify({ error: 'Name is required' });
+    const { data, error } = await supabaseAdmin.from('contacts').insert({
+      user_id: ctx.userId, name, email, phone, company, title, notes, tags: tags || [],
+    }).select().single();
+    if (error) return JSON.stringify({ error: error.message });
+    return JSON.stringify({ success: true, contact: data, message: `Created contact "${name}".` });
+  }
+  
+  if (action === 'update') {
+    const { id, ...updates } = args;
+    if (!id) return JSON.stringify({ error: 'Contact ID is required' });
+    delete updates.action;
+    const { data, error } = await supabaseAdmin.from('contacts').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', ctx.userId).select().single();
+    if (error) return JSON.stringify({ error: error.message });
+    return JSON.stringify({ success: true, contact: data, message: 'Contact updated.' });
+  }
+  
+  if (action === 'delete') {
+    const { id } = args;
+    if (!id) return JSON.stringify({ error: 'Contact ID is required' });
+    await supabaseAdmin.from('contacts').delete().eq('id', id).eq('user_id', ctx.userId);
+    return JSON.stringify({ success: true, message: 'Contact deleted.' });
+  }
+  
+  return JSON.stringify({ error: `Unknown action: ${action}` });
+}
+
+async function execCRMDeals(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { action } = args;
+  
+  if (action === 'list') {
+    let query = supabaseAdmin.from('deals').select('id, title, value, stage, probability, notes, created_at, contacts(name)').eq('user_id', ctx.userId).order('created_at', { ascending: false });
+    if (args.stage) query = query.eq('stage', args.stage);
+    const { data, error } = await query;
+    if (error) return JSON.stringify({ error: error.message });
+    const deals = data || [];
+    const total = deals.reduce((s: number, d: any) => s + (d.value || 0), 0);
+    const byStage: Record<string, number> = {};
+    deals.forEach((d: any) => { byStage[d.stage] = (byStage[d.stage] || 0) + 1; });
+    return JSON.stringify({ deals, count: deals.length, totalValue: total, byStage });
+  }
+  
+  if (action === 'create') {
+    const { title, value, stage, probability, contact_id, notes } = args;
+    if (!title) return JSON.stringify({ error: 'Title is required' });
+    const { data, error } = await supabaseAdmin.from('deals').insert({
+      user_id: ctx.userId, title, value: value || 0, stage: stage || 'lead', probability: probability || 10, contact_id, notes,
+    }).select().single();
+    if (error) return JSON.stringify({ error: error.message });
+    return JSON.stringify({ success: true, deal: data, message: `Created deal "${title}" ($${(value || 0).toLocaleString()}) in ${stage || 'lead'} stage.` });
+  }
+  
+  if (action === 'update') {
+    const { id, ...updates } = args;
+    if (!id) return JSON.stringify({ error: 'Deal ID is required' });
+    delete updates.action;
+    const { data, error } = await supabaseAdmin.from('deals').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', ctx.userId).select().single();
+    if (error) return JSON.stringify({ error: error.message });
+    return JSON.stringify({ success: true, deal: data, message: 'Deal updated.' });
+  }
+  
+  if (action === 'delete') {
+    await supabaseAdmin.from('deals').delete().eq('id', args.id).eq('user_id', ctx.userId);
+    return JSON.stringify({ success: true, message: 'Deal deleted.' });
+  }
+  
+  return JSON.stringify({ error: `Unknown action: ${action}` });
+}
+
+async function execCRMActivity(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { type, subject, body, contact_id, deal_id } = args;
+  const { data, error } = await supabaseAdmin.from('activities').insert({
+    user_id: ctx.userId, type: type || 'note', subject, body, contact_id, deal_id,
+  }).select().single();
+  
+  if (error) return JSON.stringify({ error: error.message });
+  
+  // Update contact's last_contacted
+  if (contact_id) {
+    await supabaseAdmin.from('contacts').update({ last_contacted: new Date().toISOString() }).eq('id', contact_id).eq('user_id', ctx.userId);
+  }
+  
+  return JSON.stringify({ success: true, activity: data, message: `Logged ${type}: ${subject || '(no subject)'}` });
+}
+
+async function execSetMonitor(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { topic, keywords, frequency } = args;
+  if (!topic) return JSON.stringify({ error: 'Topic is required' });
+  
+  const { data, error } = await supabaseAdmin.from('monitors').insert({
+    user_id: ctx.userId,
+    topic,
+    keywords: keywords || [],
+    frequency: frequency || 'daily',
+    alert_threshold: 3,
+    enabled: true,
+  }).select().single();
+  
+  if (error) return JSON.stringify({ error: error.message });
+  return JSON.stringify({ success: true, monitor: data, message: `Now monitoring "${topic}" (${frequency || 'daily'}). You'll get alerts when new content appears.` });
+}
+
+async function execGenerateContent(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { topic, format, briefId, tone } = args;
+  
+  // If briefId is provided, fetch the brief for context
+  let briefContext = '';
+  if (briefId) {
+    const { data } = await supabaseAdmin.from('briefs').select('brief_text, topic').eq('id', briefId).eq('user_id', ctx.userId).single();
+    if (data) briefContext = `Based on research about "${data.topic}":\n${data.brief_text}\n\n`;
+  }
+  
+  // Generate content via the draft API
+  const formatLabels: Record<string, string> = {
+    twitter_thread: 'Twitter/X thread',
+    linkedin_post: 'LinkedIn post',
+    newsletter: 'email newsletter',
+    blog_outline: 'blog post outline',
+  };
+  
+  // Since we're server-side and may not have the user's key readily available for generation,
+  // we'll construct the content prompt and return it for the LLM to expand
+  return JSON.stringify({
+    success: true,
+    format: formatLabels[format] || format,
+    topic,
+    briefContext: briefContext ? 'Using research brief as source material.' : 'No research brief — generating from topic.',
+    instruction: `Please generate a ${formatLabels[format] || format} about "${topic}". ${tone ? `Tone: ${tone}.` : ''} ${briefContext ? `Use this research as source material:\n${briefContext.slice(0, 2000)}` : ''} Make it engaging, specific, and ready to publish.`,
+    message: `Generating ${formatLabels[format] || format} about "${topic}"...`,
+  });
 }

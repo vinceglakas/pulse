@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { getSession, getAccessToken } from '@/lib/auth'
 
 const LANGUAGES = [
   { id: 'javascript', label: 'JavaScript', ext: '.js' },
@@ -100,6 +103,8 @@ interface FileTab {
 }
 
 export default function CodeEditorPage() {
+  const router = useRouter()
+  const [token, setToken] = useState<string | null>(null)
   const [files, setFiles] = useState<FileTab[]>([
     { id: '1', name: 'main.js', language: 'javascript', content: STARTER_TEMPLATES.javascript },
   ])
@@ -108,10 +113,59 @@ export default function CodeEditorPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [projectName, setProjectName] = useState('Untitled Project')
+  const [saving, setSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const activeFile = files.find(f => f.id === activeFileId)!
+  
+  const hdrs = useCallback((t: string | null): Record<string, string> => ({
+    'Content-Type': 'application/json',
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+  }), [])
+
+  // Auth
+  useEffect(() => {
+    getSession().then(async (session) => {
+      if (!session) { router.push('/login'); return }
+      const t = await getAccessToken()
+      setToken(t)
+    })
+  }, [router])
+
+  // Auto-save
+  const autoSave = useCallback(async () => {
+    if (!token) return
+    setSaving(true)
+    const body = {
+      name: projectName, type: 'code', description: `Code project: ${projectName}`,
+      schema: { columns: [], files: files.map(f => ({ name: f.name, language: f.language })) },
+      data: files.map(f => ({ id: f.id, name: f.name, language: f.language, content: f.content })),
+    }
+    try {
+      if (projectId) {
+        await fetch('/api/artifacts', { method: 'PUT', headers: hdrs(token), body: JSON.stringify({ id: projectId, ...body }) })
+      } else {
+        const res = await fetch('/api/artifacts', { method: 'POST', headers: hdrs(token), body: JSON.stringify(body) })
+        const data = await res.json()
+        if (data.artifact?.id) setProjectId(data.artifact.id)
+      }
+      setLastSaved(new Date().toLocaleTimeString())
+    } catch {}
+    setSaving(false)
+  }, [token, files, projectName, projectId, hdrs])
+
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    if (files.some(f => f.content !== STARTER_TEMPLATES[f.language])) {
+      saveTimerRef.current = setTimeout(autoSave, 5000)
+    }
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
+  }, [files, autoSave])
 
   function updateFile(content: string) {
     setFiles(files.map(f => f.id === activeFileId ? { ...f, content } : f))
@@ -176,20 +230,34 @@ export default function CodeEditorPage() {
   }
 
   async function aiAssist() {
-    if (!aiPrompt) return
+    if (!aiPrompt || !token) return
     setAiLoading(true)
     try {
-      const res = await fetch('/api/agent', {
+      const res = await fetch('/api/agent/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: hdrs(token),
         body: JSON.stringify({
-          messages: [{ role: 'user', content: `You are a code assistant. The user is editing a ${activeFile.language} file. Their request: "${aiPrompt}". Current code:\n\`\`\`\n${activeFile.content}\n\`\`\`\n\nReturn ONLY the updated code. No explanations, no markdown fences.` }],
+          message: `You are a code assistant. The user is editing a ${activeFile.language} file named "${activeFile.name}". Their request: "${aiPrompt}". Current code:\n\`\`\`\n${activeFile.content}\n\`\`\`\n\nReturn ONLY the updated code. No explanations, no markdown fences.`,
+          sessionKey: 'code-editor',
         }),
       })
-      const data = await res.json()
-      const code = data.choices?.[0]?.message?.content || data.content || ''
-      const cleaned = code.replace(/^```\w*\n?/, '').replace(/\n?```$/, '')
-      updateFile(cleaned)
+      if (res.body) {
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let fullText = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk = decoder.decode(value, { stream: true })
+          for (const line of chunk.split('\n')) {
+            if (line.startsWith('data: ') && line.slice(6) !== '[DONE]') {
+              try { const p = JSON.parse(line.slice(6)); if (p.text) fullText += p.text } catch {}
+            }
+          }
+        }
+        const cleaned = fullText.replace(/^```\w*\n?/, '').replace(/\n?```$/, '').trim()
+        if (cleaned) updateFile(cleaned)
+      }
     } catch (e) { console.error('AI assist failed:', e) }
     setAiLoading(false); setAiPrompt('')
   }
@@ -217,9 +285,11 @@ export default function CodeEditorPage() {
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0f', color: '#f0f0f5' }}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 h-12 shrink-0" style={{ background: '#111118', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="text-xs hover:text-indigo-400 transition" style={{ color: '#6b6b80' }}>←</Link>
           <span className="text-sm font-bold">Code Editor</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-600/20 text-indigo-400">Beta</span>
+          {saving && <span className="text-xs text-indigo-400">Saving...</span>}
+          {lastSaved && !saving && <span className="text-xs" style={{ color: '#6b6b80' }}>Saved {lastSaved}</span>}
         </div>
         <div className="flex items-center gap-2">
           <button onClick={runCode} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-medium">▶ Run (⌘↵)</button>

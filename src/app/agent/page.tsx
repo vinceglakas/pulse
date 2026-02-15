@@ -86,10 +86,12 @@ const ACCEPTED_FILE_TYPES = '.pdf,.csv,.txt,.md,.json,.png,.jpg,.gif,.xlsx,.doc,
 
 /* ── Welcome suggestion cards ── */
 const WELCOME_CARDS = [
-  { title: 'Deep Research', desc: 'Analyze any topic with real-time data', prompt: 'Help me do deep research on ' },
-  { title: 'Build Something', desc: 'Create tools, trackers, and workflows', prompt: 'Help me build a ' },
-  { title: 'Analyze Data', desc: 'Get insights from any dataset', prompt: 'Analyze this data for me: ' },
-  { title: 'Write Content', desc: 'Draft emails, posts, and documents', prompt: 'Help me write a ' },
+  { title: '🔍 Deep Research', desc: 'Search Reddit, HN, X, YouTube & web', prompt: 'Research everything about ' },
+  { title: '👥 Add to CRM', desc: 'Contacts, deals, and pipeline', prompt: 'Add a contact: ' },
+  { title: '📡 Track a Topic', desc: 'Monitor the web, get alerts', prompt: 'Track and alert me about ' },
+  { title: '🏗️ Build Something', desc: 'Tables, boards, docs, trackers', prompt: 'Build me a ' },
+  { title: '✍️ Write Content', desc: 'Posts, emails, newsletters', prompt: 'Write a LinkedIn post about ' },
+  { title: '💡 What can you do?', desc: 'See all your capabilities', prompt: 'What are all the things you can do for me? Show me everything.' },
 ];
 
 /* ── Copy to clipboard helper ── */
@@ -1508,11 +1510,11 @@ export default function AgentPage() {
                       {getGreeting()}, {userName || 'there'}
                     </h1>
                     <p className="text-base sm:text-lg mb-10" style={{ color: '#8b8b9e' }}>
-                      What would you like to work on?
+                      I can research, build, manage your CRM, track topics, generate content, and more. What do you need?
                     </p>
 
-                    {/* 2x2 Suggestion card grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl w-full">
+                    {/* Suggestion card grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-2xl w-full">
                       {WELCOME_CARDS.map((card) => (
                         <button
                           key={card.title}
