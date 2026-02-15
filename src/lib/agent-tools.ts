@@ -930,16 +930,14 @@ async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promis
   const { name, description, html, framework } = args;
   if (!html) return JSON.stringify({ error: 'HTML content is required' });
 
-  // Save as artifact — use 'document' type with app marker in schema
-  // (artifacts table has a type check constraint that may not include 'app')
   const { data, error } = await supabaseAdmin
     .from('artifacts')
     .insert({
       user_id: ctx.userId,
       name: name || 'Untitled App',
-      type: 'document',
-      description: `[APP] ${description || ''}`,
-      schema: { isApp: true, framework: framework || 'vanilla', columns: [] },
+      type: 'app',
+      description: description || '',
+      schema: { framework: framework || 'vanilla', columns: [] },
       content: html,
       data: [],
     })
