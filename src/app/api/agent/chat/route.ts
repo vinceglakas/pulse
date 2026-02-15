@@ -370,8 +370,8 @@ export async function POST(req: NextRequest) {
 
     // Try Ultron first (full OpenClaw agent), fall back to direct BYOLLM
     // Direct BYOLLM path — all 19 tools available
-    // Ultron proxy disabled: it doesn't have build_app, generate_image, deploy_app, etc.
-    // TODO: Re-enable Ultron when skills are synced with tool capabilities
+    // Ultron agents can also call /api/tools for the same capabilities
+    // Direct path is primary because it has native tool calling with all 19 tools
 
     // Direct BYOLLM fallback — call the user's LLM directly with tools
     return streamDirectBYOLLM(provider, apiKey, messages, toolCtx, supabase, userId, sessionKey);

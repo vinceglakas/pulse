@@ -17,10 +17,10 @@ export async function GET(req: NextRequest) {
   // Parallel fetch with graceful failure for missing tables
   const safeFetch = (query: any) => query.then((r: any) => r).catch(() => ({ data: null, error: true }))
   const [alertsRes, dealsRes, activitiesRes, briefsRes, notifRes] = await Promise.all([
-    safeFetch(supabase.from('monitor_alerts').select('*').eq('user_id', user.id).gte('created_at', dayStart).order('created_at', { ascending: false }).limit(10)),
+    safeFetch(supabase.from('agent_notifications').select('*').eq('user_id', user.id).gte('created_at', dayStart).order('created_at', { ascending: false }).limit(10)),
     safeFetch(supabase.from('deals').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5)),
     safeFetch(supabase.from('activities').select('*').eq('user_id', user.id).gte('created_at', dayStart).order('created_at', { ascending: false }).limit(10)),
-    safeFetch(supabase.from('research_briefs').select('id,topic,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5)),
+    safeFetch(supabase.from('briefs').select('id,topic,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5)),
     safeFetch(supabase.from('notifications').select('*').eq('user_id', user.id).eq('read', false).order('created_at', { ascending: false }).limit(10)),
   ])
 
