@@ -151,7 +151,7 @@ export default function AgentPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   /* ── Sidebar state ── */
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : false);
   const [savedBriefs, setSavedBriefs] = useState<any[]>([]);
 
   /* ── File upload state ── */
