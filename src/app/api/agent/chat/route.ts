@@ -377,12 +377,15 @@ export async function POST(req: NextRequest) {
     const userOpenAIKey = provider === 'openai' ? apiKey : undefined;
     const toolCtx: ToolContext = { userId, userOpenAIKey };
 
-    // Try Ultron first (full OpenClaw agent), fall back to direct BYOLLM
-    // Direct BYOLLM path — all 19 tools available
-    // Ultron agents can also call /api/tools for the same capabilities
-    // Direct path is primary because it has native tool calling with all 19 tools
+    // Try Ultron first (full OpenClaw agent — persistent, no timeout, sub-agents, memory)
+    // Falls back to direct BYOLLM only if Ultron is down
+    const ultronReady = await tryUltron(userId, apiKey, provider, profile, message, sessionKey, history);
+    if (ultronReady) {
+      return streamFromUltron(userId, message, sessionKey, history, supabase);
+    }
 
-    // Direct BYOLLM fallback — call the user's LLM directly with tools
+    // Fallback: Direct BYOLLM with tool calling (60s timeout limited)
+    console.log(`[chat] Ultron unavailable for ${userId}, falling back to direct BYOLLM`);
     return streamDirectBYOLLM(provider, apiKey, messages, toolCtx, supabase, userId, sessionKey);
 
   } catch (error: any) {

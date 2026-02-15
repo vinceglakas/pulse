@@ -7,6 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { decrypt } from '@/lib/encryption';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -286,11 +287,10 @@ export const TOOL_SCHEMAS = [
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Name of the app' },
-          description: { type: 'string', description: 'What the app does' },
-          html: { type: 'string', description: 'Complete HTML document including <style> and <script> tags. Must be a full self-contained page. Use modern CSS (flexbox, grid, variables). Make it beautiful with dark theme (#0a0a0f bg, #111118 cards, #f0f0f5 text, indigo accents) unless specified otherwise.' },
-          framework: { type: 'string', enum: ['vanilla', 'react', 'vue'], description: 'JS framework. Default: vanilla. React/Vue loaded via CDN.' },
+          description: { type: 'string', description: 'Detailed description of what to build including features, sections, content, and any specific data to include' },
+          style: { type: 'string', description: 'Style preferences like colors, theme, layout' },
         },
-        required: ['name', 'html'],
+        required: ['description'],
       },
     },
   },
@@ -410,6 +410,14 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
   } catch {
     return null;
   }
+}
+
+function loadingHTML(name: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0f;color:#f0f0f5;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}.container{text-align:center}.spinner{width:48px;height:48px;border:3px solid rgba(99,102,241,0.2);border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 24px}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:8px}p{color:#8b8b9e;font-size:0.9rem}</style></head><body><div class="container"><div class="spinner"></div><h1>Building ${name}...</h1><p>This usually takes 20-30 seconds</p></div></body></html>`;
+}
+
+function errorHTML(msg: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0f;color:#f0f0f5;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}.container{text-align:center}h1{font-size:1.5rem;margin-bottom:8px;color:#ef4444}p{color:#8b8b9e}</style></head><body><div class="container"><h1>⚠️ Build Failed</h1><p>${msg}</p></div></body></html>`;
 }
 
 export async function executeTool(
@@ -927,31 +935,46 @@ async function execGenerateContent(args: Record<string, any>, ctx: ToolContext):
 }
 
 async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promise<string> {
-  const { name, description, html, framework } = args;
-  if (!html) return JSON.stringify({ error: 'HTML content is required' });
+  const { name, description, style } = args;
+  if (!description) return JSON.stringify({ error: 'Description is required — describe what to build' });
+
+  const appName = name || 'Untitled App';
+  const loadingContent = loadingHTML(appName);
 
   const { data, error } = await supabaseAdmin
     .from('artifacts')
     .insert({
       user_id: ctx.userId,
-      name: name || 'Untitled App',
+      name: appName,
       type: 'document',
-      description: description || '',
-      schema: { framework: framework || 'vanilla', isApp: true, columns: [] },
-      content: html,
+      description: description,
+      schema: { isApp: true, status: 'building', framework: 'vanilla', columns: [] },
+      content: loadingContent,
       data: [],
     })
     .select('id, name')
     .single();
 
   if (error) return JSON.stringify({ error: error.message });
+
+  // Trigger async generation via separate API route (gets its own 60s serverless timeout)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://www.runpulsed.ai';
+  fetch(`${baseUrl}/api/apps/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-secret': process.env.ULTRON_API_SECRET || '',
+    },
+    body: JSON.stringify({ artifactId: data.id, description, name: appName, style: style || '', userId: ctx.userId }),
+  }).catch(() => {}); // Fire and forget
+
   return JSON.stringify({
     success: true,
-    artifactId: data.id,
+    id: data.id,
     name: data.name,
-    type: 'app',
     previewUrl: `/workspace/app/${data.id}`,
-    message: `Built "${data.name}" — a live web app. View it at /workspace/app/${data.id}. It's running in your workspace now.`,
+    status: 'building',
+    message: `Building "${data.name}" now. The preview below will update automatically when ready (~20-30 seconds).`,
   });
 }
 
