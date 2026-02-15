@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { decrypt } from '@/lib/encryption';
 import { TOOL_SCHEMAS, ANTHROPIC_TOOLS, executeTool, type ToolContext } from '@/lib/agent-tools';
 
-export const maxDuration = 120;
+export const maxDuration = 60; // Vercel Hobby limit
 
 const ULTRON_URL = (process.env.ULTRON_URL || 'https://ultron-engine.fly.dev').replace(/\\n/g, '').trim();
 const ULTRON_API_SECRET = (process.env.ULTRON_API_SECRET || '').replace(/\\n/g, '').trim();
@@ -426,7 +426,7 @@ async function streamFromUltron(userId: string, message: string, sessionKey: str
             Authorization: `Bearer ${ULTRON_API_SECRET}`,
           },
           body: JSON.stringify({ userId, message, sessionKey, history }),
-          signal: AbortSignal.timeout(90000),
+          signal: AbortSignal.timeout(55000),
         });
 
         if (!upstream.ok) {
@@ -509,7 +509,7 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
             method: 'POST',
             headers: req.headers,
             body: req.body,
-            signal: AbortSignal.timeout(60000),
+            signal: AbortSignal.timeout(55000),
           });
         } catch (err: any) {
           controller.enqueue(sse({ text: `Connection error: ${err.message}. Please try again.` }));
