@@ -143,6 +143,7 @@ export default function AgentPage() {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<string>('free');
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [userName, setUserName] = useState<string>('');
@@ -181,6 +182,9 @@ export default function AgentPage() {
 
   /* ── Agent boot status ── */
   const [agentBooting, setAgentBooting] = useState(false);
+  const [ultronReady, setUltronReady] = useState(false);
+  const [ultronUrl, setUltronUrl] = useState('');
+  const [ultronSecret, setUltronSecret] = useState('');
 
   /* ── Onboarding state ── */
   const [onboardingComplete, setOnboardingComplete] = useState(false);
@@ -218,6 +222,7 @@ export default function AgentPage() {
         router.push('/login');
       } else {
         setAuthChecked(true);
+        setCurrentUserId(session.user?.id || null);
         const token = await getAccessToken();
         setAccessToken(token);
         try {
@@ -289,6 +294,20 @@ export default function AgentPage() {
             }
           } catch {}
         }
+
+        // Pre-warm Ultron agent (spawns in background, ready for next message)
+        try {
+          const warmRes = await fetch('/api/agent/warm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          });
+          const warmData = await warmRes.json();
+          if (warmData.ready && warmData.ultronUrl) {
+            setUltronReady(true);
+            setUltronUrl(warmData.ultronUrl);
+            setUltronSecret(warmData.ultronSecret);
+          }
+        } catch {}
       }
     });
   }, [router]);
@@ -372,19 +391,37 @@ export default function AgentPage() {
 
     const provider = getPreferredProvider(selectedModel);
     try {
-      const res = await fetch('/api/agent/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          message: text,
-          sessionKey: 'default',
-          ...(provider ? { preferredProvider: provider, model: selectedModel, provider } : {}),
-          ...(currentAttachments.length > 0 ? { attachments: currentAttachments.map(({ name, type, data }) => ({ name, type, data })) } : {}),
-        }),
-      });
+      // If Ultron agent is ready, stream directly from Fly.io (no Vercel 60s timeout)
+      let res: Response;
+      if (ultronReady && ultronUrl && ultronSecret) {
+        res = await fetch(`${ultronUrl}/api/agent/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${ultronSecret}`,
+          },
+          body: JSON.stringify({
+            userId: currentUserId,
+            message: text,
+            sessionKey: 'default',
+          }),
+        });
+      } else {
+        // Fallback: go through Vercel proxy
+        res = await fetch('/api/agent/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+          body: JSON.stringify({
+            message: text,
+            sessionKey: 'default',
+            ...(provider ? { preferredProvider: provider, model: selectedModel, provider } : {}),
+            ...(currentAttachments.length > 0 ? { attachments: currentAttachments.map(({ name, type, data }) => ({ name, type, data })) } : {}),
+          }),
+        });
+      }
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
