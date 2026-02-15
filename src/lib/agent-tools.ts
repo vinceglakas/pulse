@@ -935,9 +935,9 @@ async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promis
     .insert({
       user_id: ctx.userId,
       name: name || 'Untitled App',
-      type: 'app',
+      type: 'document',
       description: description || '',
-      schema: { framework: framework || 'vanilla', columns: [] },
+      schema: { framework: framework || 'vanilla', isApp: true, columns: [] },
       content: html,
       data: [],
     })
