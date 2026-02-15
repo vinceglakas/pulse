@@ -288,9 +288,10 @@ export const TOOL_SCHEMAS = [
         properties: {
           name: { type: 'string', description: 'Name of the app' },
           description: { type: 'string', description: 'Detailed description of what to build including features, sections, content, and any specific data to include' },
+          html: { type: 'string', description: 'Complete HTML content for the app. If provided, saves directly (no async generation). Include full DOCTYPE, embedded CSS and JS.' },
           style: { type: 'string', description: 'Style preferences like colors, theme, layout' },
         },
-        required: ['description'],
+        required: [],
       },
     },
   },
@@ -935,8 +936,38 @@ async function execGenerateContent(args: Record<string, any>, ctx: ToolContext):
 }
 
 async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promise<string> {
-  const { name, description, style } = args;
-  if (!description) return JSON.stringify({ error: 'Description is required — describe what to build' });
+  const { name, description, style, html } = args;
+  
+  // If HTML is provided directly (from Ultron agent — no timeout), save it immediately
+  if (html) {
+    const appName = name || 'Untitled App';
+    const { data, error } = await supabaseAdmin
+      .from('artifacts')
+      .insert({
+        user_id: ctx.userId,
+        name: appName,
+        type: 'document',
+        description: description || '',
+        schema: { isApp: true, status: 'ready', framework: 'vanilla', columns: [] },
+        content: html,
+        data: [],
+      })
+      .select('id, name')
+      .single();
+
+    if (error) return JSON.stringify({ error: error.message });
+    return JSON.stringify({
+      success: true,
+      id: data.id,
+      name: data.name,
+      previewUrl: `/workspace/app/${data.id}`,
+      status: 'ready',
+      message: `Built "${data.name}" — live at /workspace/app/${data.id}`,
+    });
+  }
+
+  // No HTML — async mode (for direct BYOLLM path with timeout constraints)
+  if (!description) return JSON.stringify({ error: 'Either html or description is required' });
 
   const appName = name || 'Untitled App';
   const loadingContent = loadingHTML(appName);
@@ -958,7 +989,7 @@ async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promis
   if (error) return JSON.stringify({ error: error.message });
 
   // Trigger async generation via separate API route (gets its own 60s serverless timeout)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://www.runpulsed.ai';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://www.runpulsed.ai');
   fetch(`${baseUrl}/api/apps/generate`, {
     method: 'POST',
     headers: {
