@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-const FREE_LIMIT = 3
-const PRO_LIMIT = 50
+const PRO_LIMIT = 999999 // Effectively unlimited for Pro users
 
 /**
  * GET /api/quota?fp=<fingerprint>
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   // Check if user is Pro via auth header
-  let userPlan = 'free'
+  let userPlan = 'pro' // All users are Pro now
   let authUserId: string | null = null
   const authHeader = request.headers.get('authorization')
   if (authHeader) {
@@ -35,7 +34,8 @@ export async function GET(request: NextRequest) {
           .select('plan')
           .eq('id', user.id)
           .single()
-        if (profile?.plan === 'pro') userPlan = 'pro'
+        // All users are Pro, but keep the check for future flexibility
+        if (profile?.plan) userPlan = 'pro'
       }
     } catch { /* ignore */ }
   }
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     bonusSearches = bonusRow?.bonus_searches || 0
   } catch { /* no bonus row */ }
 
-  const baseLimit = userPlan === 'pro' ? PRO_LIMIT : FREE_LIMIT
+  const baseLimit = PRO_LIMIT
   const totalLimit = baseLimit + bonusSearches
 
   return NextResponse.json({

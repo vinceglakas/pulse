@@ -4,23 +4,6 @@ import UpgradeButton from '../components/UpgradeButton';
 
 const tiers = [
   {
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    desc: 'See what Pulsed can do',
-    features: [
-      '3 research briefs per month',
-      'All search modes and personas',
-      'Daily Brief of the Day',
-      'Search history',
-    ],
-    cta: 'get-started',
-    highlight: false,
-    badge: null,
-    byollm: false,
-    comingSoon: false,
-  },
-  {
     name: 'Pro',
     price: '$49',
     period: '/mo',
@@ -50,7 +33,7 @@ const faqs = [
   },
   {
     q: 'Do I need my own API key?',
-    a: 'Not for the free tier — you get 3 research briefs per month using our platform. To unlock the full AI agent (Pro tier), you bring your own API key. This keeps your costs transparent and gives you full control.',
+    a: 'Yes, you\'ll need to bring your own API key from your preferred AI provider. This gives you full control over costs and ensures your data stays in your environment.',
   },
   {
     q: 'What AI models are supported?',
@@ -91,13 +74,13 @@ export default function PricingPage() {
           Simple, transparent pricing
         </h1>
         <p className="mt-4 text-lg max-w-xl mx-auto" style={{ color: '#8b8b9e' }}>
-          Start free. Upgrade when you need unlimited research power.
+          Get full access to your personal AI agent for $49/month.
         </p>
       </section>
 
       {/* Cards */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="grid gap-6 max-w-lg mx-auto">
           {tiers.map((tier) => (
             <div
               key={tier.name}

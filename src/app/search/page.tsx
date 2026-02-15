@@ -98,7 +98,7 @@ function SearchContent() {
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
-  const [quotaExceeded, setQuotaExceeded] = useState(false);
+  // Quota checks removed - all users are Pro now
 
   const runResearch = useCallback(async (selectedPersona: string) => {
     if (!query.trim()) { return; }
@@ -115,7 +115,6 @@ function SearchContent() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Request failed" }));
-        if (data.quota_exceeded) setQuotaExceeded(true);
         throw new Error(data.error || `Request failed (${res.status})`);
       }
 
@@ -255,37 +254,21 @@ function SearchContent() {
           </div>
 
           <h2 className="text-xl font-bold mb-2" style={{ color: '#f0f0f5' }}>
-            {quotaExceeded ? "Monthly searches used up" : "Research failed"}
+            Research failed
           </h2>
           <p className="text-sm mb-6 leading-relaxed" style={{ color: '#8b8b9e' }}>
             {error}
           </p>
 
-          {quotaExceeded && (
-            <div className="mb-6 max-w-md mx-auto">
-              <ReferralSection />
-            </div>
-          )}
-
           <div className="flex items-center justify-center gap-3">
-            {quotaExceeded ? (
-              <button
-                onClick={() => router.push("/pricing")}
-                className="px-6 py-3 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              >
-                Upgrade to Pro
-              </button>
-            ) : (
-              <button
-                onClick={handleRetry}
-                disabled={isRetrying}
-                className="px-6 py-3 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              >
-                {isRetrying ? "Retrying..." : "Try again"}
-              </button>
-            )}
+            <button
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="px-6 py-3 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+            >
+              {isRetrying ? "Retrying..." : "Try again"}
+            </button>
             <button
               onClick={() => router.replace("/")}
               className="px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer"

@@ -615,7 +615,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <p className="text-sm uppercase tracking-[0.25em] text-indigo-400/60 font-medium mb-4">Pricing</p>
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Simple pricing. No surprises.</h2>
-            <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">Start free. Upgrade when you&apos;re hooked.</p>
+            <p className="mt-5 text-lg text-[#8b8b9e] max-w-2xl mx-auto">Get full access to your personal AI agent for $49/month.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto items-start">
             {/* Free tier */}

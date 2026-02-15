@@ -771,7 +771,6 @@ export default function AgentPage() {
             <Link href="/search" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Research</Link>
             <span className="text-sm font-semibold" style={{ color: '#818cf8' }}>Agent</span>
             <Link href="/workspace" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Workspace</Link>
-            <Link href="/accounts" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Accounts</Link>
             <Link href="/history" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>History</Link>
           </div>
         </div>
