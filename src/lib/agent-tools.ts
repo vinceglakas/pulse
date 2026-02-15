@@ -324,6 +324,53 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'generate_image',
+      description: 'Generate an image using AI (DALL-E 3). Returns a URL to the generated image. Use for: logos, illustrations, backgrounds, product mockups, social media graphics, any visual content. Can be combined with build_app to create websites WITH images.',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'Detailed description of the image to generate. Be specific about style, colors, composition.' },
+          size: { type: 'string', enum: ['1024x1024', '1792x1024', '1024x1792'], description: 'Image dimensions. 1024x1024 (square), 1792x1024 (landscape), 1024x1792 (portrait)' },
+          style: { type: 'string', enum: ['vivid', 'natural'], description: 'vivid = hyper-real/dramatic, natural = more realistic. Default: vivid' },
+        },
+        required: ['prompt'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'deploy_app',
+      description: 'Deploy a built app to a live public URL. Takes an artifact ID (from build_app) and deploys it to a real URL anyone can visit. Use when user says "deploy", "publish", "put it live", "make it public", or "give me a link".',
+      parameters: {
+        type: 'object',
+        properties: {
+          artifactId: { type: 'string', description: 'The artifact ID from build_app to deploy' },
+          projectName: { type: 'string', description: 'Short name for the deployment (lowercase, hyphens). E.g. "my-landing-page"' },
+        },
+        required: ['artifactId'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'update_app',
+      description: 'Update an existing app artifact with new HTML. Use when user wants to iterate: "make the hero bigger", "change colors", "add a section", "fix the layout". Fetches the current HTML, you modify it, and save back.',
+      parameters: {
+        type: 'object',
+        properties: {
+          artifactId: { type: 'string', description: 'The artifact ID to update' },
+          html: { type: 'string', description: 'The complete updated HTML document' },
+          changeDescription: { type: 'string', description: 'Brief description of what changed' },
+        },
+        required: ['artifactId', 'html'],
+      },
+    },
+  },
 ];
 
 // Convert to Anthropic tool format
@@ -404,6 +451,12 @@ export async function executeTool(
         return await execBuildApp(args, ctx);
       case 'run_automation':
         return await execRunAutomation(args, ctx);
+      case 'generate_image':
+        return await execGenerateImage(args, ctx);
+      case 'deploy_app':
+        return await execDeployApp(args, ctx);
+      case 'update_app':
+        return await execUpdateApp(args, ctx);
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
@@ -984,5 +1037,158 @@ async function execRunAutomation(args: Record<string, any>, ctx: ToolContext): P
     results,
     finalData: data,
     message: `Automation "${name}" completed — ${results.length} steps executed. Results saved to workspace.`,
+  });
+}
+
+async function execGenerateImage(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { prompt, size, style } = args;
+  if (!prompt) return JSON.stringify({ error: 'Prompt is required' });
+
+  // Try user's OpenAI key first, fall back to platform key
+  const apiKey = ctx.userOpenAIKey || process.env.OPENAI_API_KEY;
+  if (!apiKey) return JSON.stringify({ error: 'No OpenAI API key available. Add one in Settings > API Keys.' });
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: size || '1024x1024',
+        style: style || 'vivid',
+        response_format: 'url',
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return JSON.stringify({ error: `Image generation failed: ${err.error?.message || res.statusText}` });
+    }
+
+    const data = await res.json();
+    const imageUrl = data.data?.[0]?.url;
+    const revisedPrompt = data.data?.[0]?.revised_prompt;
+
+    if (!imageUrl) return JSON.stringify({ error: 'No image returned' });
+
+    // Save as artifact
+    await supabaseAdmin.from('artifacts').insert({
+      user_id: ctx.userId,
+      name: `Image: ${prompt.slice(0, 50)}`,
+      type: 'document',
+      description: prompt,
+      content: `# Generated Image\n\n**Prompt:** ${prompt}\n\n**Revised prompt:** ${revisedPrompt || 'N/A'}\n\n![Generated Image](${imageUrl})\n\nDirect URL: ${imageUrl}`,
+      data: [],
+      schema: { columns: [] },
+    });
+
+    return JSON.stringify({
+      success: true,
+      imageUrl,
+      revisedPrompt,
+      message: `Generated image. URL: ${imageUrl}`,
+    });
+  } catch (err: any) {
+    return JSON.stringify({ error: `Image generation failed: ${err.message}` });
+  }
+}
+
+async function execDeployApp(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { artifactId, projectName } = args;
+  if (!artifactId) return JSON.stringify({ error: 'Artifact ID is required' });
+
+  // Fetch the app artifact
+  const { data: artifact, error } = await supabaseAdmin
+    .from('artifacts')
+    .select('*')
+    .eq('id', artifactId)
+    .eq('user_id', ctx.userId)
+    .single();
+
+  if (error || !artifact) return JSON.stringify({ error: 'App not found' });
+  const html = artifact.content;
+  if (!html) return JSON.stringify({ error: 'App has no HTML content' });
+
+  const vercelToken = process.env.VERCEL_DEPLOY_TOKEN;
+  if (!vercelToken) {
+    // Fallback: provide the preview URL
+    return JSON.stringify({
+      success: true,
+      previewUrl: `/workspace/app/${artifactId}`,
+      message: `Your app is live at the preview URL. For public deployment, add a VERCEL_DEPLOY_TOKEN in environment variables. Preview: /workspace/app/${artifactId}`,
+    });
+  }
+
+  try {
+    const name = (projectName || artifact.name || 'pulsed-app').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+
+    // Create deployment via Vercel API
+    const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${vercelToken}`,
+      },
+      body: JSON.stringify({
+        name,
+        files: [
+          {
+            file: 'index.html',
+            data: Buffer.from(html).toString('base64'),
+            encoding: 'base64',
+          },
+        ],
+        projectSettings: {
+          framework: null,
+        },
+        target: 'production',
+      }),
+    });
+
+    if (!deployRes.ok) {
+      const err = await deployRes.json().catch(() => ({}));
+      return JSON.stringify({ error: `Deploy failed: ${err.error?.message || deployRes.statusText}` });
+    }
+
+    const deployData = await deployRes.json();
+    const url = deployData.url ? `https://${deployData.url}` : null;
+    const alias = deployData.alias?.[0] ? `https://${deployData.alias[0]}` : null;
+
+    return JSON.stringify({
+      success: true,
+      url: alias || url,
+      deploymentId: deployData.id,
+      message: `🚀 Deployed! Your app is live at: ${alias || url}`,
+    });
+  } catch (err: any) {
+    return JSON.stringify({ error: `Deploy failed: ${err.message}` });
+  }
+}
+
+async function execUpdateApp(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { artifactId, html, changeDescription } = args;
+  if (!artifactId || !html) return JSON.stringify({ error: 'Artifact ID and HTML are required' });
+
+  const { data, error } = await supabaseAdmin
+    .from('artifacts')
+    .update({
+      content: html,
+      description: changeDescription ? `Updated: ${changeDescription}` : undefined,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', artifactId)
+    .eq('user_id', ctx.userId)
+    .select('id, name')
+    .single();
+
+  if (error) return JSON.stringify({ error: error.message });
+  return JSON.stringify({
+    success: true,
+    artifactId: data.id,
+    name: data.name,
+    previewUrl: `/workspace/app/${data.id}`,
+    message: `Updated "${data.name}". ${changeDescription || 'Changes applied.'} Preview: /workspace/app/${data.id}`,
   });
 }

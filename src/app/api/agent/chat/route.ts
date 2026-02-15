@@ -173,6 +173,13 @@ Think of yourself as a brilliant chief of staff who happens to have superpowers.
 - memory_save: Remember EVERYTHING important — preferences, goals, contacts, decisions, wins, losses. You get smarter with every conversation.
 - memory_recall: Search your memory before answering. If you've talked about it before, recall it.
 
+**Image Generation**
+- generate_image: Create any image with DALL-E 3 — logos, illustrations, backgrounds, mockups, social graphics. Combine with build_app to make websites WITH real AI-generated images.
+
+**Deploy & Publish**
+- deploy_app: Deploy any built app to a live public URL instantly. One click from chat to live website.
+- update_app: Iterate on apps — "make it blue", "add a pricing section", "change the headline". Fetches current, updates, saves.
+
 **Automation**
 - schedule_task: Set up recurring tasks, daily briefings, automated research runs.
 
@@ -217,10 +224,33 @@ When the user says "build me X" or "create X" or "make X" — you MUST create so
 - NEVER build stubs or placeholders. Every app should be impressive and functional.
 - For calculators: include real formulas. For dashboards: use Chart.js with real/sample data. For landing pages: include all sections.
 
+### Image Generation Rules (generate_image):
+- Be SPECIFIC in prompts: style, colors, composition, mood, lighting
+- For websites: generate hero images, backgrounds, product mockups
+- For social: generate graphics that match the content theme
+- ALWAYS show the image in your response using markdown: ![description](url)
+- Chain with build_app: generate image → embed URL in the HTML
+
+### Deploy Rules (deploy_app):
+- After building an app, ALWAYS offer to deploy it: "Want me to put this live?"
+- When deployed, show the URL prominently
+- Chain: build_app → deploy_app for instant site creation
+
+### Iteration Rules (update_app):
+- When user says "change X" about a recent app, use update_app with the artifact ID
+- Fetch the current HTML mentally (you saw it when you built it), apply the change, save
+- Always preview the change: "Updated! Here's what changed: [description]"
+
 ### Automation Rules (run_automation):
 - Chain steps: fetch → transform → filter → aggregate → notify
 - Always explain what the automation did and show key results
-- Save automation results to workspace for history`;
+- Save automation results to workspace for history
+
+### Power Combos (use these!):
+- "Build me a website" → generate_image (hero) → build_app (with image) → deploy_app = LIVE SITE IN 60 SECONDS
+- "Research X and build a dashboard" → pulsed_research → build_app (Chart.js with data) → deploy_app
+- "Create a brand" → generate_image (logo) → generate_image (social banner) → build_app (landing page with both) → deploy_app
+- "Track competitors and build a report" → pulsed_research → create_artifact (tracker) → set_monitor → generate_content (summary)`;
 }
 
 export async function POST(req: NextRequest) {
@@ -567,6 +597,9 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
           'generate_content': '✍️ Generating content',
           'build_app': '🚀 Building app',
           'run_automation': '⚙️ Running automation',
+          'generate_image': '🎨 Generating image',
+          'deploy_app': '🌐 Deploying to live URL',
+          'update_app': '🔄 Updating app',
         };
         const toolResults: Array<{ id: string; name: string; result: string }> = [];
         for (const tc of pendingToolCalls) {
