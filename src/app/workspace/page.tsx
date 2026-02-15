@@ -7,13 +7,14 @@ import { getSession, getAccessToken } from '@/lib/auth';
 import { Artifact, ArtifactRow, dbToArtifact } from '@/lib/artifacts';
 import ArtifactRenderer from '@/components/artifacts/ArtifactRenderer';
 
-type SidebarSection = 'tables' | 'boards' | 'lists' | 'docs';
+type SidebarSection = 'tables' | 'boards' | 'lists' | 'docs' | 'apps';
 
 const SECTION_CONFIG: Record<SidebarSection, { label: string; types: string[]; icon: string }> = {
   tables: { label: 'Tables', types: ['table'], icon: 'M3 3h7v7H3V3zm11 0h7v7h-7V3zm-11 11h7v7H3v-7zm11 0h7v7h-7v-7z' },
   boards: { label: 'Boards', types: ['kanban'], icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
   lists: { label: 'Lists', types: ['list'], icon: 'M9 5l7 7-7 7' },
   docs: { label: 'Documents', types: ['document'], icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z' },
+  apps: { label: 'Apps', types: ['app'], icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z' },
 };
 
 const NEW_TEMPLATES: { type: string; label: string; iconPath: string }[] = [

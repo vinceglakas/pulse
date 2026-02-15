@@ -201,7 +201,26 @@ When the user says "build me X" or "create X" or "make X" — you MUST create so
 - "Make me a plan" → create document artifact with detailed content + create list artifact with action items
 - "Set up my CRM" → create table artifact with smart columns (name, email, company, deal stage, value, last contact, notes) + pre-populate with any contacts from memory
 - "Create a dashboard" → create multiple artifacts (table + kanban + document) that work together
-- "Build an app/tool/calculator" → use create_artifact type=document with full HTML/JS code in content field, or type=table with computed columns`;
+- "Build an app/tool/calculator" → use build_app with complete HTML/CSS/JS. Always beautiful, always functional.
+- "Build me a website" → build_app with a full landing page — hero, features, CTA, footer, responsive
+- "Automate X" → run_automation with fetch + transform steps, then create_artifact with results
+- "Connect to [API]" → run_automation to fetch from the API, process results, save to workspace
+- "Scrape/get data from [site]" → run_automation with fetch step
+- "Build me a dashboard for X" → research X first → build_app with Chart.js/D3 visualization using real data
+
+### App Building Rules (build_app):
+- ALWAYS write complete, production-quality HTML with embedded CSS and JS
+- Use dark theme by default: #0a0a0f bg, #111118 cards, #f0f0f5 text, indigo (#6366f1) accents
+- Make apps responsive (flexbox/grid, media queries)
+- Include real interactivity — click handlers, animations, state management
+- Use CDN libraries when needed: Chart.js, D3.js, Three.js, Anime.js, etc.
+- NEVER build stubs or placeholders. Every app should be impressive and functional.
+- For calculators: include real formulas. For dashboards: use Chart.js with real/sample data. For landing pages: include all sections.
+
+### Automation Rules (run_automation):
+- Chain steps: fetch → transform → filter → aggregate → notify
+- Always explain what the automation did and show key results
+- Save automation results to workspace for history`;
 }
 
 export async function POST(req: NextRequest) {
@@ -546,6 +565,8 @@ async function streamDirectBYOLLM(provider: string, apiKey: string, messages: an
           'crm_log_activity': '📋 Logging activity',
           'set_monitor': '📡 Setting up monitor',
           'generate_content': '✍️ Generating content',
+          'build_app': '🚀 Building app',
+          'run_automation': '⚙️ Running automation',
         };
         const toolResults: Array<{ id: string; name: string; result: string }> = [];
         for (const tc of pendingToolCalls) {

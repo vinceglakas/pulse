@@ -23,11 +23,26 @@ export async function GET(req: NextRequest) {
   const user = await getUser(req);
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const { data, error } = await supabaseAdmin
-    .from('artifacts')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false });
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  const type = searchParams.get('type');
+
+  // Single artifact by ID
+  if (id) {
+    const { data, error } = await supabaseAdmin
+      .from('artifacts')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+    if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ artifact: data });
+  }
+
+  // List artifacts, optionally filtered by type
+  let query = supabaseAdmin.from('artifacts').select('*').eq('user_id', user.id).order('updated_at', { ascending: false });
+  if (type) query = query.eq('type', type);
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ artifacts: data });

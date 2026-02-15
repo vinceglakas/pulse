@@ -277,6 +277,53 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'build_app',
+      description: 'Build a complete, working web application (HTML/CSS/JS) that renders live in the workspace. Use for: websites, landing pages, calculators, dashboards, tools, games, visualizations, forms, interactive widgets. The app runs in a sandboxed iframe. You can use any client-side JS library via CDN (Chart.js, Three.js, D3, etc). ALWAYS build complete, beautiful, functional apps — not stubs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the app' },
+          description: { type: 'string', description: 'What the app does' },
+          html: { type: 'string', description: 'Complete HTML document including <style> and <script> tags. Must be a full self-contained page. Use modern CSS (flexbox, grid, variables). Make it beautiful with dark theme (#0a0a0f bg, #111118 cards, #f0f0f5 text, indigo accents) unless specified otherwise.' },
+          framework: { type: 'string', enum: ['vanilla', 'react', 'vue'], description: 'JS framework. Default: vanilla. React/Vue loaded via CDN.' },
+        },
+        required: ['name', 'html'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'run_automation',
+      description: 'Execute an automation: fetch data from APIs, process/transform it, and return results. Use for: API integrations, data pipelines, web scraping, calculations, data transformations, batch operations. Can chain with other tools — fetch API data then create_artifact with results.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the automation' },
+          steps: {
+            type: 'array',
+            description: 'Sequential steps to execute',
+            items: {
+              type: 'object',
+              properties: {
+                action: { type: 'string', enum: ['fetch', 'transform', 'filter', 'aggregate', 'notify'], description: 'Step action type' },
+                url: { type: 'string', description: 'URL to fetch (for fetch action)' },
+                method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE'], description: 'HTTP method' },
+                headers: { type: 'object', description: 'Request headers' },
+                body: { type: 'string', description: 'Request body (JSON string)' },
+                expression: { type: 'string', description: 'JS expression to transform data (for transform/filter). Use `data` variable for previous step output.' },
+              },
+              required: ['action'],
+            },
+          },
+        },
+        required: ['name', 'steps'],
+      },
+    },
+  },
 ];
 
 // Convert to Anthropic tool format
@@ -353,6 +400,10 @@ export async function executeTool(
         return await execSetMonitor(args, ctx);
       case 'generate_content':
         return await execGenerateContent(args, ctx);
+      case 'build_app':
+        return await execBuildApp(args, ctx);
+      case 'run_automation':
+        return await execRunAutomation(args, ctx);
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
@@ -819,5 +870,119 @@ async function execGenerateContent(args: Record<string, any>, ctx: ToolContext):
     briefContext: briefContext ? 'Using research brief as source material.' : 'No research brief — generating from topic.',
     instruction: `Please generate a ${formatLabels[format] || format} about "${topic}". ${tone ? `Tone: ${tone}.` : ''} ${briefContext ? `Use this research as source material:\n${briefContext.slice(0, 2000)}` : ''} Make it engaging, specific, and ready to publish.`,
     message: `Generating ${formatLabels[format] || format} about "${topic}"...`,
+  });
+}
+
+async function execBuildApp(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { name, description, html, framework } = args;
+  if (!html) return JSON.stringify({ error: 'HTML content is required' });
+
+  // Save as artifact with type 'app'
+  const { data, error } = await supabaseAdmin
+    .from('artifacts')
+    .insert({
+      user_id: ctx.userId,
+      name: name || 'Untitled App',
+      type: 'app',
+      description: description || '',
+      schema: { framework: framework || 'vanilla', columns: [] },
+      content: html,
+      data: [],
+    })
+    .select('id, name')
+    .single();
+
+  if (error) return JSON.stringify({ error: error.message });
+  return JSON.stringify({
+    success: true,
+    artifactId: data.id,
+    name: data.name,
+    type: 'app',
+    previewUrl: `/workspace/app/${data.id}`,
+    message: `Built "${data.name}" — a live web app. View it at /workspace/app/${data.id}. It's running in your workspace now.`,
+  });
+}
+
+async function execRunAutomation(args: Record<string, any>, ctx: ToolContext): Promise<string> {
+  const { name, steps } = args;
+  if (!steps || steps.length === 0) return JSON.stringify({ error: 'Steps are required' });
+
+  const results: any[] = [];
+  let data: any = null;
+
+  for (const step of steps) {
+    try {
+      switch (step.action) {
+        case 'fetch': {
+          const res = await fetch(step.url, {
+            method: step.method || 'GET',
+            headers: { 'Accept': 'application/json', ...(step.headers || {}) },
+            ...(step.body ? { body: step.body } : {}),
+          });
+          const contentType = res.headers.get('content-type') || '';
+          data = contentType.includes('json') ? await res.json() : await res.text();
+          results.push({ step: 'fetch', url: step.url, status: res.status, dataPreview: JSON.stringify(data).slice(0, 500) });
+          break;
+        }
+        case 'transform': {
+          if (step.expression && data) {
+            // Safe eval with data context
+            const fn = new Function('data', `return ${step.expression}`);
+            data = fn(data);
+            results.push({ step: 'transform', expression: step.expression, resultPreview: JSON.stringify(data).slice(0, 500) });
+          }
+          break;
+        }
+        case 'filter': {
+          if (step.expression && Array.isArray(data)) {
+            const fn = new Function('item', `return ${step.expression}`);
+            data = data.filter((item: any) => fn(item));
+            results.push({ step: 'filter', remaining: data.length });
+          }
+          break;
+        }
+        case 'aggregate': {
+          if (step.expression && data) {
+            const fn = new Function('data', `return ${step.expression}`);
+            data = fn(data);
+            results.push({ step: 'aggregate', result: JSON.stringify(data).slice(0, 500) });
+          }
+          break;
+        }
+        case 'notify': {
+          await supabaseAdmin.from('notifications').insert({
+            user_id: ctx.userId,
+            title: name || 'Automation Result',
+            body: typeof data === 'string' ? data.slice(0, 500) : JSON.stringify(data).slice(0, 500),
+            type: 'automation',
+            read: false,
+          });
+          results.push({ step: 'notify', sent: true });
+          break;
+        }
+      }
+    } catch (err: any) {
+      results.push({ step: step.action, error: err.message });
+    }
+  }
+
+  // Save automation run as artifact for history
+  await supabaseAdmin.from('artifacts').insert({
+    user_id: ctx.userId,
+    name: `Automation: ${name || 'Untitled'}`,
+    type: 'document',
+    description: `Automation run at ${new Date().toISOString()}`,
+    content: `# Automation: ${name}\n\n## Steps\n${results.map((r, i) => `### Step ${i + 1}: ${r.step}\n\`\`\`json\n${JSON.stringify(r, null, 2)}\n\`\`\``).join('\n\n')}\n\n## Final Data\n\`\`\`json\n${JSON.stringify(data, null, 2).slice(0, 3000)}\n\`\`\``,
+    data: [],
+    schema: { columns: [] },
+  });
+
+  return JSON.stringify({
+    success: true,
+    automationName: name,
+    stepsRun: results.length,
+    results,
+    finalData: data,
+    message: `Automation "${name}" completed — ${results.length} steps executed. Results saved to workspace.`,
   });
 }
