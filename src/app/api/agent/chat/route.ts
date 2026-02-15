@@ -377,15 +377,25 @@ export async function POST(req: NextRequest) {
     const userOpenAIKey = provider === 'openai' ? apiKey : undefined;
     const toolCtx: ToolContext = { userId, userOpenAIKey };
 
-    // Try Ultron first (full OpenClaw agent — persistent, no timeout, sub-agents, memory)
-    // Falls back to direct BYOLLM only if Ultron is down
-    const ultronReady = await tryUltron(userId, apiKey, provider, profile, message, sessionKey, history);
-    if (ultronReady) {
+    // Check if Ultron agent is already running (fast status check, no spawn)
+    let ultronRunning = false;
+    try {
+      const statusRes = await fetch(`${ULTRON_URL}/api/agent/status/${userId}`, {
+        headers: { Authorization: `Bearer ${ULTRON_API_SECRET}` },
+        signal: AbortSignal.timeout(3000),
+      });
+      const statusData = await statusRes.json();
+      ultronRunning = statusData.running === true;
+    } catch {}
+
+    if (ultronRunning) {
+      // Agent is warm — stream directly, full 55s for the response
       return streamFromUltron(userId, message, sessionKey, history, supabase);
     }
 
-    // Fallback: Direct BYOLLM with tool calling (60s timeout limited)
-    console.log(`[chat] Ultron unavailable for ${userId}, falling back to direct BYOLLM`);
+    // Agent not running — spawn in background for NEXT request, use BYOLLM now
+    tryUltron(userId, apiKey, provider, profile, message, sessionKey, history).catch(() => {});
+    console.log(`[chat] Spawning Ultron agent for ${userId} in background, using BYOLLM for this request`);
     return streamDirectBYOLLM(provider, apiKey, messages, toolCtx, supabase, userId, sessionKey);
 
   } catch (error: any) {
