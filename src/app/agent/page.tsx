@@ -618,6 +618,24 @@ export default function AgentPage() {
             ...(onboardingDiscord.trim() ? { discord_username: onboardingDiscord.trim() } : {}),
           }),
         });
+
+        // Save API key if provided
+        if (onboardingApiKey.trim()) {
+          try {
+            await fetch('/api/keys', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                provider: onboardingProvider,
+                key: onboardingApiKey.trim(),
+              }),
+            });
+            setHasApiKey(true);
+          } catch {}
+        }
       } catch {}
     }
 
@@ -869,6 +887,8 @@ export default function AgentPage() {
             <Link href="/settings/automations" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Automations</Link>
             <Link href="/settings/models" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Models</Link>
             <Link href="/settings/keys" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>API Keys</Link>
+            <Link href="/settings/memory" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Memory</Link>
+            <Link href="/settings/account" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Account</Link>
           </div>
         </div>
       </nav>
@@ -1329,6 +1349,7 @@ export default function AgentPage() {
                         onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(6,182,212,0.3)'}
                         onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
                       />
+                      <p className="text-[10px] mt-2" style={{ color: '#5a5a6e' }}>After setup, message @PulsedAI_bot on Telegram with /verify to connect your account.</p>
                     </div>
 
                     {/* Discord Card */}
@@ -1498,6 +1519,8 @@ export default function AgentPage() {
                   { label: 'Models', href: '/settings/models' },
                   { label: 'Integrations', href: '/settings/integrations' },
                   { label: 'Automations', href: '/settings/automations' },
+                  { label: 'Memory', href: '/settings/memory' },
+                  { label: 'Account', href: '/settings/account' },
                 ].map(item => (
                   <Link key={item.label} href={item.href}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-white/[0.04]"
