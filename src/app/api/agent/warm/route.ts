@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const apiKey = decrypt(keys[0].encrypted_key);
     const provider = keys[0].provider;
 
-    const profileRes = await supabase.from('profiles').select('full_name, role, industry, current_focus, plan').eq('id', userId).single();
+    const profileRes = await supabase.from('profiles').select('full_name, role, industry, current_focus, plan, telegram_chat_id').eq('id', userId).single();
     const profile = profileRes.data as any;
 
     const spawnRes = await fetch(`${ULTRON_URL}/api/agent/spawn`, {
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         userId, apiKey, provider,
         userContext: { name: profile?.full_name, role: profile?.role, industry: profile?.industry, currentFocus: profile?.current_focus, plan: profile?.plan },
+        telegramChatId: profile?.telegram_chat_id,
       }),
       signal: AbortSignal.timeout(30000),
     });

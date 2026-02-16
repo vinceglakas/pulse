@@ -293,7 +293,7 @@ export async function POST(req: NextRequest) {
     // Load API key + profile + memory
     const [keysRes, profileRes, memoryRes] = await Promise.all([
       supabase.from('api_keys' as any).select('id, provider, encrypted_key').eq('user_id', userId),
-      supabase.from('profiles').select('full_name, role, industry, current_focus, plan, brain_model, worker_model, subagent_model, heartbeat_model, fallback_models').eq('id', userId).single(),
+      supabase.from('profiles').select('full_name, role, industry, current_focus, plan, brain_model, worker_model, subagent_model, heartbeat_model, fallback_models, telegram_chat_id').eq('id', userId).single(),
       supabase.from('user_memory' as any).select('content, category').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
     ]);
 
@@ -465,6 +465,7 @@ async function tryUltron(userId: string, apiKey: string, provider: string, profi
           currentFocus: profile?.current_focus,
           plan: profile?.plan,
         },
+        telegramChatId: profile?.telegram_chat_id,
       }),
       signal: AbortSignal.timeout(8000), // 8s max for spawn (leave room for response within 60s Vercel limit)
     });

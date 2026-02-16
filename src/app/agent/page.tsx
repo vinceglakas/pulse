@@ -866,8 +866,9 @@ export default function AgentPage() {
           <div className="flex items-center gap-6">
             <span className="text-sm font-semibold" style={{ color: '#22d3ee' }}>Agent</span>
             <Link href="/settings/integrations" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Integrations</Link>
+            <Link href="/settings/automations" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Automations</Link>
             <Link href="/settings/models" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Models</Link>
-            <Link href="/settings/integrations" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>Integrations</Link>
+            <Link href="/settings/keys" className="text-sm transition-colors" style={{ color: '#8b8b9e' }} onMouseEnter={(e) => e.currentTarget.style.color = '#f0f0f5'} onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b9e'}>API Keys</Link>
           </div>
         </div>
       </nav>
@@ -1496,6 +1497,7 @@ export default function AgentPage() {
                   { label: 'Settings', href: '/settings/keys' },
                   { label: 'Models', href: '/settings/models' },
                   { label: 'Integrations', href: '/settings/integrations' },
+                  { label: 'Automations', href: '/settings/automations' },
                 ].map(item => (
                   <Link key={item.label} href={item.href}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-white/[0.04]"
