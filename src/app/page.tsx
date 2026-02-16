@@ -37,11 +37,18 @@ export default function Home() {
         @media (min-width: 641px) {
           .show-mobile { display: none !important; }
         }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.85); }
+        }
       `}</style>
       {/* Nav */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(10,10,15,0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Pulsed</span>
+          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22d3ee', boxShadow: '0 0 8px #22d3ee, 0 0 16px rgba(34,211,238,0.4)', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+            Pulsed
+          </span>
           {/* Desktop nav */}
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }} className="hidden-mobile">
             <Link href="/pricing" style={{ color: '#8b8b9e', fontSize: 14, textDecoration: 'none' }}>Pricing</Link>
@@ -49,7 +56,7 @@ export default function Home() {
             <Link href="/signup" style={{ background: '#f0f0f5', color: '#0a0a0f', fontSize: 14, fontWeight: 600, padding: '8px 20px', borderRadius: 8, textDecoration: 'none' }}>Get Started</Link>
           </div>
           {/* Mobile hamburger */}
-          <button onClick={() => setMobileMenu(!mobileMenu)} className="show-mobile" style={{ background: 'none', border: 'none', color: '#f0f0f5', fontSize: 24, cursor: 'pointer', display: 'none' }}>
+          <button onClick={() => setMobileMenu(!mobileMenu)} className="show-mobile" style={{ background: 'none', border: 'none', color: '#f0f0f5', fontSize: 24, cursor: 'pointer' }}>
             {mobileMenu ? '\u2715' : '\u2630'}
           </button>
         </div>
